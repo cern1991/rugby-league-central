@@ -6,18 +6,21 @@ interface User {
   email: string;
   twoFactorEnabled: boolean;
   subscriptionStatus: string;
+  favoriteTeams: string[];
+  themePreference: string;
 }
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<{ requiresTwoFactor?: boolean; userId?: string }>;
-  register: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string) => Promise<{ isNewUser: boolean }>;
   logout: () => Promise<void>;
   verify2FA: (userId: string, token: string) => Promise<void>;
   setup2FA: () => Promise<{ secret: string; qrCode: string }>;
   enable2FA: (token: string) => Promise<void>;
   refreshUser: () => Promise<void>;
+  updatePreferences: (favoriteTeams: string[], themePreference: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -64,7 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const userData = await res.json();
     setUser(userData);
-    setLocation("/");
+    return { isNewUser: true };
   };
 
   const login = async (email: string, password: string) => {
@@ -151,6 +154,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await refreshUser();
   };
 
+  const updatePreferences = async (favoriteTeams: string[], themePreference: string) => {
+    const res = await fetch("/api/auth/preferences", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ favoriteTeams, themePreference }),
+    });
+
+    if (!res.ok) {
+      const error = await res.json();
+      throw new Error(error.message || "Failed to update preferences");
+    }
+
+    const userData = await res.json();
+    setUser(userData);
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -163,6 +183,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setup2FA,
         enable2FA,
         refreshUser,
+        updatePreferences,
       }}
     >
       {children}

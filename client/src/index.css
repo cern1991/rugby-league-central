@@ -49,12 +49,13 @@
   --radius: 0.5rem;
 }
 
-:root {
+:root,
+[data-theme="default"] {
   /* Default to Dark Mode vibes for Sports App */
   --background: 222 47% 11%;
   --foreground: 210 40% 98%;
 
-  --card: 222 47% 14%; /* Slightly lighter than bg */
+  --card: 222 47% 14%;
   --card-foreground: 210 40% 98%;
 
   --popover: 222 47% 11%;
@@ -84,6 +85,104 @@
   --chart-3: 30 80% 55%;
   --chart-4: 280 65% 60%;
   --chart-5: 340 75% 55%;
+}
+
+/* Team Themes - Tasteful accent colors while keeping dark mode */
+
+/* Penrith Panthers - Pink/Black */
+[data-theme="penrith-panthers"] {
+  --primary: 330 80% 55%;
+  --primary-foreground: 0 0% 100%;
+  --ring: 330 60% 70%;
+  --chart-1: 330 80% 55%;
+}
+
+/* Brisbane Broncos - Maroon/Gold */
+[data-theme="brisbane-broncos"] {
+  --primary: 45 90% 50%;
+  --primary-foreground: 0 80% 25%;
+  --ring: 45 70% 60%;
+  --chart-1: 45 90% 50%;
+}
+
+/* Melbourne Storm - Purple/Gold */
+[data-theme="melbourne-storm"] {
+  --primary: 270 60% 50%;
+  --primary-foreground: 0 0% 100%;
+  --ring: 270 50% 65%;
+  --chart-1: 270 60% 50%;
+}
+
+/* Sydney Roosters - Red/Blue */
+[data-theme="sydney-roosters"] {
+  --primary: 0 75% 50%;
+  --primary-foreground: 0 0% 100%;
+  --ring: 0 60% 60%;
+  --chart-1: 0 75% 50%;
+}
+
+/* Wigan Warriors - Cherry/White */
+[data-theme="wigan-warriors"] {
+  --primary: 350 75% 45%;
+  --primary-foreground: 0 0% 100%;
+  --ring: 350 60% 60%;
+  --chart-1: 350 75% 45%;
+}
+
+/* St Helens - Red/White */
+[data-theme="st-helens"] {
+  --primary: 5 80% 50%;
+  --primary-foreground: 0 0% 100%;
+  --ring: 5 65% 60%;
+  --chart-1: 5 80% 50%;
+}
+
+/* New South Wales Blues - Sky Blue */
+[data-theme="new-south-wales"] {
+  --primary: 200 85% 55%;
+  --primary-foreground: 200 90% 15%;
+  --ring: 200 70% 65%;
+  --chart-1: 200 85% 55%;
+}
+
+/* Queensland Maroons - Maroon */
+[data-theme="queensland"] {
+  --primary: 350 70% 35%;
+  --primary-foreground: 0 0% 100%;
+  --ring: 350 55% 50%;
+  --chart-1: 350 70% 35%;
+}
+
+/* Australia Kangaroos - Green/Gold */
+[data-theme="australia"] {
+  --primary: 140 60% 40%;
+  --primary-foreground: 45 100% 50%;
+  --ring: 140 50% 55%;
+  --chart-1: 140 60% 40%;
+}
+
+/* New Zealand Kiwis - Black/White */
+[data-theme="new-zealand"] {
+  --primary: 0 0% 20%;
+  --primary-foreground: 0 0% 100%;
+  --ring: 0 0% 40%;
+  --chart-1: 0 0% 30%;
+}
+
+/* Catalans Dragons - Red/Yellow */
+[data-theme="catalans-dragons"] {
+  --primary: 45 95% 50%;
+  --primary-foreground: 0 85% 40%;
+  --ring: 45 80% 60%;
+  --chart-1: 45 95% 50%;
+}
+
+/* Leeds Rhinos - Blue/Amber */
+[data-theme="leeds-rhinos"] {
+  --primary: 40 90% 50%;
+  --primary-foreground: 220 80% 25%;
+  --ring: 40 75% 60%;
+  --chart-1: 40 90% 50%;
 }
 
 /* Force dark mode styles by default since we edited root */

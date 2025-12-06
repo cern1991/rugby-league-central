@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { registerUserSchema } from "@shared/schema";
+import { registerUserSchema, updateUserPreferencesSchema } from "@shared/schema";
 import bcrypt from "bcrypt";
 import passport from "./auth";
 import { authenticator } from "otplib";
@@ -18,6 +18,8 @@ declare global {
       twoFactorEnabled: boolean;
       subscriptionStatus: string;
       subscriptionId: string | null;
+      favoriteTeams: string[] | null;
+      themePreference: string | null;
       createdAt: Date;
     }
   }
@@ -218,7 +220,37 @@ export async function registerRoutes(
       email: user.email,
       twoFactorEnabled: user.twoFactorEnabled,
       subscriptionStatus: user.subscriptionStatus,
+      favoriteTeams: user.favoriteTeams || [],
+      themePreference: user.themePreference || 'default',
     });
+  });
+
+  // Update user preferences (favorite teams and theme)
+  app.put("/api/auth/preferences", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const validatedData = updateUserPreferencesSchema.parse(req.body);
+      
+      const updatedUser = await storage.updateUser(user.id, {
+        favoriteTeams: validatedData.favoriteTeams,
+        themePreference: validatedData.themePreference,
+      });
+
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      res.json({
+        id: updatedUser.id,
+        email: updatedUser.email,
+        twoFactorEnabled: updatedUser.twoFactorEnabled,
+        subscriptionStatus: updatedUser.subscriptionStatus,
+        favoriteTeams: updatedUser.favoriteTeams || [],
+        themePreference: updatedUser.themePreference || 'default',
+      });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Failed to update preferences" });
+    }
   });
 
   // Logout

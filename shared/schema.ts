@@ -11,6 +11,8 @@ export const users = pgTable("users", {
   twoFactorEnabled: boolean("two_factor_enabled").notNull().default(false),
   subscriptionStatus: varchar("subscription_status", { length: 50 }).notNull().default('free'),
   subscriptionId: text("subscription_id"),
+  favoriteTeams: text("favorite_teams").array().default(sql`'{}'::text[]`),
+  themePreference: varchar("theme_preference", { length: 50 }).default('default'),
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
 });
 
@@ -26,8 +28,17 @@ export const insertUserSchema = createInsertSchema(users).omit({
   twoFactorEnabled: true,
   subscriptionStatus: true,
   subscriptionId: true,
+  favoriteTeams: true,
+  themePreference: true,
   createdAt: true,
 });
+
+export const updateUserPreferencesSchema = z.object({
+  favoriteTeams: z.array(z.string()).optional(),
+  themePreference: z.string().optional(),
+});
+
+export type UpdateUserPreferences = z.infer<typeof updateUserPreferencesSchema>;
 
 export const registerUserSchema = z.object({
   email: z.string().email(),
