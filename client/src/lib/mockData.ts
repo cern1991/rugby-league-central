@@ -11,9 +11,9 @@ export interface Team {
 
 export interface Game {
   id: string;
-  sport: "Basketball" | "Football" | "Soccer" | "Baseball";
+  league: "NRL" | "Super League" | "State of Origin" | "International";
   status: GameStatus;
-  time: string; // e.g., "Q4 2:30", "Final", "Today 7:00 PM"
+  time: string; // e.g., "H2 15:00", "Final", "Today 7:00 PM"
   homeTeam: Team;
   awayTeam: Team;
   isHot?: boolean;
@@ -31,78 +31,78 @@ export interface NewsItem {
 export const MOCK_GAMES: Game[] = [
   {
     id: "1",
-    sport: "Basketball",
+    league: "NRL",
     status: "Live",
-    time: "Q4 4:12",
+    time: "H2 15:32",
     isHot: true,
-    homeTeam: { name: "Los Angeles Lakers", abbreviation: "LAL", logoColor: "bg-purple-600", score: 108 },
-    awayTeam: { name: "Golden State Warriors", abbreviation: "GSW", logoColor: "bg-yellow-500", score: 105 },
+    homeTeam: { name: "Penrith Panthers", abbreviation: "PEN", logoColor: "bg-neutral-900 border border-pink-500 text-pink-500", score: 18 },
+    awayTeam: { name: "Brisbane Broncos", abbreviation: "BRI", logoColor: "bg-yellow-900 border border-yellow-500 text-yellow-400", score: 12 },
   },
   {
     id: "2",
-    sport: "Soccer",
+    league: "Super League",
     status: "Live",
-    time: "72'",
-    homeTeam: { name: "Manchester City", abbreviation: "MCI", logoColor: "bg-sky-400", score: 2 },
-    awayTeam: { name: "Liverpool", abbreviation: "LIV", logoColor: "bg-red-600", score: 2 },
+    time: "H1 32:00",
+    homeTeam: { name: "Wigan Warriors", abbreviation: "WIG", logoColor: "bg-red-700 text-white", score: 6 },
+    awayTeam: { name: "St Helens", abbreviation: "STH", logoColor: "bg-white border border-red-600 text-red-600", score: 4 },
   },
   {
     id: "3",
-    sport: "Football",
+    league: "NRL",
     status: "Upcoming",
-    time: "Today 8:15 PM",
-    homeTeam: { name: "Kansas City Chiefs", abbreviation: "KC", logoColor: "bg-red-600" },
-    awayTeam: { name: "Baltimore Ravens", abbreviation: "BAL", logoColor: "bg-violet-800" },
+    time: "Today 7:50 PM",
+    homeTeam: { name: "Melbourne Storm", abbreviation: "MEL", logoColor: "bg-purple-800 text-yellow-400" },
+    awayTeam: { name: "Sydney Roosters", abbreviation: "SYD", logoColor: "bg-blue-900 border border-red-600 text-white" },
   },
   {
     id: "4",
-    sport: "Basketball",
+    league: "International",
     status: "Final",
     time: "Final",
-    homeTeam: { name: "Boston Celtics", abbreviation: "BOS", logoColor: "bg-green-600", score: 112 },
-    awayTeam: { name: "Miami Heat", abbreviation: "MIA", logoColor: "bg-red-500", score: 101 },
+    homeTeam: { name: "Australia", abbreviation: "AUS", logoColor: "bg-green-700 text-yellow-400", score: 30 },
+    awayTeam: { name: "New Zealand", abbreviation: "NZL", logoColor: "bg-black border border-white text-white", score: 10 },
   },
   {
     id: "5",
-    sport: "Soccer",
-    status: "Final",
-    time: "Final",
-    homeTeam: { name: "Real Madrid", abbreviation: "RMA", logoColor: "bg-neutral-100 text-black", score: 3 },
-    awayTeam: { name: "Barcelona", abbreviation: "BAR", logoColor: "bg-blue-700", score: 1 },
+    league: "State of Origin",
+    status: "Upcoming",
+    time: "Wed 8:05 PM",
+    homeTeam: { name: "New South Wales", abbreviation: "NSW", logoColor: "bg-sky-600 text-white" },
+    awayTeam: { name: "Queensland", abbreviation: "QLD", logoColor: "bg-red-800 text-white" },
   },
 ];
 
 export const MOCK_NEWS: NewsItem[] = [
   {
     id: "1",
-    title: "Star Player Breaks Season Scoring Record in Thrilling Overtime Victory",
-    summary: "In a game for the ages, the veteran guard dropped 52 points to secure a crucial playoff seed.",
-    category: "Basketball",
-    timestamp: "2 hours ago",
-    imageUrl: "https://images.unsplash.com/photo-1546519638-68e109498ffc?auto=format&fit=crop&q=80&w=1000",
+    title: "Cleary Masterclass: Panthers Halfback Dominates in Return",
+    summary: "Nathan Cleary showed no signs of rust as he guided the defending premiers to a crucial victory over their rivals.",
+    category: "NRL",
+    timestamp: "1 hour ago",
+    imageUrl: "https://images.unsplash.com/photo-1599583238647-75059eb77508?auto=format&fit=crop&q=80&w=1000",
   },
   {
     id: "2",
-    title: "Transfer Deadline Day: Top 5 Signings to Watch",
-    summary: "As the window closes, clubs are scrambling to finalize deals. Here are the biggest moves happening right now.",
-    category: "Soccer",
-    timestamp: "4 hours ago",
-    imageUrl: "https://images.unsplash.com/photo-1522778119026-d647f0565c71?auto=format&fit=crop&q=80&w=1000",
+    title: "World Club Challenge: Super League Champions Ready for Showdown",
+    summary: "The stage is set for a massive clash between the hemispheres' best as Wigan prepares to host the NRL premiers.",
+    category: "Super League",
+    timestamp: "3 hours ago",
+    imageUrl: "https://images.unsplash.com/photo-1518063319789-7217e6706b04?auto=format&fit=crop&q=80&w=1000",
   },
   {
     id: "3",
-    title: "Championship Sunday: Previewing the Big Matchup",
-    summary: "Two defensive powerhouses collide this weekend. We break down the key stats and player matchups.",
-    category: "Football",
-    timestamp: "6 hours ago",
-    imageUrl: "https://images.unsplash.com/photo-1566577739112-5180d4bf9390?auto=format&fit=crop&q=80&w=1000",
+    title: "State of Origin: Team Lists Announced for Game I",
+    summary: "Shock selections and big omissions headline the team announcements for the series opener.",
+    category: "State of Origin",
+    timestamp: "5 hours ago",
+    imageUrl: "https://images.unsplash.com/photo-1628891890463-8588041068aa?auto=format&fit=crop&q=80&w=1000",
   },
   {
     id: "4",
-    title: "New League Rules Announced for Next Season",
-    summary: "Officials have confirmed changes to overtime rules and roster limits starting next year.",
-    category: "General",
-    timestamp: "12 hours ago",
-    imageUrl: "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?auto=format&fit=crop&q=80&w=1000",
+    title: "Transfer Market: Star Fullback Signs Huge Extension",
+    summary: "One of the game's most electrifying talents has committed his future to the club with a new 5-year deal.",
+    category: "NRL",
+    timestamp: "10 hours ago",
+    imageUrl: "https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?auto=format&fit=crop&q=80&w=1000",
   },
 ];

@@ -7,11 +7,11 @@ import { cn } from "@/lib/utils";
 
 export default function Home() {
   const [activeFilter, setActiveFilter] = useState("All");
-  const filters = ["All", "Basketball", "Soccer", "Football"];
+  const filters = ["All", "NRL", "Super League", "State of Origin", "International"];
 
   const filteredGames = activeFilter === "All" 
     ? MOCK_GAMES 
-    : MOCK_GAMES.filter(g => g.sport === activeFilter);
+    : MOCK_GAMES.filter(g => g.league === activeFilter);
 
   return (
     <Layout>
@@ -20,14 +20,14 @@ export default function Home() {
         {/* Scores Section */}
         <section className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-display font-bold tracking-tight">Live Scores</h2>
-            <div className="flex gap-1 bg-muted/50 p-1 rounded-lg">
+            <h2 className="text-2xl font-display font-bold tracking-tight">Match Center</h2>
+            <div className="flex gap-1 bg-muted/50 p-1 rounded-lg overflow-x-auto">
                 {filters.map(filter => (
                     <button
                         key={filter}
                         onClick={() => setActiveFilter(filter)}
                         className={cn(
-                            "px-3 py-1 text-xs font-medium rounded-md transition-all",
+                            "px-3 py-1 text-xs font-medium rounded-md transition-all whitespace-nowrap",
                             activeFilter === filter 
                                 ? "bg-background text-foreground shadow-sm" 
                                 : "text-muted-foreground hover:text-foreground"
@@ -49,7 +49,7 @@ export default function Home() {
         {/* News Section */}
         <section className="space-y-4">
            <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-display font-bold tracking-tight">Trending News</h2>
+            <h2 className="text-2xl font-display font-bold tracking-tight">League News</h2>
             <button className="text-sm text-primary hover:underline font-medium">View All</button>
           </div>
 
