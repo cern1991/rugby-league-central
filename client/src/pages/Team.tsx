@@ -116,14 +116,15 @@ export default function TeamPage() {
   const team = teamData?.response?.[0];
   const games = gamesData?.response || [];
 
-  const sortedGames = [...games].sort((a, b) => a.timestamp - b.timestamp);
-  const pastGames = sortedGames.filter(g => g.status.short === "FT" || g.status.short === "AET");
-  const upcomingGames = sortedGames.filter(g => g.status.short === "NS" || g.status.short === "TBD");
+  const validGames = games.filter(g => g && g.teams?.home && g.teams?.away && g.status && g.scores);
+  const sortedGames = [...validGames].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+  const pastGames = sortedGames.filter(g => g.status?.short === "FT" || g.status?.short === "AET");
+  const upcomingGames = sortedGames.filter(g => g.status?.short === "NS" || g.status?.short === "TBD");
   const liveGames = sortedGames.filter(g => 
-    g.status.short !== "FT" && 
-    g.status.short !== "AET" && 
-    g.status.short !== "NS" && 
-    g.status.short !== "TBD"
+    g.status?.short !== "FT" && 
+    g.status?.short !== "AET" && 
+    g.status?.short !== "NS" && 
+    g.status?.short !== "TBD"
   );
 
   if (teamLoading) {
