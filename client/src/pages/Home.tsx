@@ -1,6 +1,7 @@
 import { Layout } from "@/components/Layout";
 import { ScoreCard } from "@/components/ScoreCard";
 import { NewsCard } from "@/components/NewsCard";
+import { TeamSearch } from "@/components/TeamSearch";
 import { MOCK_GAMES, MOCK_NEWS, LEAGUES, LeagueType } from "@/lib/mockData";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -107,6 +108,11 @@ export default function Home() {
             </button>
           )}
         </div>
+
+        {/* Team Search Section */}
+        <section className="bg-card/50 rounded-xl p-4 border border-border">
+          <TeamSearch />
+        </section>
 
         {/* Live Games Section */}
         {liveGames.length > 0 && (

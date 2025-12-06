@@ -282,5 +282,122 @@ export async function registerRoutes(
     });
   });
 
+  // Rugby API proxy routes
+  const RUGBY_API_BASE = "https://v1.rugby.api-sports.io";
+  const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY;
+
+  async function fetchRugbyAPI(endpoint: string, params: Record<string, string> = {}) {
+    if (!RAPIDAPI_KEY) {
+      throw new Error("Rugby API key not configured. Please set RAPIDAPI_KEY.");
+    }
+
+    const url = new URL(`${RUGBY_API_BASE}${endpoint}`);
+    Object.entries(params).forEach(([key, value]) => {
+      if (value) url.searchParams.append(key, value);
+    });
+
+    const response = await fetch(url.toString(), {
+      headers: {
+        "x-apisports-key": RAPIDAPI_KEY,
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => "Unknown error");
+      console.error(`Rugby API error: ${response.status} - ${errorText}`);
+      throw new Error(`Rugby API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    if (data.errors && Object.keys(data.errors).length > 0) {
+      console.error("Rugby API returned errors:", data.errors);
+      throw new Error(`Rugby API error: ${JSON.stringify(data.errors)}`);
+    }
+
+    return data;
+  }
+
+  // Get all leagues
+  app.get("/api/rugby/leagues", async (req, res) => {
+    try {
+      const data = await fetchRugbyAPI("/leagues");
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to fetch leagues" });
+    }
+  });
+
+  // Get teams by league
+  app.get("/api/rugby/teams", async (req, res) => {
+    try {
+      const { league, season } = req.query as { league?: string; season?: string };
+      const data = await fetchRugbyAPI("/teams", { league: league || "", season: season || "2025" });
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to fetch teams" });
+    }
+  });
+
+  // Get team by ID
+  app.get("/api/rugby/team/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const data = await fetchRugbyAPI("/teams", { id });
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to fetch team" });
+    }
+  });
+
+  // Get games for a team
+  app.get("/api/rugby/team/:id/games", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { season, league } = req.query as { season?: string; league?: string };
+      const data = await fetchRugbyAPI("/games", { 
+        team: id, 
+        season: season || "2025",
+        league: league || ""
+      });
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to fetch team games" });
+    }
+  });
+
+  // Get game details
+  app.get("/api/rugby/game/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const data = await fetchRugbyAPI("/games", { id });
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to fetch game" });
+    }
+  });
+
+  // Get standings
+  app.get("/api/rugby/standings", async (req, res) => {
+    try {
+      const { league, season } = req.query as { league?: string; season?: string };
+      const data = await fetchRugbyAPI("/standings", { league: league || "", season: season || "2025" });
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to fetch standings" });
+    }
+  });
+
+  // Search teams by name
+  app.get("/api/rugby/teams/search", async (req, res) => {
+    try {
+      const { name } = req.query as { name?: string };
+      const data = await fetchRugbyAPI("/teams", { search: name || "" });
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to search teams" });
+    }
+  });
+
   return httpServer;
 }

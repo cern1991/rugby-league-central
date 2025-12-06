@@ -10,6 +10,7 @@ import { TeamSelection } from "@/components/TeamSelection";
 import { useState, useEffect } from "react";
 import Home from "@/pages/Home";
 import MatchDetail from "@/pages/MatchDetail";
+import TeamPage from "@/pages/Team";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import TwoFactorVerify from "@/pages/TwoFactorVerify";
@@ -22,6 +23,7 @@ function Router() {
     <Switch>
       <Route path="/" component={HomeWithWelcome} />
       <Route path="/match/:id" component={MatchDetail} />
+      <Route path="/team/:id" component={TeamPage} />
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
       <Route path="/verify-2fa" component={TwoFactorVerify} />
