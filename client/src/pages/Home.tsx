@@ -8,14 +8,14 @@ import {
   Trophy, 
   ChevronRight, 
   Filter, 
-  Globe, 
   Zap,
   Calendar,
   TrendingUp,
   X,
   Clock,
   CheckCircle,
-  ChevronDown
+  Newspaper,
+  ExternalLink
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 
@@ -40,18 +40,23 @@ interface Game {
   scores: { home: number | null; away: number | null };
 }
 
+interface NewsItem {
+  title: string;
+  link: string;
+  pubDate: string;
+  source: string;
+}
+
 const FEATURED_LEAGUES = [
-  { id: "Australian National Rugby League", name: "NRL", shortName: "NRL", country: "Australia", color: "from-green-600 to-green-800", icon: "🦘" },
+  { id: "NRL", name: "NRL", shortName: "NRL", country: "Australia", color: "from-green-600 to-green-800", icon: "🦘" },
   { id: "Super League", name: "Super League", shortName: "Super League", country: "England", color: "from-red-600 to-red-800", icon: "🏴󠁧󠁢󠁥󠁮󠁧󠁿" },
-  { id: "RFL Championship", name: "Championship", shortName: "Championship", country: "England", color: "from-orange-600 to-orange-800", icon: "🏆" },
+  { id: "Championship", name: "Championship", shortName: "Championship", country: "England", color: "from-orange-600 to-orange-800", icon: "🏆" },
 ];
 
-const POPULAR_TEAM_IDS = ["134778", "134779", "134780", "134781", "134782"];
-
 export default function Home() {
-  const [selectedLeague, setSelectedLeague] = useState<string>("Australian National Rugby League");
+  const [selectedLeague, setSelectedLeague] = useState<string>("NRL");
   const [showFilters, setShowFilters] = useState(false);
-  const [activeTab, setActiveTab] = useState<"teams" | "fixtures">("teams");
+  const [activeTab, setActiveTab] = useState<"teams" | "fixtures" | "news">("teams");
 
   const { data: teamsData, isLoading: teamsLoading } = useQuery<{ response: Team[] }>({
     queryKey: ["teams", selectedLeague],
@@ -62,41 +67,30 @@ export default function Home() {
     },
   });
 
-  const teamIds = (teamsData?.response || []).slice(0, 5).map(t => t.id);
-  
   const { data: gamesData, isLoading: gamesLoading } = useQuery<{ response: Game[] }>({
-    queryKey: ["league-games", selectedLeague, teamIds.join(",")],
+    queryKey: ["fixtures", selectedLeague],
     queryFn: async () => {
-      const allGames: Game[] = [];
-      const seenIds = new Set<string>();
-      
-      for (const teamId of teamIds) {
-        try {
-          const res = await fetch(`/api/rugby/team/${teamId}/games`);
-          if (res.ok) {
-            const data = await res.json();
-            for (const game of data.response || []) {
-              if (!seenIds.has(game.id)) {
-                seenIds.add(game.id);
-                allGames.push(game);
-              }
-            }
-          }
-        } catch (e) {
-          console.error(`Failed to fetch games for team ${teamId}:`, e);
-        }
-      }
-      
-      return { response: allGames };
+      const res = await fetch(`/api/rugby/fixtures?league=${encodeURIComponent(selectedLeague)}`);
+      if (!res.ok) throw new Error("Failed to fetch fixtures");
+      return res.json();
     },
-    enabled: teamIds.length > 0,
+  });
+
+  const { data: newsData, isLoading: newsLoading } = useQuery<{ response: NewsItem[] }>({
+    queryKey: ["news", selectedLeague],
+    queryFn: async () => {
+      const res = await fetch(`/api/rugby/news?league=${encodeURIComponent(selectedLeague)}`);
+      if (!res.ok) throw new Error("Failed to fetch news");
+      return res.json();
+    },
   });
 
   const teams = teamsData?.response || [];
   const games = gamesData?.response || [];
+  const news = newsData?.response || [];
   
-  const upcomingGames = games.filter(g => g.status.short === "NS" || g.status.short === "TBD").slice(0, 5);
-  const completedGames = games.filter(g => g.status.short === "FT" || g.status.short === "AET").slice(0, 5);
+  const upcomingGames = games.filter(g => g.status.short === "NS" || g.status.short === "TBD").slice(0, 10);
+  const completedGames = games.filter(g => g.status.short === "FT" || g.status.short === "AET").slice(0, 10);
   const liveGames = games.filter(g => g.status.short !== "FT" && g.status.short !== "AET" && g.status.short !== "NS" && g.status.short !== "TBD");
 
   const displayLeagueName = FEATURED_LEAGUES.find(l => l.id === selectedLeague)?.name || selectedLeague;
@@ -248,6 +242,19 @@ export default function Home() {
                 <Calendar className="w-4 h-4" />
                 Fixtures
               </button>
+              <button 
+                onClick={() => setActiveTab("news")}
+                className={cn(
+                  "px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2",
+                  activeTab === "news" 
+                    ? "border-primary text-primary" 
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                )}
+                data-testid="tab-news"
+              >
+                <Newspaper className="w-4 h-4" />
+                News
+              </button>
             </div>
 
             {/* Teams Tab */}
@@ -384,6 +391,71 @@ export default function Home() {
                     <p className="text-sm text-muted-foreground py-4">No recent results found</p>
                   )}
                 </div>
+              </div>
+            )}
+
+            {/* News Tab */}
+            {activeTab === "news" && (
+              <div>
+                <div className="hidden lg:flex items-center justify-between mb-4">
+                  <h2 className="font-display text-xl font-bold flex items-center gap-2">
+                    <Newspaper className="w-5 h-5 text-primary" />
+                    {displayLeagueName} News
+                  </h2>
+                </div>
+
+                {newsLoading ? (
+                  <div className="space-y-4">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <div key={i} className="animate-pulse bg-card border border-border rounded-xl p-4">
+                        <div className="h-5 bg-muted rounded w-3/4 mb-3" />
+                        <div className="h-4 bg-muted rounded w-1/4" />
+                      </div>
+                    ))}
+                  </div>
+                ) : news.length > 0 ? (
+                  <div className="space-y-3">
+                    {news.map((item, index) => (
+                      <a 
+                        key={index} 
+                        href={item.link} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="block"
+                        data-testid={`link-news-${index}`}
+                      >
+                        <div 
+                          className="bg-card border border-border rounded-xl p-4 hover:border-primary/50 hover:shadow-lg transition-all cursor-pointer group"
+                          data-testid={`card-news-${index}`}
+                        >
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-semibold text-sm group-hover:text-primary transition-colors line-clamp-2 mb-2">
+                                {item.title}
+                              </h3>
+                              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                                <span className="font-medium">{item.source}</span>
+                                {item.pubDate && (
+                                  <>
+                                    <span>•</span>
+                                    <span>{item.pubDate}</span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                            <ExternalLink className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0 mt-1" />
+                          </div>
+                        </div>
+                      </a>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12 text-muted-foreground border border-dashed border-border rounded-xl">
+                    <Newspaper className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>No news found for this league</p>
+                    <p className="text-sm mt-2">Check back later for updates</p>
+                  </div>
+                )}
               </div>
             )}
           </div>
