@@ -282,8 +282,8 @@ export async function registerRoutes(
     });
   });
 
-  // Rugby API proxy routes
-  const RUGBY_API_BASE = "https://v1.rugby.api-sports.io";
+  // Rugby API proxy routes (using RapidAPI)
+  const RUGBY_API_BASE = "https://api-rugby.p.rapidapi.com";
   const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY;
 
   async function fetchRugbyAPI(endpoint: string, params: Record<string, string> = {}) {
@@ -299,7 +299,7 @@ export async function registerRoutes(
     const response = await fetch(url.toString(), {
       headers: {
         "x-rapidapi-key": RAPIDAPI_KEY,
-        "x-rapidapi-host": "v1.rugby.api-sports.io",
+        "x-rapidapi-host": "api-rugby.p.rapidapi.com",
       },
     });
 
