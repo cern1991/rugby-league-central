@@ -591,27 +591,53 @@ export async function registerRoutes(
         fetchFromSportsDB(`/eventslast.php?id=${id}`)
       ]);
       
-      const mapEvent = (e: any) => ({
-        id: e.idEvent,
-        date: e.dateEvent,
-        time: e.strTime,
-        homeTeam: {
-          id: e.idHomeTeam,
-          name: e.strHomeTeam,
-          logo: e.strHomeTeamBadge,
-          score: e.intHomeScore,
-        },
-        awayTeam: {
-          id: e.idAwayTeam,
-          name: e.strAwayTeam,
-          logo: e.strAwayTeamBadge,
-          score: e.intAwayScore,
-        },
-        venue: e.strVenue,
-        status: e.strStatus || (e.intHomeScore !== null ? "FT" : null),
-        round: e.intRound,
-        league: { id: e.idLeague, name: e.strLeague },
-      });
+      const mapEvent = (e: any) => {
+        const statusStr = e.strStatus || (e.intHomeScore !== null ? "Match Finished" : "Not Started");
+        const statusShort = statusStr === "Match Finished" ? "FT" : 
+                           statusStr === "Not Started" ? "NS" : 
+                           statusStr === "After Extra Time" ? "AET" : 
+                           statusStr === "Postponed" ? "PST" : statusStr;
+        return {
+          id: e.idEvent,
+          date: e.dateEvent,
+          time: e.strTime,
+          timestamp: e.dateEvent ? new Date(`${e.dateEvent}T${e.strTime || "00:00:00"}`).getTime() : 0,
+          timezone: "UTC",
+          week: e.intRound || "",
+          status: {
+            long: statusStr,
+            short: statusShort,
+          },
+          league: { 
+            id: e.idLeague, 
+            name: e.strLeague,
+            type: "League",
+            logo: null,
+            season: new Date().getFullYear(),
+          },
+          country: {
+            name: e.strCountry || "Unknown",
+            code: "AU",
+            flag: "https://flagcdn.com/w40/au.png",
+          },
+          teams: {
+            home: {
+              id: parseInt(e.idHomeTeam) || 0,
+              name: e.strHomeTeam,
+              logo: e.strHomeTeamBadge,
+            },
+            away: {
+              id: parseInt(e.idAwayTeam) || 0,
+              name: e.strAwayTeam,
+              logo: e.strAwayTeamBadge,
+            },
+          },
+          scores: {
+            home: e.intHomeScore !== null ? parseInt(e.intHomeScore) : null,
+            away: e.intAwayScore !== null ? parseInt(e.intAwayScore) : null,
+          },
+        };
+      };
       
       const events = [
         ...(pastData?.results || []).map(mapEvent),
