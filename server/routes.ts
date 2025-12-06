@@ -282,59 +282,81 @@ export async function registerRoutes(
     });
   });
 
-  // Rugby API proxy routes (using RapidAPI)
-  const RUGBY_API_BASE = "https://api-rugby.p.rapidapi.com";
-  const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY;
+  // TheSportsDB API routes (free, no key required)
+  const SPORTSDB_BASE = "https://www.thesportsdb.com/api/v1/json/3";
 
-  async function fetchRugbyAPI(endpoint: string, params: Record<string, string> = {}) {
-    if (!RAPIDAPI_KEY) {
-      throw new Error("Rugby API key not configured. Please set RAPIDAPI_KEY.");
-    }
-
-    const url = new URL(`${RUGBY_API_BASE}${endpoint}`);
-    Object.entries(params).forEach(([key, value]) => {
-      if (value) url.searchParams.append(key, value);
-    });
-
-    const response = await fetch(url.toString(), {
-      headers: {
-        "x-rapidapi-key": RAPIDAPI_KEY,
-        "x-rapidapi-host": "api-rugby.p.rapidapi.com",
-      },
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => "Unknown error");
-      console.error(`Rugby API error: ${response.status} - ${errorText}`);
-      throw new Error(`Rugby API error: ${response.status}`);
-    }
-
-    const data = await response.json();
+  async function fetchSportsDB(endpoint: string) {
+    const response = await fetch(`${SPORTSDB_BASE}${endpoint}`);
     
-    if (data.errors && Object.keys(data.errors).length > 0) {
-      console.error("Rugby API returned errors:", data.errors);
-      throw new Error(`Rugby API error: ${JSON.stringify(data.errors)}`);
+    if (!response.ok) {
+      throw new Error(`SportsDB API error: ${response.status}`);
     }
 
-    return data;
+    return response.json();
   }
 
-  // Get all leagues
-  app.get("/api/rugby/leagues", async (req, res) => {
+  // Search teams by name
+  app.get("/api/rugby/teams/search", async (req, res) => {
     try {
-      const data = await fetchRugbyAPI("/leagues");
-      res.json(data);
+      const { name } = req.query as { name?: string };
+      if (!name || name.length < 2) {
+        return res.json({ response: [] });
+      }
+      
+      const data = await fetchSportsDB(`/searchteams.php?t=${encodeURIComponent(name)}`);
+      const teams = data.teams || [];
+      
+      const rugbyTeams = teams.filter((team: any) => 
+        team.strSport === "Rugby" || 
+        team.strLeague?.toLowerCase().includes("rugby") ||
+        team.strLeague?.toLowerCase().includes("nrl") ||
+        team.strLeague?.toLowerCase().includes("super league")
+      );
+      
+      const formattedTeams = rugbyTeams.map((team: any) => ({
+        id: team.idTeam,
+        name: team.strTeam,
+        logo: team.strBadge || team.strTeamBadge,
+        country: {
+          name: team.strCountry || "Unknown",
+          code: team.strCountry?.slice(0, 2).toUpperCase() || "",
+          flag: null
+        },
+        league: team.strLeague,
+        stadium: team.strStadium,
+        description: team.strDescriptionEN
+      }));
+      
+      res.json({ response: formattedTeams });
     } catch (error: any) {
-      res.status(500).json({ message: error.message || "Failed to fetch leagues" });
+      console.error("Team search error:", error);
+      res.status(500).json({ message: error.message || "Failed to search teams" });
     }
   });
 
-  // Get teams by league
+  // Get all teams in a league
   app.get("/api/rugby/teams", async (req, res) => {
     try {
-      const { league, season } = req.query as { league?: string; season?: string };
-      const data = await fetchRugbyAPI("/teams", { league: league || "", season: season || "2025" });
-      res.json(data);
+      const { league } = req.query as { league?: string };
+      const leagueName = league || "Australian_National_Rugby_League";
+      
+      const data = await fetchSportsDB(`/search_all_teams.php?l=${encodeURIComponent(leagueName)}`);
+      const teams = data.teams || [];
+      
+      const formattedTeams = teams.map((team: any) => ({
+        id: team.idTeam,
+        name: team.strTeam,
+        logo: team.strBadge || team.strTeamBadge,
+        country: {
+          name: team.strCountry || "Unknown",
+          code: team.strCountry?.slice(0, 2).toUpperCase() || "",
+          flag: null
+        },
+        league: team.strLeague,
+        stadium: team.strStadium
+      }));
+      
+      res.json({ response: formattedTeams });
     } catch (error: any) {
       res.status(500).json({ message: error.message || "Failed to fetch teams" });
     }
@@ -344,59 +366,160 @@ export async function registerRoutes(
   app.get("/api/rugby/team/:id", async (req, res) => {
     try {
       const { id } = req.params;
-      const data = await fetchRugbyAPI("/teams", { id });
-      res.json(data);
+      const data = await fetchSportsDB(`/lookupteam.php?id=${id}`);
+      const teams = data.teams || [];
+      
+      const formattedTeams = teams.map((team: any) => ({
+        id: team.idTeam,
+        name: team.strTeam,
+        logo: team.strBadge || team.strTeamBadge,
+        country: {
+          name: team.strCountry || "Unknown",
+          code: team.strCountry?.slice(0, 2).toUpperCase() || "",
+          flag: null
+        },
+        league: team.strLeague,
+        stadium: team.strStadium,
+        description: team.strDescriptionEN,
+        founded: team.intFormedYear,
+        website: team.strWebsite
+      }));
+      
+      res.json({ response: formattedTeams });
     } catch (error: any) {
       res.status(500).json({ message: error.message || "Failed to fetch team" });
     }
   });
 
-  // Get games for a team
+  // Get upcoming events for a team
   app.get("/api/rugby/team/:id/games", async (req, res) => {
     try {
       const { id } = req.params;
-      const { season, league } = req.query as { season?: string; league?: string };
-      const data = await fetchRugbyAPI("/games", { 
-        team: id, 
-        season: season || "2025",
-        league: league || ""
+      
+      const [nextData, pastData] = await Promise.all([
+        fetchSportsDB(`/eventsnext.php?id=${id}`),
+        fetchSportsDB(`/eventslast.php?id=${id}`)
+      ]);
+      
+      const nextEvents = nextData.events || [];
+      const pastEvents = pastData.results || [];
+      
+      const formatEvent = (event: any, isPast: boolean) => ({
+        id: event.idEvent,
+        date: event.dateEvent,
+        time: event.strTime || "TBD",
+        timestamp: new Date(`${event.dateEvent} ${event.strTime || "00:00"}`).getTime() / 1000,
+        timezone: event.strTimestamp || "",
+        week: event.intRound || "",
+        status: {
+          long: isPast ? "Match Finished" : "Not Started",
+          short: isPast ? "FT" : "NS"
+        },
+        league: {
+          id: event.idLeague,
+          name: event.strLeague,
+          type: "League",
+          logo: null,
+          season: event.strSeason
+        },
+        country: {
+          name: event.strCountry || "",
+          code: "",
+          flag: null
+        },
+        teams: {
+          home: {
+            id: event.idHomeTeam,
+            name: event.strHomeTeam,
+            logo: event.strHomeTeamBadge || null
+          },
+          away: {
+            id: event.idAwayTeam,
+            name: event.strAwayTeam,
+            logo: event.strAwayTeamBadge || null
+          }
+        },
+        scores: {
+          home: event.intHomeScore ? parseInt(event.intHomeScore) : null,
+          away: event.intAwayScore ? parseInt(event.intAwayScore) : null
+        }
       });
-      res.json(data);
+      
+      const allGames = [
+        ...pastEvents.map((e: any) => formatEvent(e, true)),
+        ...nextEvents.map((e: any) => formatEvent(e, false))
+      ];
+      
+      res.json({ response: allGames });
     } catch (error: any) {
       res.status(500).json({ message: error.message || "Failed to fetch team games" });
     }
   });
 
-  // Get game details
+  // Get event/game details
   app.get("/api/rugby/game/:id", async (req, res) => {
     try {
       const { id } = req.params;
-      const data = await fetchRugbyAPI("/games", { id });
-      res.json(data);
+      const data = await fetchSportsDB(`/lookupevent.php?id=${id}`);
+      const events = data.events || [];
+      
+      const formattedEvents = events.map((event: any) => ({
+        id: event.idEvent,
+        date: event.dateEvent,
+        time: event.strTime,
+        venue: event.strVenue,
+        league: event.strLeague,
+        season: event.strSeason,
+        homeTeam: {
+          id: event.idHomeTeam,
+          name: event.strHomeTeam,
+          logo: event.strHomeTeamBadge,
+          score: event.intHomeScore ? parseInt(event.intHomeScore) : null
+        },
+        awayTeam: {
+          id: event.idAwayTeam,
+          name: event.strAwayTeam,
+          logo: event.strAwayTeamBadge,
+          score: event.intAwayScore ? parseInt(event.intAwayScore) : null
+        },
+        status: event.strStatus || (event.intHomeScore ? "Match Finished" : "Not Started"),
+        description: event.strDescriptionEN
+      }));
+      
+      res.json({ response: formattedEvents });
     } catch (error: any) {
       res.status(500).json({ message: error.message || "Failed to fetch game" });
     }
   });
 
-  // Get standings
+  // Get league standings (NRL league ID: 4416)
   app.get("/api/rugby/standings", async (req, res) => {
     try {
-      const { league, season } = req.query as { league?: string; season?: string };
-      const data = await fetchRugbyAPI("/standings", { league: league || "", season: season || "2025" });
-      res.json(data);
+      const { league } = req.query as { league?: string };
+      const leagueId = league || "4416";
+      
+      const data = await fetchSportsDB(`/lookuptable.php?l=${leagueId}&s=2024`);
+      res.json({ response: data.table || [] });
     } catch (error: any) {
       res.status(500).json({ message: error.message || "Failed to fetch standings" });
     }
   });
 
-  // Search teams by name
-  app.get("/api/rugby/teams/search", async (req, res) => {
+  // Get all rugby leagues
+  app.get("/api/rugby/leagues", async (req, res) => {
     try {
-      const { name } = req.query as { name?: string };
-      const data = await fetchRugbyAPI("/teams", { search: name || "" });
-      res.json(data);
+      const data = await fetchSportsDB(`/all_leagues.php`);
+      const allLeagues = data.leagues || [];
+      
+      const rugbyLeagues = allLeagues.filter((league: any) => 
+        league.strSport === "Rugby" || 
+        league.strLeague?.toLowerCase().includes("rugby") ||
+        league.strLeague?.toLowerCase().includes("nrl")
+      );
+      
+      res.json({ response: rugbyLeagues });
     } catch (error: any) {
-      res.status(500).json({ message: error.message || "Failed to search teams" });
+      res.status(500).json({ message: error.message || "Failed to fetch leagues" });
     }
   });
 
