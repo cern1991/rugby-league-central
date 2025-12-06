@@ -295,6 +295,41 @@ export async function registerRoutes(
     return response.json();
   }
 
+  // Cache for league teams to enable partial search
+  let cachedLeagueTeams: any[] = [];
+  let cacheTimestamp = 0;
+  const CACHE_DURATION = 1000 * 60 * 60; // 1 hour
+
+  async function getLeagueTeams() {
+    const now = Date.now();
+    if (cachedLeagueTeams.length > 0 && now - cacheTimestamp < CACHE_DURATION) {
+      return cachedLeagueTeams;
+    }
+
+    const leagues = [
+      "Australian_National_Rugby_League",
+      "Super_League",
+      "RFL_Championship"
+    ];
+
+    const allTeams: any[] = [];
+    
+    for (const league of leagues) {
+      try {
+        const data = await fetchSportsDB(`/search_all_teams.php?l=${encodeURIComponent(league)}`);
+        if (data.teams) {
+          allTeams.push(...data.teams);
+        }
+      } catch (e) {
+        console.error(`Failed to fetch ${league}:`, e);
+      }
+    }
+
+    cachedLeagueTeams = allTeams;
+    cacheTimestamp = now;
+    return allTeams;
+  }
+
   // Search teams by name
   app.get("/api/rugby/teams/search", async (req, res) => {
     try {
@@ -303,17 +338,39 @@ export async function registerRoutes(
         return res.json({ response: [] });
       }
       
-      const data = await fetchSportsDB(`/searchteams.php?t=${encodeURIComponent(name)}`);
-      const teams = data.teams || [];
+      const searchLower = name.toLowerCase();
       
-      const rugbyTeams = teams.filter((team: any) => 
+      // First, try exact API search
+      const [apiData, leagueTeams] = await Promise.all([
+        fetchSportsDB(`/searchteams.php?t=${encodeURIComponent(name)}`),
+        getLeagueTeams()
+      ]);
+      
+      const apiTeams = apiData.teams || [];
+      
+      // Filter API results for rugby teams
+      const rugbyApiTeams = apiTeams.filter((team: any) => 
         team.strSport === "Rugby" || 
         team.strLeague?.toLowerCase().includes("rugby") ||
         team.strLeague?.toLowerCase().includes("nrl") ||
         team.strLeague?.toLowerCase().includes("super league")
       );
       
-      const formattedTeams = rugbyTeams.map((team: any) => ({
+      // Also search cached league teams for partial matches
+      const matchingLeagueTeams = leagueTeams.filter((team: any) =>
+        team.strTeam?.toLowerCase().includes(searchLower) ||
+        team.strTeamAlternate?.toLowerCase().includes(searchLower)
+      );
+      
+      // Combine and deduplicate by team ID
+      const seenIds = new Set<string>();
+      const allTeams = [...rugbyApiTeams, ...matchingLeagueTeams].filter((team: any) => {
+        if (seenIds.has(team.idTeam)) return false;
+        seenIds.add(team.idTeam);
+        return true;
+      });
+      
+      const formattedTeams = allTeams.map((team: any) => ({
         id: team.idTeam,
         name: team.strTeam,
         logo: team.strBadge || team.strTeamBadge,
