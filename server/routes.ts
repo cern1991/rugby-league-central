@@ -8,6 +8,27 @@ import { authenticator } from "otplib";
 import QRCode from "qrcode";
 import type { User } from "@shared/schema";
 
+const SPORTSDB_API_KEY = "3";
+const SPORTSDB_BASE_URL = `https://www.thesportsdb.com/api/v1/json/${SPORTSDB_API_KEY}`;
+
+const LEAGUE_IDS: Record<string, string> = {
+  "NRL": "4416",
+  "Super League": "4415", 
+};
+
+async function fetchFromSportsDB(endpoint: string): Promise<any> {
+  try {
+    const response = await fetch(`${SPORTSDB_BASE_URL}${endpoint}`);
+    if (!response.ok) {
+      throw new Error(`SportsDB API error: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error("SportsDB fetch error:", error);
+    return null;
+  }
+}
+
 declare global {
   namespace Express {
     interface User {
@@ -282,52 +303,39 @@ export async function registerRoutes(
     });
   });
 
-  // Local team data for fallback
+  // Local team data with TheSportsDB IDs and badges
   const LOCAL_TEAMS = [
     // NRL Teams (17 teams)
-    { id: "brisbane-broncos", name: "Brisbane Broncos", league: "NRL", country: { name: "Australia", code: "AU", flag: "https://flagcdn.com/w40/au.png" }, logo: "https://upload.wikimedia.org/wikipedia/en/7/76/Brisbane_Broncos_logo.svg" },
-    { id: "canberra-raiders", name: "Canberra Raiders", league: "NRL", country: { name: "Australia", code: "AU", flag: "https://flagcdn.com/w40/au.png" }, logo: "https://upload.wikimedia.org/wikipedia/en/0/0f/Canberra_Raiders_logo.svg" },
-    { id: "canterbury-bulldogs", name: "Canterbury Bulldogs", league: "NRL", country: { name: "Australia", code: "AU", flag: "https://flagcdn.com/w40/au.png" }, logo: "https://upload.wikimedia.org/wikipedia/en/5/5c/Canterbury-Bankstown_Bulldogs_logo.svg" },
-    { id: "cronulla-sharks", name: "Cronulla Sharks", league: "NRL", country: { name: "Australia", code: "AU", flag: "https://flagcdn.com/w40/au.png" }, logo: "https://upload.wikimedia.org/wikipedia/en/1/1a/Cronulla-Sutherland_Sharks_logo.svg" },
-    { id: "dolphins", name: "Dolphins", league: "NRL", country: { name: "Australia", code: "AU", flag: "https://flagcdn.com/w40/au.png" }, logo: "https://upload.wikimedia.org/wikipedia/en/f/f4/Redcliffe_Dolphins_logo.svg" },
-    { id: "gold-coast-titans", name: "Gold Coast Titans", league: "NRL", country: { name: "Australia", code: "AU", flag: "https://flagcdn.com/w40/au.png" }, logo: "https://upload.wikimedia.org/wikipedia/en/5/57/Gold_Coast_Titans_logo.svg" },
-    { id: "manly-sea-eagles", name: "Manly Sea Eagles", league: "NRL", country: { name: "Australia", code: "AU", flag: "https://flagcdn.com/w40/au.png" }, logo: "https://upload.wikimedia.org/wikipedia/en/0/0f/Manly-Warringah_Sea_Eagles_logo.svg" },
-    { id: "melbourne-storm", name: "Melbourne Storm", league: "NRL", country: { name: "Australia", code: "AU", flag: "https://flagcdn.com/w40/au.png" }, logo: "https://upload.wikimedia.org/wikipedia/en/9/9b/Melbourne_Storm_logo.svg" },
-    { id: "newcastle-knights", name: "Newcastle Knights", league: "NRL", country: { name: "Australia", code: "AU", flag: "https://flagcdn.com/w40/au.png" }, logo: "https://upload.wikimedia.org/wikipedia/en/f/ff/Newcastle_Knights_logo.svg" },
-    { id: "nz-warriors", name: "New Zealand Warriors", league: "NRL", country: { name: "New Zealand", code: "NZ", flag: "https://flagcdn.com/w40/nz.png" }, logo: "https://upload.wikimedia.org/wikipedia/en/7/78/New_Zealand_Warriors_logo.svg" },
-    { id: "nth-qld-cowboys", name: "North Queensland Cowboys", league: "NRL", country: { name: "Australia", code: "AU", flag: "https://flagcdn.com/w40/au.png" }, logo: "https://upload.wikimedia.org/wikipedia/en/2/2a/North_Queensland_Cowboys_logo.svg" },
-    { id: "parramatta-eels", name: "Parramatta Eels", league: "NRL", country: { name: "Australia", code: "AU", flag: "https://flagcdn.com/w40/au.png" }, logo: "https://upload.wikimedia.org/wikipedia/en/6/6b/Parramatta_Eels_logo.svg" },
-    { id: "penrith-panthers", name: "Penrith Panthers", league: "NRL", country: { name: "Australia", code: "AU", flag: "https://flagcdn.com/w40/au.png" }, logo: "https://upload.wikimedia.org/wikipedia/en/7/72/Penrith_Panthers_logo.svg" },
-    { id: "south-sydney-rabbitohs", name: "South Sydney Rabbitohs", league: "NRL", country: { name: "Australia", code: "AU", flag: "https://flagcdn.com/w40/au.png" }, logo: "https://upload.wikimedia.org/wikipedia/en/6/60/South_Sydney_Rabbitohs_logo.svg" },
-    { id: "st-george-dragons", name: "St George Illawarra Dragons", league: "NRL", country: { name: "Australia", code: "AU", flag: "https://flagcdn.com/w40/au.png" }, logo: "https://upload.wikimedia.org/wikipedia/en/5/59/St._George_Illawarra_Dragons_logo.svg" },
-    { id: "sydney-roosters", name: "Sydney Roosters", league: "NRL", country: { name: "Australia", code: "AU", flag: "https://flagcdn.com/w40/au.png" }, logo: "https://upload.wikimedia.org/wikipedia/en/e/e8/Sydney_Roosters_logo.svg" },
-    { id: "wests-tigers", name: "Wests Tigers", league: "NRL", country: { name: "Australia", code: "AU", flag: "https://flagcdn.com/w40/au.png" }, logo: "https://upload.wikimedia.org/wikipedia/en/2/2e/Wests_Tigers_logo.svg" },
-    // Super League Teams (14 teams)
-    { id: "bradford-bulls", name: "Bradford Bulls", league: "Super League", country: { name: "England", code: "GB", flag: "https://flagcdn.com/w40/gb.png" }, logo: "https://upload.wikimedia.org/wikipedia/en/f/f3/Bradford_Bulls_logo.svg" },
-    { id: "castleford-tigers", name: "Castleford Tigers", league: "Super League", country: { name: "England", code: "GB", flag: "https://flagcdn.com/w40/gb.png" }, logo: "https://upload.wikimedia.org/wikipedia/en/4/4e/Castleford_Tigers_logo.svg" },
-    { id: "catalans-dragons", name: "Catalans Dragons", league: "Super League", country: { name: "France", code: "FR", flag: "https://flagcdn.com/w40/fr.png" }, logo: "https://upload.wikimedia.org/wikipedia/en/5/54/Catalans_Dragons_logo.svg" },
-    { id: "huddersfield-giants", name: "Huddersfield Giants", league: "Super League", country: { name: "England", code: "GB", flag: "https://flagcdn.com/w40/gb.png" }, logo: "https://upload.wikimedia.org/wikipedia/en/4/4e/Huddersfield_Giants_logo.svg" },
-    { id: "hull-fc", name: "Hull FC", league: "Super League", country: { name: "England", code: "GB", flag: "https://flagcdn.com/w40/gb.png" }, logo: "https://upload.wikimedia.org/wikipedia/en/b/be/Hull_FC_logo.svg" },
-    { id: "hull-kr", name: "Hull Kingston Rovers", league: "Super League", country: { name: "England", code: "GB", flag: "https://flagcdn.com/w40/gb.png" }, logo: "https://upload.wikimedia.org/wikipedia/en/1/16/Hull_Kingston_Rovers_logo.svg" },
-    { id: "leeds-rhinos", name: "Leeds Rhinos", league: "Super League", country: { name: "England", code: "GB", flag: "https://flagcdn.com/w40/gb.png" }, logo: "https://upload.wikimedia.org/wikipedia/en/a/ac/Leeds_Rhinos_logo.svg" },
-    { id: "leigh-leopards", name: "Leigh Leopards", league: "Super League", country: { name: "England", code: "GB", flag: "https://flagcdn.com/w40/gb.png" }, logo: "https://upload.wikimedia.org/wikipedia/en/2/29/Leigh_Leopards_logo.svg" },
-    { id: "st-helens", name: "St Helens", league: "Super League", country: { name: "England", code: "GB", flag: "https://flagcdn.com/w40/gb.png" }, logo: "https://upload.wikimedia.org/wikipedia/en/d/d8/St_Helens_RFC_logo.svg" },
-    { id: "toulouse-olympique", name: "Toulouse Olympique", league: "Super League", country: { name: "France", code: "FR", flag: "https://flagcdn.com/w40/fr.png" }, logo: "https://upload.wikimedia.org/wikipedia/en/c/c9/Toulouse_Olympique_logo.svg" },
-    { id: "wakefield-trinity", name: "Wakefield Trinity", league: "Super League", country: { name: "England", code: "GB", flag: "https://flagcdn.com/w40/gb.png" }, logo: "https://upload.wikimedia.org/wikipedia/en/7/7e/Wakefield_Trinity_logo.svg" },
-    { id: "warrington-wolves", name: "Warrington Wolves", league: "Super League", country: { name: "England", code: "GB", flag: "https://flagcdn.com/w40/gb.png" }, logo: "https://upload.wikimedia.org/wikipedia/en/b/b9/Warrington_Wolves_logo.svg" },
-    { id: "wigan-warriors", name: "Wigan Warriors", league: "Super League", country: { name: "England", code: "GB", flag: "https://flagcdn.com/w40/gb.png" }, logo: "https://upload.wikimedia.org/wikipedia/en/7/77/Wigan_Warriors_logo.svg" },
-    { id: "york-knights", name: "York Knights", league: "Super League", country: { name: "England", code: "GB", flag: "https://flagcdn.com/w40/gb.png" }, logo: "https://upload.wikimedia.org/wikipedia/en/3/38/York_City_Knights_logo.svg" },
-    // Championship Teams (10 teams)
-    { id: "barrow-raiders", name: "Barrow Raiders", league: "Championship", country: { name: "England", code: "GB", flag: "https://flagcdn.com/w40/gb.png" }, logo: "https://upload.wikimedia.org/wikipedia/en/6/62/Barrow_Raiders_logo.svg" },
-    { id: "batley-bulldogs", name: "Batley Bulldogs", league: "Championship", country: { name: "England", code: "GB", flag: "https://flagcdn.com/w40/gb.png" }, logo: "https://upload.wikimedia.org/wikipedia/en/5/5e/Batley_Bulldogs_logo.svg" },
-    { id: "doncaster", name: "Doncaster", league: "Championship", country: { name: "England", code: "GB", flag: "https://flagcdn.com/w40/gb.png" }, logo: "https://upload.wikimedia.org/wikipedia/en/1/16/Doncaster_RLFC_logo.svg" },
-    { id: "featherstone-rovers", name: "Featherstone Rovers", league: "Championship", country: { name: "England", code: "GB", flag: "https://flagcdn.com/w40/gb.png" }, logo: "https://upload.wikimedia.org/wikipedia/en/1/12/Featherstone_Rovers_logo.svg" },
-    { id: "halifax-panthers", name: "Halifax Panthers", league: "Championship", country: { name: "England", code: "GB", flag: "https://flagcdn.com/w40/gb.png" }, logo: "https://upload.wikimedia.org/wikipedia/en/d/d9/Halifax_Panthers_logo.svg" },
-    { id: "hunslet", name: "Hunslet", league: "Championship", country: { name: "England", code: "GB", flag: "https://flagcdn.com/w40/gb.png" }, logo: "https://upload.wikimedia.org/wikipedia/en/0/03/Hunslet_RLFC_logo.svg" },
-    { id: "london-broncos", name: "London Broncos", league: "Championship", country: { name: "England", code: "GB", flag: "https://flagcdn.com/w40/gb.png" }, logo: "https://upload.wikimedia.org/wikipedia/en/1/14/London_Broncos_logo.svg" },
-    { id: "oldham", name: "Oldham", league: "Championship", country: { name: "England", code: "GB", flag: "https://flagcdn.com/w40/gb.png" }, logo: "https://upload.wikimedia.org/wikipedia/en/0/01/Oldham_RLFC_logo.svg" },
-    { id: "sheffield-eagles", name: "Sheffield Eagles", league: "Championship", country: { name: "England", code: "GB", flag: "https://flagcdn.com/w40/gb.png" }, logo: "https://upload.wikimedia.org/wikipedia/en/3/3f/Sheffield_Eagles_logo.svg" },
-    { id: "widnes-vikings", name: "Widnes Vikings", league: "Championship", country: { name: "England", code: "GB", flag: "https://flagcdn.com/w40/gb.png" }, logo: "https://upload.wikimedia.org/wikipedia/en/c/c1/Widnes_Vikings_logo.svg" },
+    { id: "135191", name: "Brisbane Broncos", league: "NRL", country: { name: "Australia", code: "AU", flag: "https://flagcdn.com/w40/au.png" }, logo: "https://r2.thesportsdb.com/images/media/team/badge/dnj6uw1646347648.png" },
+    { id: "135186", name: "Canberra Raiders", league: "NRL", country: { name: "Australia", code: "AU", flag: "https://flagcdn.com/w40/au.png" }, logo: "https://r2.thesportsdb.com/images/media/team/badge/wmlzo81646347671.png" },
+    { id: "135187", name: "Canterbury Bulldogs", league: "NRL", country: { name: "Australia", code: "AU", flag: "https://flagcdn.com/w40/au.png" }, logo: "https://r2.thesportsdb.com/images/media/team/badge/xppsxy1552072965.png" },
+    { id: "135184", name: "Cronulla Sharks", league: "NRL", country: { name: "Australia", code: "AU", flag: "https://flagcdn.com/w40/au.png" }, logo: "https://r2.thesportsdb.com/images/media/team/badge/qn3n5r1552073088.png" },
+    { id: "140097", name: "Dolphins", league: "NRL", country: { name: "Australia", code: "AU", flag: "https://flagcdn.com/w40/au.png" }, logo: "https://r2.thesportsdb.com/images/media/team/badge/7bxuvl1665126908.png" },
+    { id: "135194", name: "Gold Coast Titans", league: "NRL", country: { name: "Australia", code: "AU", flag: "https://flagcdn.com/w40/au.png" }, logo: "https://r2.thesportsdb.com/images/media/team/badge/4qqmp81646347724.png" },
+    { id: "135188", name: "Manly Sea Eagles", league: "NRL", country: { name: "Australia", code: "AU", flag: "https://flagcdn.com/w40/au.png" }, logo: "https://r2.thesportsdb.com/images/media/team/badge/1ok3661646347740.png" },
+    { id: "135190", name: "Melbourne Storm", league: "NRL", country: { name: "Australia", code: "AU", flag: "https://flagcdn.com/w40/au.png" }, logo: "https://r2.thesportsdb.com/images/media/team/badge/hpdn401646347751.png" },
+    { id: "135198", name: "Newcastle Knights", league: "NRL", country: { name: "Australia", code: "AU", flag: "https://flagcdn.com/w40/au.png" }, logo: "https://r2.thesportsdb.com/images/media/team/badge/aes2o51646347790.png" },
+    { id: "135193", name: "New Zealand Warriors", league: "NRL", country: { name: "New Zealand", code: "NZ", flag: "https://flagcdn.com/w40/nz.png" }, logo: "https://r2.thesportsdb.com/images/media/team/badge/w8b9kw1646347767.png" },
+    { id: "135196", name: "North Queensland Cowboys", league: "NRL", country: { name: "Australia", code: "AU", flag: "https://flagcdn.com/w40/au.png" }, logo: "https://r2.thesportsdb.com/images/media/team/badge/q6xu7c1646347820.png" },
+    { id: "135183", name: "Parramatta Eels", league: "NRL", country: { name: "Australia", code: "AU", flag: "https://flagcdn.com/w40/au.png" }, logo: "https://r2.thesportsdb.com/images/media/team/badge/5tvma21646347846.png" },
+    { id: "135197", name: "Penrith Panthers", league: "NRL", country: { name: "Australia", code: "AU", flag: "https://flagcdn.com/w40/au.png" }, logo: "https://r2.thesportsdb.com/images/media/team/badge/239jb41552073712.png" },
+    { id: "135185", name: "South Sydney Rabbitohs", league: "NRL", country: { name: "Australia", code: "AU", flag: "https://flagcdn.com/w40/au.png" }, logo: "https://r2.thesportsdb.com/images/media/team/badge/0m4unp1552072677.png" },
+    { id: "135195", name: "St George Illawarra Dragons", league: "NRL", country: { name: "Australia", code: "AU", flag: "https://flagcdn.com/w40/au.png" }, logo: "https://r2.thesportsdb.com/images/media/team/badge/ur74hh1552073186.png" },
+    { id: "135192", name: "Sydney Roosters", league: "NRL", country: { name: "Australia", code: "AU", flag: "https://flagcdn.com/w40/au.png" }, logo: "https://r2.thesportsdb.com/images/media/team/badge/by299w1646347883.png" },
+    { id: "135189", name: "Wests Tigers", league: "NRL", country: { name: "Australia", code: "AU", flag: "https://flagcdn.com/w40/au.png" }, logo: "https://r2.thesportsdb.com/images/media/team/badge/cs6i6f1646347894.png" },
+    // Super League Teams (12 teams)
+    { id: "135213", name: "Castleford Tigers", league: "Super League", country: { name: "England", code: "GB", flag: "https://flagcdn.com/w40/gb.png" }, logo: "https://r2.thesportsdb.com/images/media/team/badge/uubtq71656789542.png" },
+    { id: "135211", name: "Catalans Dragons", league: "Super League", country: { name: "France", code: "FR", flag: "https://flagcdn.com/w40/fr.png" }, logo: "https://r2.thesportsdb.com/images/media/team/badge/s3hv1a1656789566.png" },
+    { id: "135219", name: "Huddersfield Giants", league: "Super League", country: { name: "England", code: "GB", flag: "https://flagcdn.com/w40/gb.png" }, logo: "https://r2.thesportsdb.com/images/media/team/badge/7u1czh1656789587.png" },
+    { id: "135214", name: "Hull FC", league: "Super League", country: { name: "England", code: "GB", flag: "https://flagcdn.com/w40/gb.png" }, logo: "https://www.thesportsdb.com/images/media/team/badge/qfgncj1761164505.png" },
+    { id: "135215", name: "Hull Kingston Rovers", league: "Super League", country: { name: "England", code: "GB", flag: "https://flagcdn.com/w40/gb.png" }, logo: "https://r2.thesportsdb.com/images/media/team/badge/6w6g8z1656789645.png" },
+    { id: "135216", name: "Leeds Rhinos", league: "Super League", country: { name: "England", code: "GB", flag: "https://flagcdn.com/w40/gb.png" }, logo: "https://r2.thesportsdb.com/images/media/team/badge/ryqwvv1447875742.png" },
+    { id: "135217", name: "Leigh Leopards", league: "Super League", country: { name: "England", code: "GB", flag: "https://flagcdn.com/w40/gb.png" }, logo: "https://r2.thesportsdb.com/images/media/team/badge/wqutpt1706621089.png" },
+    { id: "135212", name: "Salford Red Devils", league: "Super League", country: { name: "England", code: "GB", flag: "https://flagcdn.com/w40/gb.png" }, logo: "https://r2.thesportsdb.com/images/media/team/badge/3dnjjp1656789716.png" },
+    { id: "135218", name: "St Helens", league: "Super League", country: { name: "England", code: "GB", flag: "https://flagcdn.com/w40/gb.png" }, logo: "https://r2.thesportsdb.com/images/media/team/badge/xolesg1706620870.png" },
+    { id: "135221", name: "Wakefield Trinity", league: "Super League", country: { name: "England", code: "GB", flag: "https://flagcdn.com/w40/gb.png" }, logo: "https://r2.thesportsdb.com/images/media/team/badge/gytlqy1656789733.png" },
+    { id: "135220", name: "Warrington Wolves", league: "Super League", country: { name: "England", code: "GB", flag: "https://flagcdn.com/w40/gb.png" }, logo: "https://r2.thesportsdb.com/images/media/team/badge/saimjk1656789616.png" },
+    { id: "135222", name: "Wigan Warriors", league: "Super League", country: { name: "England", code: "GB", flag: "https://flagcdn.com/w40/gb.png" }, logo: "https://r2.thesportsdb.com/images/media/team/badge/vch5a71673549813.png" },
   ];
 
   // Get local teams by league
@@ -361,9 +369,35 @@ export async function registerRoutes(
         return res.json({ response: [] });
       }
       
-      // Use local team data for search
-      const matchingTeams = searchLocalTeams(name);
+      // Try TheSportsDB first
+      const data = await fetchFromSportsDB(`/searchteams.php?t=${encodeURIComponent(name)}`);
+      if (data?.teams) {
+        const rugbyLeagueTeams = data.teams.filter((team: any) => 
+          team.strSport === "Rugby League" || 
+          team.strLeague?.includes("NRL") || 
+          team.strLeague?.includes("Super League") ||
+          team.strLeague?.includes("Rugby")
+        ).map((team: any) => ({
+          id: team.idTeam,
+          name: team.strTeam,
+          logo: team.strBadge || team.strLogo,
+          league: team.strLeague,
+          country: {
+            name: team.strCountry,
+            code: team.strCountry === "Australia" ? "AU" : team.strCountry === "New Zealand" ? "NZ" : "GB",
+            flag: team.strCountry === "Australia" ? "https://flagcdn.com/w40/au.png" : 
+                  team.strCountry === "New Zealand" ? "https://flagcdn.com/w40/nz.png" :
+                  team.strCountry === "France" ? "https://flagcdn.com/w40/fr.png" : "https://flagcdn.com/w40/gb.png"
+          },
+        }));
+        
+        if (rugbyLeagueTeams.length > 0) {
+          return res.json({ response: rugbyLeagueTeams });
+        }
+      }
       
+      // Fallback to local search
+      const matchingTeams = searchLocalTeams(name);
       res.json({ response: matchingTeams });
     } catch (error: any) {
       console.error("Team search error:", error);
@@ -375,10 +409,10 @@ export async function registerRoutes(
   app.get("/api/rugby/teams", async (req, res) => {
     try {
       const { league } = req.query as { league?: string };
+      const leagueName = league || "NRL";
       
-      // Use local team data
-      const teams = getLocalTeams(league || "NRL");
-      
+      // Use local team data with TheSportsDB IDs and badges
+      const teams = getLocalTeams(leagueName);
       res.json({ response: teams });
     } catch (error: any) {
       console.error("Teams fetch error:", error);
@@ -391,11 +425,37 @@ export async function registerRoutes(
     try {
       const { id } = req.params;
       
-      // Find team in local data
-      const team = LOCAL_TEAMS.find((t: any) => String(t.id) === String(id));
+      // Try TheSportsDB first
+      const data = await fetchFromSportsDB(`/lookupteam.php?id=${id}`);
+      if (data?.teams && data.teams.length > 0) {
+        const team = data.teams[0];
+        return res.json({ response: [{
+          id: team.idTeam,
+          name: team.strTeam,
+          logo: team.strBadge || team.strLogo,
+          league: team.strLeague,
+          country: {
+            name: team.strCountry,
+            code: team.strCountry === "Australia" ? "AU" : team.strCountry === "New Zealand" ? "NZ" : "GB",
+            flag: team.strCountry === "Australia" ? "https://flagcdn.com/w40/au.png" : 
+                  team.strCountry === "New Zealand" ? "https://flagcdn.com/w40/nz.png" :
+                  team.strCountry === "France" ? "https://flagcdn.com/w40/fr.png" : "https://flagcdn.com/w40/gb.png"
+          },
+          stadium: team.strStadium,
+          description: team.strDescriptionEN,
+          founded: team.intFormedYear,
+          website: team.strWebsite,
+          facebook: team.strFacebook,
+          twitter: team.strTwitter,
+          instagram: team.strInstagram,
+          jersey: team.strEquipment,
+        }] });
+      }
       
-      if (team) {
-        res.json({ response: [team] });
+      // Fallback to local data
+      const localTeam = LOCAL_TEAMS.find((t: any) => String(t.id) === String(id));
+      if (localTeam) {
+        res.json({ response: [localTeam] });
       } else {
         res.json({ response: [] });
       }
@@ -405,11 +465,71 @@ export async function registerRoutes(
     }
   });
 
-  // Get fixtures/games for a league (currently returns empty - API not available)
+  // Get team roster/squad
+  app.get("/api/rugby/team/:id/players", async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      const data = await fetchFromSportsDB(`/lookup_all_players.php?id=${id}`);
+      if (data?.player) {
+        const players = data.player.map((p: any) => ({
+          id: p.idPlayer,
+          name: p.strPlayer,
+          position: p.strPosition,
+          nationality: p.strNationality,
+          birthDate: p.dateBorn,
+          height: p.strHeight,
+          weight: p.strWeight,
+          photo: p.strThumb || p.strCutout,
+          number: p.strNumber,
+          description: p.strDescriptionEN,
+        }));
+        return res.json({ response: players });
+      }
+      
+      res.json({ response: [] });
+    } catch (error: any) {
+      console.error("Team players fetch error:", error);
+      res.status(500).json({ message: error.message || "Failed to fetch team players" });
+    }
+  });
+
+  // Get fixtures/games for a league
   app.get("/api/rugby/fixtures", async (req, res) => {
     try {
-      // API not available - return empty response
-      // In the future, this could use a working API or local fixture data
+      const { league } = req.query as { league?: string };
+      const leagueName = league || "NRL";
+      const leagueId = LEAGUE_IDS[leagueName];
+      
+      if (leagueId) {
+        // Get next 15 events
+        const data = await fetchFromSportsDB(`/eventsnextleague.php?id=${leagueId}`);
+        if (data?.events) {
+          const events = data.events.map((e: any) => ({
+            id: e.idEvent,
+            date: e.dateEvent,
+            time: e.strTime,
+            homeTeam: {
+              id: e.idHomeTeam,
+              name: e.strHomeTeam,
+              logo: e.strHomeTeamBadge,
+              score: e.intHomeScore,
+            },
+            awayTeam: {
+              id: e.idAwayTeam,
+              name: e.strAwayTeam,
+              logo: e.strAwayTeamBadge,
+              score: e.intAwayScore,
+            },
+            venue: e.strVenue,
+            status: e.strStatus,
+            round: e.intRound,
+            league: { id: leagueId, name: leagueName },
+          }));
+          return res.json({ response: events });
+        }
+      }
+      
       res.json({ response: [] });
     } catch (error: any) {
       console.error("Fixtures fetch error:", error);
@@ -417,21 +537,127 @@ export async function registerRoutes(
     }
   });
 
-  // Get games for a team (currently returns empty - API not available)
+  // Get past/completed games for a league
+  app.get("/api/rugby/results", async (req, res) => {
+    try {
+      const { league } = req.query as { league?: string };
+      const leagueName = league || "NRL";
+      const leagueId = LEAGUE_IDS[leagueName];
+      
+      if (leagueId) {
+        // Get last 15 events
+        const data = await fetchFromSportsDB(`/eventspastleague.php?id=${leagueId}`);
+        if (data?.events) {
+          const events = data.events.map((e: any) => ({
+            id: e.idEvent,
+            date: e.dateEvent,
+            time: e.strTime,
+            homeTeam: {
+              id: e.idHomeTeam,
+              name: e.strHomeTeam,
+              logo: e.strHomeTeamBadge,
+              score: e.intHomeScore,
+            },
+            awayTeam: {
+              id: e.idAwayTeam,
+              name: e.strAwayTeam,
+              logo: e.strAwayTeamBadge,
+              score: e.intAwayScore,
+            },
+            venue: e.strVenue,
+            status: e.strStatus || "FT",
+            round: e.intRound,
+            league: { id: leagueId, name: leagueName },
+          }));
+          return res.json({ response: events });
+        }
+      }
+      
+      res.json({ response: [] });
+    } catch (error: any) {
+      console.error("Results fetch error:", error);
+      res.status(500).json({ message: error.message || "Failed to fetch results" });
+    }
+  });
+
+  // Get games for a team
   app.get("/api/rugby/team/:id/games", async (req, res) => {
     try {
-      // API not available - return empty response
-      res.json({ response: [] });
+      const { id } = req.params;
+      
+      // Get next 5 and last 5 events for the team
+      const [nextData, pastData] = await Promise.all([
+        fetchFromSportsDB(`/eventsnext.php?id=${id}`),
+        fetchFromSportsDB(`/eventslast.php?id=${id}`)
+      ]);
+      
+      const mapEvent = (e: any) => ({
+        id: e.idEvent,
+        date: e.dateEvent,
+        time: e.strTime,
+        homeTeam: {
+          id: e.idHomeTeam,
+          name: e.strHomeTeam,
+          logo: e.strHomeTeamBadge,
+          score: e.intHomeScore,
+        },
+        awayTeam: {
+          id: e.idAwayTeam,
+          name: e.strAwayTeam,
+          logo: e.strAwayTeamBadge,
+          score: e.intAwayScore,
+        },
+        venue: e.strVenue,
+        status: e.strStatus || (e.intHomeScore !== null ? "FT" : null),
+        round: e.intRound,
+        league: { id: e.idLeague, name: e.strLeague },
+      });
+      
+      const events = [
+        ...(pastData?.results || []).map(mapEvent),
+        ...(nextData?.events || []).map(mapEvent),
+      ];
+      
+      res.json({ response: events });
     } catch (error: any) {
       console.error("Team games fetch error:", error);
       res.status(500).json({ message: error.message || "Failed to fetch team games" });
     }
   });
 
-  // Get event/game details (currently returns empty - API not available)
+  // Get event/game details
   app.get("/api/rugby/game/:id", async (req, res) => {
     try {
-      // API not available - return empty response
+      const { id } = req.params;
+      
+      const data = await fetchFromSportsDB(`/lookupevent.php?id=${id}`);
+      if (data?.events && data.events.length > 0) {
+        const e = data.events[0];
+        return res.json({ response: [{
+          id: e.idEvent,
+          date: e.dateEvent,
+          time: e.strTime,
+          homeTeam: {
+            id: e.idHomeTeam,
+            name: e.strHomeTeam,
+            logo: e.strHomeTeamBadge,
+            score: e.intHomeScore,
+          },
+          awayTeam: {
+            id: e.idAwayTeam,
+            name: e.strAwayTeam,
+            logo: e.strAwayTeamBadge,
+            score: e.intAwayScore,
+          },
+          venue: e.strVenue,
+          status: e.strStatus || (e.intHomeScore !== null ? "FT" : null),
+          round: e.intRound,
+          league: { id: e.idLeague, name: e.strLeague },
+          description: e.strDescriptionEN,
+          video: e.strVideo,
+        }] });
+      }
+      
       res.json({ response: [] });
     } catch (error: any) {
       console.error("Game fetch error:", error);
@@ -439,10 +665,36 @@ export async function registerRoutes(
     }
   });
 
-  // Get league standings (currently returns empty - API not available)
+  // Get league standings
   app.get("/api/rugby/standings", async (req, res) => {
     try {
-      // API not available - return empty response
+      const { league } = req.query as { league?: string };
+      const leagueName = league || "NRL";
+      const leagueId = LEAGUE_IDS[leagueName];
+      
+      if (leagueId) {
+        const data = await fetchFromSportsDB(`/lookuptable.php?l=${leagueId}`);
+        if (data?.table) {
+          const standings = data.table.map((t: any) => ({
+            position: t.intRank,
+            team: {
+              id: t.idTeam,
+              name: t.strTeam,
+              logo: t.strBadge,
+            },
+            played: t.intPlayed,
+            won: t.intWin,
+            drawn: t.intDraw,
+            lost: t.intLoss,
+            goalsFor: t.intGoalsFor,
+            goalsAgainst: t.intGoalsAgainst,
+            goalDifference: t.intGoalDifference,
+            points: t.intPoints,
+          }));
+          return res.json({ response: standings });
+        }
+      }
+      
       res.json({ response: [] });
     } catch (error: any) {
       console.error("Standings fetch error:", error);
