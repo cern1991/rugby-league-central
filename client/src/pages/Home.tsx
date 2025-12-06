@@ -1,5 +1,6 @@
 import { Layout } from "@/components/Layout";
 import { TeamSearch } from "@/components/TeamSearch";
+import { SEO } from "@/components/SEO";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -97,6 +98,11 @@ export default function Home() {
 
   return (
     <Layout>
+      <SEO 
+        title={`${displayLeagueName} Teams, Scores & News`}
+        description={`Follow ${displayLeagueName} rugby league. Get live scores, fixtures, team news, and standings for all ${displayLeagueName} matches and competitions.`}
+        keywords={`${displayLeagueName}, rugby league, ${displayLeagueName} scores, ${displayLeagueName} fixtures, ${displayLeagueName} news, ${displayLeagueName} teams, live rugby scores`}
+      />
       <div className="space-y-8">
         
         {/* Hero Section */}

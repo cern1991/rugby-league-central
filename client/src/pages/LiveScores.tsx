@@ -1,4 +1,5 @@
 import { Layout } from "@/components/Layout";
+import { SEO } from "@/components/SEO";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -34,6 +35,11 @@ export default function LiveScores() {
 
   return (
     <Layout>
+      <SEO 
+        title={`Live ${displayLeagueName} Scores & Fixtures`}
+        description={`Live ${displayLeagueName} rugby league scores, upcoming fixtures, and recent results. Follow all matches in real-time.`}
+        keywords={`${displayLeagueName} live scores, rugby league scores, ${displayLeagueName} fixtures, ${displayLeagueName} results, live rugby`}
+      />
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
