@@ -33,16 +33,72 @@ export function Layout({ children }: LayoutProps) {
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-background text-foreground">
       {/* Mobile Header */}
-      <div className="md:hidden flex items-center justify-between p-4 border-b border-border bg-card/50 backdrop-blur-xl sticky top-0 z-50">
-        <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-                <Trophy className="w-4 h-4 text-primary-foreground" />
-            </div>
-            <span className="font-display font-bold text-xl tracking-tight">SportSync</span>
+      <div className="md:hidden border-b border-border bg-card/50 backdrop-blur-xl sticky top-0 z-50">
+        <div className="flex items-center justify-between p-4">
+          <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+                  <Trophy className="w-4 h-4 text-primary-foreground" />
+              </div>
+              <span className="font-display font-bold text-xl tracking-tight">SportSync</span>
+          </div>
+          <div className="flex items-center gap-2">
+            {!loading && (
+              <>
+                {user ? (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button className="flex items-center gap-2 hover:bg-muted p-2 rounded-lg transition-colors" data-testid="button-user-menu-mobile">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 ring-2 ring-background flex items-center justify-center">
+                          <User className="w-4 h-4 text-white" />
+                        </div>
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-56">
+                      <DropdownMenuLabel>{user.email}</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      {!user.twoFactorEnabled && (
+                        <DropdownMenuItem onClick={() => setLocation("/setup-2fa")} data-testid="menu-setup-2fa-mobile">
+                          <Shield className="mr-2 h-4 w-4" />
+                          Setup 2FA
+                        </DropdownMenuItem>
+                      )}
+                      {user.twoFactorEnabled && (
+                        <DropdownMenuItem disabled>
+                          <Shield className="mr-2 h-4 w-4 text-green-500" />
+                          2FA Enabled
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={logout} data-testid="menu-logout-mobile">
+                        <LogOut className="mr-2 h-4 w-4" />
+                        Logout
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                ) : (
+                  <Button size="sm" onClick={() => setLocation("/login")} data-testid="button-login-mobile">
+                    Login
+                  </Button>
+                )}
+              </>
+            )}
+            <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 rounded-md hover:bg-muted" data-testid="button-menu-toggle">
+                <Menu className="w-5 h-5" />
+            </button>
+          </div>
         </div>
-        <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 rounded-md hover:bg-muted">
-            <Menu className="w-5 h-5" />
-        </button>
+        {/* Mobile Search Bar - Always Visible */}
+        <div className="px-4 pb-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <input 
+              type="text" 
+              placeholder="Search teams, leagues..." 
+              className="w-full bg-muted/50 border border-transparent focus:border-primary/50 rounded-lg py-2 pl-9 pr-4 text-sm outline-none transition-all"
+              data-testid="input-search-mobile"
+            />
+          </div>
+        </div>
       </div>
 
       {/* Sidebar / Navigation */}

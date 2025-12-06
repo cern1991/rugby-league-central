@@ -2,6 +2,43 @@ import { Trophy, Timer, Calendar, Activity, Flame } from "lucide-react";
 
 export type GameStatus = "Live" | "Final" | "Upcoming";
 
+export type LeagueType = 
+  | "NRL" 
+  | "Super League" 
+  | "State of Origin" 
+  | "International"
+  | "Championship"
+  | "League 1"
+  | "QLD Cup"
+  | "NSW Cup"
+  | "Elite One"
+  | "PNG Digicel Cup"
+  | "NZRL Premiership"
+  | "Betfred Challenge Cup";
+
+export interface LeagueInfo {
+  id: LeagueType;
+  name: string;
+  country: string;
+  tier: string;
+  color: string;
+}
+
+export const LEAGUES: LeagueInfo[] = [
+  { id: "NRL", name: "NRL", country: "Australia", tier: "Top Tier", color: "bg-green-600" },
+  { id: "Super League", name: "Super League", country: "England", tier: "Top Tier", color: "bg-red-600" },
+  { id: "State of Origin", name: "State of Origin", country: "Australia", tier: "Representative", color: "bg-sky-600" },
+  { id: "International", name: "International", country: "World", tier: "Representative", color: "bg-yellow-600" },
+  { id: "Championship", name: "Championship", country: "England", tier: "Second Tier", color: "bg-orange-600" },
+  { id: "League 1", name: "League 1", country: "England", tier: "Third Tier", color: "bg-purple-600" },
+  { id: "QLD Cup", name: "QLD Cup", country: "Australia", tier: "State League", color: "bg-red-800" },
+  { id: "NSW Cup", name: "NSW Cup", country: "Australia", tier: "State League", color: "bg-sky-800" },
+  { id: "Elite One", name: "Elite One Championship", country: "France", tier: "Top Tier", color: "bg-blue-700" },
+  { id: "PNG Digicel Cup", name: "PNG Digicel Cup", country: "Papua New Guinea", tier: "Top Tier", color: "bg-red-700" },
+  { id: "NZRL Premiership", name: "NZRL Premiership", country: "New Zealand", tier: "Top Tier", color: "bg-black" },
+  { id: "Betfred Challenge Cup", name: "Challenge Cup", country: "England", tier: "Cup", color: "bg-amber-600" },
+];
+
 export interface Team {
   name: string;
   abbreviation: string;
@@ -26,7 +63,7 @@ export interface PlayerStats {
 }
 
 export interface GameStats {
-  possession: [number, number]; // home, away
+  possession: [number, number];
   completion: [number, number];
   errors: [number, number];
   tackles: [number, number];
@@ -34,13 +71,12 @@ export interface GameStats {
 
 export interface Game {
   id: string;
-  league: "NRL" | "Super League" | "State of Origin" | "International";
+  league: LeagueType;
   status: GameStatus;
   time: string;
   homeTeam: Team;
   awayTeam: Team;
   isHot?: boolean;
-  // Detailed Data
   venue?: string;
   round?: string;
   timeline?: GameEvent[];
@@ -172,6 +208,264 @@ export const MOCK_GAMES: Game[] = [
         tackles: [0, 0]
     }
   },
+  {
+    id: "6",
+    league: "Championship",
+    status: "Live",
+    time: "H2 45:00",
+    venue: "Odsal Stadium",
+    round: "Round 5",
+    homeTeam: { name: "Bradford Bulls", abbreviation: "BRD", logoColor: "bg-red-700 border border-amber-400 text-amber-400", score: 22 },
+    awayTeam: { name: "Featherstone Rovers", abbreviation: "FEV", logoColor: "bg-blue-800 text-white", score: 18 },
+    homeScorers: [
+      { name: "D. Miller", tries: 2 },
+      { name: "J. Woods", goals: 3 }
+    ],
+    awayScorers: [
+      { name: "C. Hall", tries: 1 },
+      { name: "B. Bussey", tries: 1 },
+      { name: "R. Finn", goals: 3 }
+    ],
+    timeline: [
+      { id: "c1", time: "42'", type: "try", team: "home", player: "D. Miller", description: "Miller breaks through for his second of the afternoon!" }
+    ],
+    stats: {
+      possession: [48, 52],
+      completion: [82, 79],
+      errors: [5, 6],
+      tackles: [165, 158]
+    }
+  },
+  {
+    id: "7",
+    league: "Championship",
+    status: "Upcoming",
+    time: "Sun 3:00 PM",
+    venue: "Crown Oil Arena",
+    round: "Round 5",
+    homeTeam: { name: "Rochdale Hornets", abbreviation: "ROC", logoColor: "bg-blue-600 text-white" },
+    awayTeam: { name: "Sheffield Eagles", abbreviation: "SHE", logoColor: "bg-yellow-500 text-black" },
+    timeline: [],
+    stats: { possession: [50, 50], completion: [0, 0], errors: [0, 0], tackles: [0, 0] }
+  },
+  {
+    id: "8",
+    league: "League 1",
+    status: "Final",
+    time: "Final",
+    venue: "Cougar Park",
+    round: "Round 4",
+    homeTeam: { name: "Keighley Cougars", abbreviation: "KEI", logoColor: "bg-green-700 text-white", score: 34 },
+    awayTeam: { name: "Workington Town", abbreviation: "WOR", logoColor: "bg-blue-900 text-white", score: 16 },
+    homeScorers: [
+      { name: "J. Miller", tries: 2 },
+      { name: "C. Lyons", tries: 2 },
+      { name: "B. Taylor", goals: 5 }
+    ],
+    awayScorers: [
+      { name: "S. Brown", tries: 1 },
+      { name: "M. Green", tries: 1 },
+      { name: "D. Smith", goals: 2 }
+    ],
+    timeline: [],
+    stats: { possession: [58, 42], completion: [85, 76], errors: [3, 8], tackles: [145, 180] }
+  },
+  {
+    id: "9",
+    league: "League 1",
+    status: "Upcoming",
+    time: "Sat 5:30 PM",
+    venue: "Bloomfield Road",
+    round: "Round 5",
+    homeTeam: { name: "Oldham RLFC", abbreviation: "OLD", logoColor: "bg-red-600 text-white" },
+    awayTeam: { name: "Hunslet RLFC", abbreviation: "HUN", logoColor: "bg-green-600 text-white" },
+    timeline: [],
+    stats: { possession: [50, 50], completion: [0, 0], errors: [0, 0], tackles: [0, 0] }
+  },
+  {
+    id: "10",
+    league: "QLD Cup",
+    status: "Live",
+    time: "H1 25:00",
+    isHot: true,
+    venue: "Browne Park",
+    round: "Round 8",
+    homeTeam: { name: "Central Queensland Capras", abbreviation: "CQC", logoColor: "bg-teal-600 text-white", score: 10 },
+    awayTeam: { name: "Burleigh Bears", abbreviation: "BUR", logoColor: "bg-orange-600 text-white", score: 6 },
+    homeScorers: [
+      { name: "K. Davis", tries: 1 },
+      { name: "T. Brown", tries: 1 },
+      { name: "M. Lee", goals: 1 }
+    ],
+    awayScorers: [
+      { name: "J. Riki", tries: 1 },
+      { name: "S. Okunbor", goals: 1 }
+    ],
+    timeline: [
+      { id: "q1", time: "22'", type: "try", team: "home", player: "T. Brown", description: "Brown crashes over from close range!" }
+    ],
+    stats: { possession: [55, 45], completion: [80, 82], errors: [3, 4], tackles: [75, 90] }
+  },
+  {
+    id: "11",
+    league: "QLD Cup",
+    status: "Upcoming",
+    time: "Sat 4:00 PM",
+    venue: "Dolphins Stadium",
+    round: "Round 8",
+    homeTeam: { name: "Redcliffe Dolphins", abbreviation: "RED", logoColor: "bg-red-500 text-white" },
+    awayTeam: { name: "Wynnum Manly Seagulls", abbreviation: "WYN", logoColor: "bg-blue-500 border border-red-500 text-white" },
+    timeline: [],
+    stats: { possession: [50, 50], completion: [0, 0], errors: [0, 0], tackles: [0, 0] }
+  },
+  {
+    id: "12",
+    league: "NSW Cup",
+    status: "Live",
+    time: "H2 52:00",
+    venue: "Kogarah Oval",
+    round: "Round 10",
+    homeTeam: { name: "St George Illawarra Dragons", abbreviation: "SGI", logoColor: "bg-red-600 text-white", score: 24 },
+    awayTeam: { name: "Parramatta Eels", abbreviation: "PAR", logoColor: "bg-blue-600 border border-yellow-400 text-yellow-400", score: 20 },
+    homeScorers: [
+      { name: "T. Ravalawa", tries: 2 },
+      { name: "M. Hunt", goals: 4 }
+    ],
+    awayScorers: [
+      { name: "B. Lane", tries: 2 },
+      { name: "K. Dykes", goals: 2 }
+    ],
+    timeline: [],
+    stats: { possession: [46, 54], completion: [78, 84], errors: [6, 4], tackles: [178, 160] }
+  },
+  {
+    id: "13",
+    league: "NSW Cup",
+    status: "Upcoming",
+    time: "Sun 1:00 PM",
+    venue: "Leichardt Oval",
+    round: "Round 10",
+    homeTeam: { name: "Western Suburbs Magpies", abbreviation: "WSM", logoColor: "bg-black border border-white text-white" },
+    awayTeam: { name: "Newcastle Knights", abbreviation: "NEW", logoColor: "bg-blue-700 border border-red-500 text-white" },
+    timeline: [],
+    stats: { possession: [50, 50], completion: [0, 0], errors: [0, 0], tackles: [0, 0] }
+  },
+  {
+    id: "14",
+    league: "Elite One",
+    status: "Final",
+    time: "Final",
+    venue: "Stade Albert Domec",
+    round: "Round 12",
+    homeTeam: { name: "Catalans Dragons B", abbreviation: "CAT", logoColor: "bg-red-600 border border-yellow-400 text-yellow-400", score: 28 },
+    awayTeam: { name: "Toulouse Olympique", abbreviation: "TOU", logoColor: "bg-black border border-red-500 text-white", score: 22 },
+    homeScorers: [
+      { name: "A. Garcia", tries: 2 },
+      { name: "L. Gigot", tries: 1 },
+      { name: "T. Langi", goals: 4 }
+    ],
+    awayScorers: [
+      { name: "M. Jullien", tries: 2 },
+      { name: "C. Mourgue", goals: 3 }
+    ],
+    timeline: [],
+    stats: { possession: [52, 48], completion: [83, 79], errors: [4, 5], tackles: [210, 225] }
+  },
+  {
+    id: "15",
+    league: "Elite One",
+    status: "Upcoming",
+    time: "Sat 7:00 PM",
+    venue: "Stade de la Mediterannee",
+    round: "Round 13",
+    homeTeam: { name: "AS Carcassonne", abbreviation: "CAR", logoColor: "bg-blue-800 border border-yellow-500 text-yellow-400" },
+    awayTeam: { name: "Lezignan Sangliers", abbreviation: "LEZ", logoColor: "bg-black text-red-500" },
+    timeline: [],
+    stats: { possession: [50, 50], completion: [0, 0], errors: [0, 0], tackles: [0, 0] }
+  },
+  {
+    id: "16",
+    league: "PNG Digicel Cup",
+    status: "Live",
+    time: "H2 60:00",
+    isHot: true,
+    venue: "National Football Stadium",
+    round: "Round 6",
+    homeTeam: { name: "Lae Snax Tigers", abbreviation: "LAE", logoColor: "bg-orange-500 text-black", score: 26 },
+    awayTeam: { name: "Rabaul Gurias", abbreviation: "RAB", logoColor: "bg-blue-700 text-white", score: 24 },
+    homeScorers: [
+      { name: "E. Komia", tries: 2 },
+      { name: "J. Nidau", tries: 1 },
+      { name: "N. Mondo", goals: 4 }
+    ],
+    awayScorers: [
+      { name: "W. Botom", tries: 2 },
+      { name: "K. Bai", tries: 1 },
+      { name: "S. Philip", goals: 3 }
+    ],
+    timeline: [
+      { id: "p1", time: "58'", type: "try", team: "home", player: "E. Komia", description: "Komia scores in the corner to give Tigers the lead!" }
+    ],
+    stats: { possession: [48, 52], completion: [76, 80], errors: [6, 5], tackles: [195, 188] }
+  },
+  {
+    id: "17",
+    league: "PNG Digicel Cup",
+    status: "Upcoming",
+    time: "Sun 2:00 PM",
+    venue: "Sir John Guise Stadium",
+    round: "Round 6",
+    homeTeam: { name: "Hela Wigmen", abbreviation: "HEL", logoColor: "bg-red-700 text-yellow-400" },
+    awayTeam: { name: "Port Moresby Vipers", abbreviation: "PMV", logoColor: "bg-green-600 text-white" },
+    timeline: [],
+    stats: { possession: [50, 50], completion: [0, 0], errors: [0, 0], tackles: [0, 0] }
+  },
+  {
+    id: "18",
+    league: "NZRL Premiership",
+    status: "Final",
+    time: "Final",
+    venue: "Mount Smart Stadium",
+    round: "Round 8",
+    homeTeam: { name: "Auckland Vulcans", abbreviation: "AKL", logoColor: "bg-blue-800 text-white", score: 32 },
+    awayTeam: { name: "Canterbury Bulls", abbreviation: "CAN", logoColor: "bg-red-600 text-white", score: 18 },
+    homeScorers: [
+      { name: "R. Tuimavave", tries: 2 },
+      { name: "K. Maumalo", tries: 2 },
+      { name: "C. Harris", goals: 4 }
+    ],
+    awayScorers: [
+      { name: "B. Goodwin", tries: 1 },
+      { name: "M. Frei", tries: 1 },
+      { name: "T. Wright", goals: 3 }
+    ],
+    timeline: [],
+    stats: { possession: [56, 44], completion: [88, 75], errors: [3, 7], tackles: [165, 195] }
+  },
+  {
+    id: "19",
+    league: "NZRL Premiership",
+    status: "Upcoming",
+    time: "Sat 5:00 PM",
+    venue: "FMG Stadium Waikato",
+    round: "Round 9",
+    homeTeam: { name: "Waikato Mooloo", abbreviation: "WAI", logoColor: "bg-red-600 border border-yellow-400 text-yellow-400" },
+    awayTeam: { name: "Wellington Orcas", abbreviation: "WEL", logoColor: "bg-black border border-yellow-500 text-yellow-400" },
+    timeline: [],
+    stats: { possession: [50, 50], completion: [0, 0], errors: [0, 0], tackles: [0, 0] }
+  },
+  {
+    id: "20",
+    league: "Betfred Challenge Cup",
+    status: "Upcoming",
+    time: "Sat 2:30 PM",
+    venue: "Wembley Stadium",
+    round: "Final",
+    homeTeam: { name: "Leigh Leopards", abbreviation: "LEI", logoColor: "bg-red-600 text-white" },
+    awayTeam: { name: "Hull FC", abbreviation: "HUL", logoColor: "bg-black border border-white text-white" },
+    timeline: [],
+    stats: { possession: [50, 50], completion: [0, 0], errors: [0, 0], tackles: [0, 0] }
+  },
 ];
 
 export const MOCK_NEWS: NewsItem[] = [
@@ -206,5 +500,21 @@ export const MOCK_NEWS: NewsItem[] = [
     category: "NRL",
     timestamp: "10 hours ago",
     imageUrl: "https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?auto=format&fit=crop&q=80&w=1000",
+  },
+  {
+    id: "5",
+    title: "Championship Showdown: Bradford Bulls Eye Promotion Push",
+    summary: "The Bulls' impressive form continues as they secure a vital win over Featherstone in a thrilling encounter.",
+    category: "Championship",
+    timestamp: "2 hours ago",
+    imageUrl: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&q=80&w=1000",
+  },
+  {
+    id: "6",
+    title: "PNG Digicel Cup: Tigers Edge Gurias in Thriller",
+    summary: "A last-minute try seals the victory for Lae Snax Tigers in an action-packed match at National Football Stadium.",
+    category: "PNG Digicel Cup",
+    timestamp: "30 minutes ago",
+    imageUrl: "https://images.unsplash.com/photo-1431324155629-1a6deb1dec8d?auto=format&fit=crop&q=80&w=1000",
   },
 ];
