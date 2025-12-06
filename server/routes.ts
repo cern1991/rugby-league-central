@@ -487,7 +487,7 @@ export async function registerRoutes(
         }
       }
       
-      const currentSeason = season || "2024";
+      const currentSeason = season || String(new Date().getFullYear());
       const data = await fetchRugbyAPI(`/games?league=${leagueId}&season=${currentSeason}`);
       const games = data.response || [];
       
@@ -548,7 +548,8 @@ export async function registerRoutes(
       }
       
       const leagueId = team.leagueId;
-      const data = await fetchRugbyAPI(`/games?league=${leagueId}&season=2024`);
+      const currentSeason = String(new Date().getFullYear());
+      const data = await fetchRugbyAPI(`/games?league=${leagueId}&season=${currentSeason}`);
       const games = data.response || [];
       
       // Filter games that involve this team
@@ -653,7 +654,7 @@ export async function registerRoutes(
         }
       }
       
-      const currentSeason = season || "2024";
+      const currentSeason = season || String(new Date().getFullYear());
       const data = await fetchRugbyAPI(`/standings?league=${leagueId}&season=${currentSeason}`);
       res.json({ response: data.response || [] });
     } catch (error: any) {
@@ -674,6 +675,20 @@ export async function registerRoutes(
       res.status(500).json({ message: error.message || "Failed to fetch leagues" });
     }
   });
+
+  // Helper to decode HTML entities
+  function decodeHtmlEntities(text: string): string {
+    return text
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&#x27;/g, "'")
+      .replace(/&#x2F;/g, '/')
+      .replace(/&apos;/g, "'")
+      .replace(/&nbsp;/g, ' ');
+  }
 
   // Get rugby news - using Google News RSS
   app.get("/api/rugby/news", async (req, res) => {
@@ -696,6 +711,12 @@ export async function registerRoutes(
       const rssUrl = `https://news.google.com/rss/search?q=${encodedQuery}&hl=en-AU&gl=AU&ceid=AU:en`;
       
       const response = await fetch(rssUrl);
+      
+      if (!response.ok) {
+        console.error("RSS fetch failed:", response.status, response.statusText);
+        return res.json({ response: [] });
+      }
+      
       const rssText = await response.text();
       
       // Parse RSS XML
@@ -703,18 +724,18 @@ export async function registerRoutes(
       const itemMatches = rssText.match(/<item>([\s\S]*?)<\/item>/g) || [];
       
       for (const itemXml of itemMatches.slice(0, 10)) {
-        const title = itemXml.match(/<title>([\s\S]*?)<\/title>/)?.[1]?.replace(/<!\[CDATA\[|\]\]>/g, '').trim() || "";
+        const rawTitle = itemXml.match(/<title>([\s\S]*?)<\/title>/)?.[1]?.replace(/<!\[CDATA\[|\]\]>/g, '').trim() || "";
         const link = itemXml.match(/<link>([\s\S]*?)<\/link>/)?.[1]?.trim() || "";
         const pubDate = itemXml.match(/<pubDate>([\s\S]*?)<\/pubDate>/)?.[1]?.trim() || "";
-        const source = itemXml.match(/<source[^>]*>([\s\S]*?)<\/source>/)?.[1]?.replace(/<!\[CDATA\[|\]\]>/g, '').trim() || "Unknown";
+        const rawSource = itemXml.match(/<source[^>]*>([\s\S]*?)<\/source>/)?.[1]?.replace(/<!\[CDATA\[|\]\]>/g, '').trim() || "Unknown";
         
-        if (title && link) {
+        if (rawTitle && link) {
           items.push({
             id: Buffer.from(link).toString('base64').slice(0, 20),
-            title: title.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>'),
+            title: decodeHtmlEntities(rawTitle),
             link,
-            publishedAt: pubDate,
-            source,
+            pubDate,
+            source: decodeHtmlEntities(rawSource),
             league: searchQuery
           });
         }
