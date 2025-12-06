@@ -2,9 +2,14 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
+import session from "express-session";
+import connectPgSimple from "connect-pg-simple";
+import passport from "./auth";
 
 const app = express();
 const httpServer = createServer(app);
+
+const PgStore = connectPgSimple(session);
 
 declare module "http" {
   interface IncomingMessage {
@@ -21,6 +26,32 @@ app.use(
 );
 
 app.use(express.urlencoded({ extended: false }));
+
+if (!process.env.SESSION_SECRET) {
+  throw new Error("SESSION_SECRET environment variable is required");
+}
+
+app.use(
+  session({
+    store: new PgStore({
+      conString: process.env.DATABASE_URL,
+      tableName: "sessions",
+      createTableIfMissing: false,
+    }),
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+    },
+  })
+);
+
+app.use(passport.initialize());
+app.use(passport.session());
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
