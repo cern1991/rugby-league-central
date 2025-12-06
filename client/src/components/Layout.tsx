@@ -1,7 +1,17 @@
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
-import { Trophy, Newspaper, Calendar, Settings, Menu, Search, Bell } from "lucide-react";
+import { Trophy, Newspaper, Calendar, Settings, Menu, Search, Bell, User, LogOut, Shield } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "@/lib/auth";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -10,6 +20,8 @@ interface LayoutProps {
 export function Layout({ children }: LayoutProps) {
   const [location] = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { user, loading, logout } = useAuth();
+  const [, setLocation] = useLocation();
 
   const navItems = [
     { label: "Dashboard", icon: Trophy, href: "/" },
@@ -92,11 +104,58 @@ export function Layout({ children }: LayoutProps) {
                 {location === "/" ? "Overview" : location.substring(1).charAt(0).toUpperCase() + location.substring(2)}
             </h2>
             <div className="flex items-center gap-4">
-                <button className="p-2 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors relative">
-                    <Bell className="w-5 h-5" />
-                    <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-background"></span>
-                </button>
-                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 ring-2 ring-background"></div>
+                {!loading && (
+                  <>
+                    {user ? (
+                      <>
+                        <button className="p-2 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors relative">
+                          <Bell className="w-5 h-5" />
+                          <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-background"></span>
+                        </button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button className="flex items-center gap-2 hover:bg-muted px-3 py-2 rounded-lg transition-colors" data-testid="button-user-menu">
+                              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 ring-2 ring-background flex items-center justify-center">
+                                <User className="w-4 h-4 text-white" />
+                              </div>
+                              <span className="text-sm font-medium hidden lg:inline" data-testid="text-user-email">{user.email}</span>
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-56">
+                            <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            {!user.twoFactorEnabled && (
+                              <DropdownMenuItem onClick={() => setLocation("/setup-2fa")} data-testid="menu-setup-2fa">
+                                <Shield className="mr-2 h-4 w-4" />
+                                Setup 2FA
+                              </DropdownMenuItem>
+                            )}
+                            {user.twoFactorEnabled && (
+                              <DropdownMenuItem disabled>
+                                <Shield className="mr-2 h-4 w-4 text-green-500" />
+                                2FA Enabled
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={logout} data-testid="menu-logout">
+                              <LogOut className="mr-2 h-4 w-4" />
+                              Logout
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <Button variant="ghost" size="sm" onClick={() => setLocation("/login")} data-testid="button-login">
+                          Login
+                        </Button>
+                        <Button size="sm" onClick={() => setLocation("/register")} data-testid="button-register">
+                          Register
+                        </Button>
+                      </div>
+                    )}
+                  </>
+                )}
             </div>
         </header>
         
