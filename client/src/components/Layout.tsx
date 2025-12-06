@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
-import { Trophy, Settings, Menu, User, LogOut, Shield, Home, X } from "lucide-react";
+import { Trophy, Settings, Menu, User, LogOut, Shield, Home, X, Zap, Newspaper, Users, BarChart3 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -25,7 +25,10 @@ export function Layout({ children }: LayoutProps) {
 
   const navItems = [
     { label: "Home", icon: Home, href: "/" },
-    { label: "Settings", icon: Settings, href: "/settings" },
+    { label: "Live Scores", icon: Zap, href: "/live" },
+    { label: "News", icon: Newspaper, href: "/news" },
+    { label: "Tables", icon: BarChart3, href: "/tables" },
+    { label: "Teams", icon: Users, href: "/teams" },
   ];
 
   return (

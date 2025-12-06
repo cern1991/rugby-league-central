@@ -9,6 +9,10 @@ import { WelcomeScreen } from "@/components/WelcomeScreen";
 import { TeamSelection } from "@/components/TeamSelection";
 import { useState, useEffect } from "react";
 import Home from "@/pages/Home";
+import LiveScores from "@/pages/LiveScores";
+import News from "@/pages/News";
+import LeagueTables from "@/pages/LeagueTables";
+import Teams from "@/pages/Teams";
 import MatchDetail from "@/pages/MatchDetail";
 import TeamPage from "@/pages/Team";
 import Login from "@/pages/Login";
@@ -22,6 +26,10 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={HomeWithWelcome} />
+      <Route path="/live" component={LiveScores} />
+      <Route path="/news" component={News} />
+      <Route path="/tables" component={LeagueTables} />
+      <Route path="/teams" component={Teams} />
       <Route path="/match/:id" component={MatchDetail} />
       <Route path="/team/:id" component={TeamPage} />
       <Route path="/login" component={Login} />
