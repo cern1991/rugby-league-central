@@ -58,11 +58,20 @@ interface Game {
   };
 }
 
+interface Player {
+  id: string;
+  name: string;
+  nationality: string;
+  position: string;
+  number: string;
+  dateOfBirth: string;
+  height: string;
+  weight: string;
+  thumbnail: string | null;
+  description: string;
+}
+
 interface ApiResponse<T> {
-  get: string;
-  parameters: Record<string, string>;
-  errors: any[];
-  results: number;
   response: T;
 }
 
@@ -90,6 +99,16 @@ export default function TeamPage() {
       return res.json();
     },
     enabled: !!teamId,
+  });
+
+  const { data: playersData, isLoading: playersLoading } = useQuery<ApiResponse<Player[]>>({
+    queryKey: ["team-players", teamId],
+    queryFn: async () => {
+      const res = await fetch(`/api/rugby/team/${teamId}/players`);
+      if (!res.ok) throw new Error("Failed to fetch players");
+      return res.json();
+    },
+    enabled: !!teamId && activeTab === "players",
   });
 
   if (!match || !teamId) return null;
@@ -272,10 +291,60 @@ export default function TeamPage() {
         )}
 
         {activeTab === "players" && (
-          <div className="text-center py-12 text-muted-foreground border border-dashed border-border rounded-xl">
-            <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <p>Player data coming soon</p>
-            <p className="text-sm mt-2">The API-Rugby service doesn't provide detailed player rosters for Rugby League</p>
+          <div className="space-y-4">
+            {playersLoading && (
+              <div className="flex items-center justify-center py-12">
+                <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+              </div>
+            )}
+
+            {!playersLoading && playersData?.response && playersData.response.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {playersData.response.map((player) => (
+                  <div 
+                    key={player.id} 
+                    className="p-4 rounded-xl bg-card border border-border hover:border-primary/50 transition-colors"
+                    data-testid={`card-player-${player.id}`}
+                  >
+                    <div className="flex items-center gap-4">
+                      {player.thumbnail ? (
+                        <img 
+                          src={player.thumbnail} 
+                          alt={player.name} 
+                          className="w-16 h-16 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center text-lg font-bold">
+                          {player.name.slice(0, 2).toUpperCase()}
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold truncate">{player.name}</div>
+                        {player.position && (
+                          <div className="text-sm text-primary">{player.position}</div>
+                        )}
+                        {player.nationality && (
+                          <div className="text-xs text-muted-foreground">{player.nationality}</div>
+                        )}
+                      </div>
+                      {player.number && (
+                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary">
+                          {player.number}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {!playersLoading && (!playersData?.response || playersData.response.length === 0) && (
+              <div className="text-center py-12 text-muted-foreground border border-dashed border-border rounded-xl">
+                <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p>No player data available</p>
+                <p className="text-sm mt-2">Player rosters may not be available for all teams</p>
+              </div>
+            )}
           </div>
         )}
       </div>

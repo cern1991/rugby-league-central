@@ -307,9 +307,9 @@ export async function registerRoutes(
     }
 
     const leagues = [
-      "Australian_National_Rugby_League",
-      "Super_League",
-      "RFL_Championship"
+      "Australian National Rugby League",
+      "Super League",
+      "RFL Championship"
     ];
 
     const allTeams: any[] = [];
@@ -510,6 +510,32 @@ export async function registerRoutes(
       res.json({ response: allGames });
     } catch (error: any) {
       res.status(500).json({ message: error.message || "Failed to fetch team games" });
+    }
+  });
+
+  // Get team players
+  app.get("/api/rugby/team/:id/players", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const data = await fetchSportsDB(`/lookup_all_players.php?id=${id}`);
+      const players = data.player || [];
+      
+      const formattedPlayers = players.map((player: any) => ({
+        id: player.idPlayer,
+        name: player.strPlayer,
+        nationality: player.strNationality,
+        position: player.strPosition,
+        number: player.strNumber,
+        dateOfBirth: player.dateBorn,
+        height: player.strHeight,
+        weight: player.strWeight,
+        thumbnail: player.strThumb || player.strCutout,
+        description: player.strDescriptionEN
+      }));
+      
+      res.json({ response: formattedPlayers });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to fetch players" });
     }
   });
 
