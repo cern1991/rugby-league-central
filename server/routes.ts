@@ -231,10 +231,29 @@ export async function registerRoutes(
       const user = req.user!;
       const validatedData = updateUserPreferencesSchema.parse(req.body);
       
-      const updatedUser = await storage.updateUser(user.id, {
-        favoriteTeams: validatedData.favoriteTeams,
-        themePreference: validatedData.themePreference,
-      });
+      // Only include fields that are explicitly provided (not undefined)
+      const updates: Partial<{ favoriteTeams: string[]; themePreference: string }> = {};
+      
+      if (validatedData.favoriteTeams !== undefined) {
+        updates.favoriteTeams = validatedData.favoriteTeams;
+      }
+      if (validatedData.themePreference !== undefined) {
+        updates.themePreference = validatedData.themePreference;
+      }
+
+      // If no updates provided, return current user data
+      if (Object.keys(updates).length === 0) {
+        return res.json({
+          id: user.id,
+          email: user.email,
+          twoFactorEnabled: user.twoFactorEnabled,
+          subscriptionStatus: user.subscriptionStatus,
+          favoriteTeams: user.favoriteTeams || [],
+          themePreference: user.themePreference || 'default',
+        });
+      }
+
+      const updatedUser = await storage.updateUser(user.id, updates);
 
       if (!updatedUser) {
         return res.status(404).json({ message: "User not found" });
