@@ -517,27 +517,38 @@ export async function registerRoutes(
           // Filter to only rugby league events and sort by date
           const events = data.events
             .filter((e: any) => e.strSport === "Rugby League" || e.idLeague === leagueId)
-            .map((e: any) => ({
-              id: e.idEvent,
-              date: e.dateEvent,
-              time: e.strTime,
-              homeTeam: {
-                id: e.idHomeTeam,
-                name: e.strHomeTeam,
-                logo: e.strHomeTeamBadge,
-                score: e.intHomeScore,
-              },
-              awayTeam: {
-                id: e.idAwayTeam,
-                name: e.strAwayTeam,
-                logo: e.strAwayTeamBadge,
-                score: e.intAwayScore,
-              },
-              venue: e.strVenue,
-              status: e.strStatus || (e.intHomeScore !== null ? "Match Finished" : "Not Started"),
-              round: e.intRound,
-              league: { id: leagueId, name: leagueName },
-            }))
+            .map((e: any) => {
+              const statusStr = e.strStatus || (e.intHomeScore !== null ? "Match Finished" : "Not Started");
+              const statusShort = statusStr === "Match Finished" ? "FT" : 
+                                 statusStr === "Not Started" ? "NS" : 
+                                 statusStr === "After Extra Time" ? "AET" : 
+                                 statusStr === "Postponed" ? "PST" : statusStr;
+              return {
+                id: e.idEvent,
+                date: e.dateEvent,
+                time: e.strTime,
+                teams: {
+                  home: {
+                    id: e.idHomeTeam,
+                    name: e.strHomeTeam,
+                    logo: e.strHomeTeamBadge,
+                  },
+                  away: {
+                    id: e.idAwayTeam,
+                    name: e.strAwayTeam,
+                    logo: e.strAwayTeamBadge,
+                  },
+                },
+                scores: {
+                  home: e.intHomeScore !== null ? parseInt(e.intHomeScore) : null,
+                  away: e.intAwayScore !== null ? parseInt(e.intAwayScore) : null,
+                },
+                venue: e.strVenue,
+                status: { long: statusStr, short: statusShort },
+                round: e.intRound,
+                league: { id: leagueId, name: leagueName },
+              };
+            })
             .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
             .slice(0, 50);
           return res.json({ response: events });
@@ -562,27 +573,36 @@ export async function registerRoutes(
         // Get last 15 events
         const data = await fetchFromSportsDB(`/eventspastleague.php?id=${leagueId}`);
         if (data?.events) {
-          const events = data.events.map((e: any) => ({
-            id: e.idEvent,
-            date: e.dateEvent,
-            time: e.strTime,
-            homeTeam: {
-              id: e.idHomeTeam,
-              name: e.strHomeTeam,
-              logo: e.strHomeTeamBadge,
-              score: e.intHomeScore,
-            },
-            awayTeam: {
-              id: e.idAwayTeam,
-              name: e.strAwayTeam,
-              logo: e.strAwayTeamBadge,
-              score: e.intAwayScore,
-            },
-            venue: e.strVenue,
-            status: e.strStatus || "FT",
-            round: e.intRound,
-            league: { id: leagueId, name: leagueName },
-          }));
+          const events = data.events.map((e: any) => {
+            const statusStr = e.strStatus || "Match Finished";
+            const statusShort = statusStr === "Match Finished" ? "FT" : 
+                               statusStr === "After Extra Time" ? "AET" : statusStr;
+            return {
+              id: e.idEvent,
+              date: e.dateEvent,
+              time: e.strTime,
+              teams: {
+                home: {
+                  id: e.idHomeTeam,
+                  name: e.strHomeTeam,
+                  logo: e.strHomeTeamBadge,
+                },
+                away: {
+                  id: e.idAwayTeam,
+                  name: e.strAwayTeam,
+                  logo: e.strAwayTeamBadge,
+                },
+              },
+              scores: {
+                home: e.intHomeScore !== null ? parseInt(e.intHomeScore) : null,
+                away: e.intAwayScore !== null ? parseInt(e.intAwayScore) : null,
+              },
+              venue: e.strVenue,
+              status: { long: statusStr, short: statusShort },
+              round: e.intRound,
+              league: { id: leagueId, name: leagueName },
+            };
+          });
           return res.json({ response: events });
         }
       }
