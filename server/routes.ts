@@ -717,7 +717,8 @@ export async function registerRoutes(
           venue: e.strVenue,
           status: e.strStatus || (e.intHomeScore !== null ? "FT" : null),
           round: e.intRound,
-          league: { id: e.idLeague, name: e.strLeague },
+          league: e.strLeague,
+          season: e.strSeason,
           description: e.strDescriptionEN,
           video: e.strVideo,
         }] });
