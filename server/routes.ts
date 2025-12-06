@@ -282,18 +282,40 @@ export async function registerRoutes(
     });
   });
 
-  // TheSportsDB API routes (free, no key required)
-  const SPORTSDB_BASE = "https://www.thesportsdb.com/api/v1/json/3";
+  // API-RUGBY from api-sports (requires RAPIDAPI_KEY)
+  const RUGBY_API_BASE = "https://v1.rugby.api-sports.io";
 
-  async function fetchSportsDB(endpoint: string) {
-    const response = await fetch(`${SPORTSDB_BASE}${endpoint}`);
-    
+  async function fetchRugbyAPI(endpoint: string) {
+    const apiKey = process.env.RAPIDAPI_KEY;
+    if (!apiKey) {
+      throw new Error("RAPIDAPI_KEY is not configured");
+    }
+
+    const response = await fetch(`${RUGBY_API_BASE}${endpoint}`, {
+      headers: {
+        "x-apisports-key": apiKey,
+      },
+    });
+
     if (!response.ok) {
-      throw new Error(`SportsDB API error: ${response.status}`);
+      throw new Error(`Rugby API error: ${response.status}`);
     }
 
     return response.json();
   }
+
+  // League IDs for API-RUGBY
+  const LEAGUE_IDS: Record<string, number> = {
+    "NRL": 44,
+    "Super League": 45,
+    "Championship": 46,
+  };
+
+  const LEAGUE_NAMES: Record<number, string> = {
+    44: "NRL",
+    45: "Super League",
+    46: "Championship",
+  };
 
   // Cache for league teams to enable partial search
   let cachedLeagueTeams: any[] = [];
@@ -306,22 +328,21 @@ export async function registerRoutes(
       return cachedLeagueTeams;
     }
 
-    const leagues = [
-      "Australian National Rugby League",
-      "Super League",
-      "RFL Championship"
-    ];
-
     const allTeams: any[] = [];
     
-    for (const league of leagues) {
+    for (const leagueId of Object.values(LEAGUE_IDS)) {
       try {
-        const data = await fetchSportsDB(`/search_all_teams.php?l=${encodeURIComponent(league)}`);
-        if (data.teams) {
-          allTeams.push(...data.teams);
+        const data = await fetchRugbyAPI(`/teams?league=${leagueId}`);
+        if (data.response) {
+          const teamsWithLeague = data.response.map((team: any) => ({
+            ...team,
+            leagueId,
+            leagueName: LEAGUE_NAMES[leagueId]
+          }));
+          allTeams.push(...teamsWithLeague);
         }
       } catch (e) {
-        console.error(`Failed to fetch ${league}:`, e);
+        console.error(`Failed to fetch league ${leagueId}:`, e);
       }
     }
 
@@ -340,48 +361,25 @@ export async function registerRoutes(
       
       const searchLower = name.toLowerCase();
       
-      // First, try exact API search
-      const [apiData, leagueTeams] = await Promise.all([
-        fetchSportsDB(`/searchteams.php?t=${encodeURIComponent(name)}`),
-        getLeagueTeams()
-      ]);
+      // Get all cached league teams and search them
+      const leagueTeams = await getLeagueTeams();
       
-      const apiTeams = apiData.teams || [];
-      
-      // Filter API results for rugby teams
-      const rugbyApiTeams = apiTeams.filter((team: any) => 
-        team.strSport === "Rugby" || 
-        team.strLeague?.toLowerCase().includes("rugby") ||
-        team.strLeague?.toLowerCase().includes("nrl") ||
-        team.strLeague?.toLowerCase().includes("super league")
+      // Search cached league teams for partial matches
+      const matchingTeams = leagueTeams.filter((team: any) =>
+        team.name?.toLowerCase().includes(searchLower)
       );
       
-      // Also search cached league teams for partial matches
-      const matchingLeagueTeams = leagueTeams.filter((team: any) =>
-        team.strTeam?.toLowerCase().includes(searchLower) ||
-        team.strTeamAlternate?.toLowerCase().includes(searchLower)
-      );
-      
-      // Combine and deduplicate by team ID
-      const seenIds = new Set<string>();
-      const allTeams = [...rugbyApiTeams, ...matchingLeagueTeams].filter((team: any) => {
-        if (seenIds.has(team.idTeam)) return false;
-        seenIds.add(team.idTeam);
-        return true;
-      });
-      
-      const formattedTeams = allTeams.map((team: any) => ({
-        id: team.idTeam,
-        name: team.strTeam,
-        logo: team.strBadge || team.strTeamBadge,
+      const formattedTeams = matchingTeams.map((team: any) => ({
+        id: team.id,
+        name: team.name,
+        logo: team.logo,
         country: {
-          name: team.strCountry || "Unknown",
-          code: team.strCountry?.slice(0, 2).toUpperCase() || "",
-          flag: null
+          name: team.country?.name || "Unknown",
+          code: team.country?.code || "",
+          flag: team.country?.flag || null
         },
-        league: team.strLeague,
-        stadium: team.strStadium,
-        description: team.strDescriptionEN
+        league: team.leagueName,
+        leagueId: team.leagueId
       }));
       
       res.json({ response: formattedTeams });
@@ -395,26 +393,38 @@ export async function registerRoutes(
   app.get("/api/rugby/teams", async (req, res) => {
     try {
       const { league } = req.query as { league?: string };
-      const leagueName = league || "Australian_National_Rugby_League";
       
-      const data = await fetchSportsDB(`/search_all_teams.php?l=${encodeURIComponent(leagueName)}`);
-      const teams = data.teams || [];
+      // Map league names to IDs
+      let leagueId = LEAGUE_IDS["NRL"]; // Default to NRL
+      if (league) {
+        if (league.toLowerCase().includes("super")) {
+          leagueId = LEAGUE_IDS["Super League"];
+        } else if (league.toLowerCase().includes("championship")) {
+          leagueId = LEAGUE_IDS["Championship"];
+        } else if (league.toLowerCase().includes("nrl") || league.toLowerCase().includes("national")) {
+          leagueId = LEAGUE_IDS["NRL"];
+        }
+      }
+      
+      const data = await fetchRugbyAPI(`/teams?league=${leagueId}`);
+      const teams = data.response || [];
       
       const formattedTeams = teams.map((team: any) => ({
-        id: team.idTeam,
-        name: team.strTeam,
-        logo: team.strBadge || team.strTeamBadge,
+        id: team.id,
+        name: team.name,
+        logo: team.logo,
         country: {
-          name: team.strCountry || "Unknown",
-          code: team.strCountry?.slice(0, 2).toUpperCase() || "",
-          flag: null
+          name: team.country?.name || "Unknown",
+          code: team.country?.code || "",
+          flag: team.country?.flag || null
         },
-        league: team.strLeague,
-        stadium: team.strStadium
+        league: LEAGUE_NAMES[leagueId],
+        leagueId: leagueId
       }));
       
       res.json({ response: formattedTeams });
     } catch (error: any) {
+      console.error("Teams fetch error:", error);
       res.status(500).json({ message: error.message || "Failed to fetch teams" });
     }
   });
@@ -423,119 +433,170 @@ export async function registerRoutes(
   app.get("/api/rugby/team/:id", async (req, res) => {
     try {
       const { id } = req.params;
-      const data = await fetchSportsDB(`/lookupteam.php?id=${id}`);
-      const teams = data.teams || [];
+      
+      // First try to find in cached teams
+      const cachedTeams = await getLeagueTeams();
+      const cachedTeam = cachedTeams.find((t: any) => String(t.id) === String(id));
+      
+      if (cachedTeam) {
+        res.json({ response: [{
+          id: cachedTeam.id,
+          name: cachedTeam.name,
+          logo: cachedTeam.logo,
+          country: cachedTeam.country || { name: "Unknown", code: "", flag: null },
+          league: cachedTeam.leagueName,
+          leagueId: cachedTeam.leagueId
+        }] });
+        return;
+      }
+      
+      // Otherwise try API
+      const data = await fetchRugbyAPI(`/teams?id=${id}`);
+      const teams = data.response || [];
       
       const formattedTeams = teams.map((team: any) => ({
-        id: team.idTeam,
-        name: team.strTeam,
-        logo: team.strBadge || team.strTeamBadge,
-        country: {
-          name: team.strCountry || "Unknown",
-          code: team.strCountry?.slice(0, 2).toUpperCase() || "",
-          flag: null
-        },
-        league: team.strLeague,
-        stadium: team.strStadium,
-        description: team.strDescriptionEN,
-        founded: team.intFormedYear,
-        website: team.strWebsite
+        id: team.id,
+        name: team.name,
+        logo: team.logo,
+        country: team.country || { name: "Unknown", code: "", flag: null },
+        league: team.league?.name,
+        leagueId: team.league?.id
       }));
       
       res.json({ response: formattedTeams });
     } catch (error: any) {
+      console.error("Team fetch error:", error);
       res.status(500).json({ message: error.message || "Failed to fetch team" });
     }
   });
 
-  // Get upcoming events for a team
+  // Get fixtures/games for a league
+  app.get("/api/rugby/fixtures", async (req, res) => {
+    try {
+      const { league, season } = req.query as { league?: string; season?: string };
+      
+      // Map league names to IDs
+      let leagueId = LEAGUE_IDS["NRL"]; // Default to NRL
+      if (league) {
+        if (league.toLowerCase().includes("super")) {
+          leagueId = LEAGUE_IDS["Super League"];
+        } else if (league.toLowerCase().includes("championship")) {
+          leagueId = LEAGUE_IDS["Championship"];
+        } else if (league.toLowerCase().includes("nrl") || league.toLowerCase().includes("national")) {
+          leagueId = LEAGUE_IDS["NRL"];
+        }
+      }
+      
+      const currentSeason = season || "2024";
+      const data = await fetchRugbyAPI(`/games?league=${leagueId}&season=${currentSeason}`);
+      const games = data.response || [];
+      
+      const formattedGames = games.map((game: any) => ({
+        id: game.id,
+        date: game.date,
+        time: game.time,
+        timestamp: game.timestamp,
+        week: game.week,
+        status: {
+          long: game.status?.long || "Unknown",
+          short: game.status?.short || "TBD"
+        },
+        league: {
+          id: game.league?.id,
+          name: game.league?.name,
+          type: game.league?.type,
+          logo: game.league?.logo,
+          season: game.league?.season
+        },
+        country: game.country || { name: "", code: "", flag: null },
+        teams: {
+          home: {
+            id: game.teams?.home?.id,
+            name: game.teams?.home?.name,
+            logo: game.teams?.home?.logo
+          },
+          away: {
+            id: game.teams?.away?.id,
+            name: game.teams?.away?.name,
+            logo: game.teams?.away?.logo
+          }
+        },
+        scores: {
+          home: game.scores?.home,
+          away: game.scores?.away
+        }
+      }));
+      
+      res.json({ response: formattedGames });
+    } catch (error: any) {
+      console.error("Fixtures fetch error:", error);
+      res.status(500).json({ message: error.message || "Failed to fetch fixtures" });
+    }
+  });
+
+  // Get games for a team (using league games filtered by team)
   app.get("/api/rugby/team/:id/games", async (req, res) => {
     try {
       const { id } = req.params;
       
-      const [nextData, pastData] = await Promise.all([
-        fetchSportsDB(`/eventsnext.php?id=${id}`),
-        fetchSportsDB(`/eventslast.php?id=${id}`)
-      ]);
+      // Find team's league
+      const cachedTeams = await getLeagueTeams();
+      const team = cachedTeams.find((t: any) => String(t.id) === String(id));
       
-      const nextEvents = nextData.events || [];
-      const pastEvents = pastData.results || [];
+      if (!team) {
+        return res.json({ response: [] });
+      }
       
-      const formatEvent = (event: any, isPast: boolean) => ({
-        id: event.idEvent,
-        date: event.dateEvent,
-        time: event.strTime || "TBD",
-        timestamp: new Date(`${event.dateEvent} ${event.strTime || "00:00"}`).getTime() / 1000,
-        timezone: event.strTimestamp || "",
-        week: event.intRound || "",
+      const leagueId = team.leagueId;
+      const data = await fetchRugbyAPI(`/games?league=${leagueId}&season=2024`);
+      const games = data.response || [];
+      
+      // Filter games that involve this team
+      const teamGames = games.filter((game: any) => 
+        String(game.teams?.home?.id) === String(id) || 
+        String(game.teams?.away?.id) === String(id)
+      );
+      
+      const formattedGames = teamGames.map((game: any) => ({
+        id: game.id,
+        date: game.date,
+        time: game.time,
+        timestamp: game.timestamp,
+        week: game.week,
         status: {
-          long: isPast ? "Match Finished" : "Not Started",
-          short: isPast ? "FT" : "NS"
+          long: game.status?.long || "Unknown",
+          short: game.status?.short || "TBD"
         },
         league: {
-          id: event.idLeague,
-          name: event.strLeague,
-          type: "League",
-          logo: null,
-          season: event.strSeason
+          id: game.league?.id,
+          name: game.league?.name,
+          type: game.league?.type,
+          logo: game.league?.logo,
+          season: game.league?.season
         },
-        country: {
-          name: event.strCountry || "",
-          code: "",
-          flag: null
-        },
+        country: game.country || { name: "", code: "", flag: null },
         teams: {
           home: {
-            id: event.idHomeTeam,
-            name: event.strHomeTeam,
-            logo: event.strHomeTeamBadge || null
+            id: game.teams?.home?.id,
+            name: game.teams?.home?.name,
+            logo: game.teams?.home?.logo
           },
           away: {
-            id: event.idAwayTeam,
-            name: event.strAwayTeam,
-            logo: event.strAwayTeamBadge || null
+            id: game.teams?.away?.id,
+            name: game.teams?.away?.name,
+            logo: game.teams?.away?.logo
           }
         },
         scores: {
-          home: event.intHomeScore ? parseInt(event.intHomeScore) : null,
-          away: event.intAwayScore ? parseInt(event.intAwayScore) : null
+          home: game.scores?.home,
+          away: game.scores?.away
         }
-      });
-      
-      const allGames = [
-        ...pastEvents.map((e: any) => formatEvent(e, true)),
-        ...nextEvents.map((e: any) => formatEvent(e, false))
-      ];
-      
-      res.json({ response: allGames });
-    } catch (error: any) {
-      res.status(500).json({ message: error.message || "Failed to fetch team games" });
-    }
-  });
-
-  // Get team players
-  app.get("/api/rugby/team/:id/players", async (req, res) => {
-    try {
-      const { id } = req.params;
-      const data = await fetchSportsDB(`/lookup_all_players.php?id=${id}`);
-      const players = data.player || [];
-      
-      const formattedPlayers = players.map((player: any) => ({
-        id: player.idPlayer,
-        name: player.strPlayer,
-        nationality: player.strNationality,
-        position: player.strPosition,
-        number: player.strNumber,
-        dateOfBirth: player.dateBorn,
-        height: player.strHeight,
-        weight: player.strWeight,
-        thumbnail: player.strThumb || player.strCutout,
-        description: player.strDescriptionEN
       }));
       
-      res.json({ response: formattedPlayers });
+      res.json({ response: formattedGames });
     } catch (error: any) {
-      res.status(500).json({ message: error.message || "Failed to fetch players" });
+      console.error("Team games fetch error:", error);
+      res.status(500).json({ message: error.message || "Failed to fetch team games" });
     }
   });
 
@@ -543,47 +604,60 @@ export async function registerRoutes(
   app.get("/api/rugby/game/:id", async (req, res) => {
     try {
       const { id } = req.params;
-      const data = await fetchSportsDB(`/lookupevent.php?id=${id}`);
-      const events = data.events || [];
+      const data = await fetchRugbyAPI(`/games?id=${id}`);
+      const games = data.response || [];
       
-      const formattedEvents = events.map((event: any) => ({
-        id: event.idEvent,
-        date: event.dateEvent,
-        time: event.strTime,
-        venue: event.strVenue,
-        league: event.strLeague,
-        season: event.strSeason,
+      const formattedGames = games.map((game: any) => ({
+        id: game.id,
+        date: game.date,
+        time: game.time,
+        venue: game.venue,
+        league: game.league?.name,
+        season: game.league?.season,
         homeTeam: {
-          id: event.idHomeTeam,
-          name: event.strHomeTeam,
-          logo: event.strHomeTeamBadge,
-          score: event.intHomeScore ? parseInt(event.intHomeScore) : null
+          id: game.teams?.home?.id,
+          name: game.teams?.home?.name,
+          logo: game.teams?.home?.logo,
+          score: game.scores?.home
         },
         awayTeam: {
-          id: event.idAwayTeam,
-          name: event.strAwayTeam,
-          logo: event.strAwayTeamBadge,
-          score: event.intAwayScore ? parseInt(event.intAwayScore) : null
+          id: game.teams?.away?.id,
+          name: game.teams?.away?.name,
+          logo: game.teams?.away?.logo,
+          score: game.scores?.away
         },
-        status: event.strStatus || (event.intHomeScore ? "Match Finished" : "Not Started"),
-        description: event.strDescriptionEN
+        status: game.status?.long || "Unknown"
       }));
       
-      res.json({ response: formattedEvents });
+      res.json({ response: formattedGames });
     } catch (error: any) {
+      console.error("Game fetch error:", error);
       res.status(500).json({ message: error.message || "Failed to fetch game" });
     }
   });
 
-  // Get league standings (NRL league ID: 4416)
+  // Get league standings
   app.get("/api/rugby/standings", async (req, res) => {
     try {
-      const { league } = req.query as { league?: string };
-      const leagueId = league || "4416";
+      const { league, season } = req.query as { league?: string; season?: string };
       
-      const data = await fetchSportsDB(`/lookuptable.php?l=${leagueId}&s=2024`);
-      res.json({ response: data.table || [] });
+      // Map league names to IDs
+      let leagueId = LEAGUE_IDS["NRL"]; // Default to NRL
+      if (league) {
+        if (league.toLowerCase().includes("super")) {
+          leagueId = LEAGUE_IDS["Super League"];
+        } else if (league.toLowerCase().includes("championship")) {
+          leagueId = LEAGUE_IDS["Championship"];
+        } else if (league.toLowerCase().includes("nrl") || league.toLowerCase().includes("national")) {
+          leagueId = LEAGUE_IDS["NRL"];
+        }
+      }
+      
+      const currentSeason = season || "2024";
+      const data = await fetchRugbyAPI(`/standings?league=${leagueId}&season=${currentSeason}`);
+      res.json({ response: data.response || [] });
     } catch (error: any) {
+      console.error("Standings fetch error:", error);
       res.status(500).json({ message: error.message || "Failed to fetch standings" });
     }
   });
@@ -591,18 +665,65 @@ export async function registerRoutes(
   // Get all rugby leagues
   app.get("/api/rugby/leagues", async (req, res) => {
     try {
-      const data = await fetchSportsDB(`/all_leagues.php`);
-      const allLeagues = data.leagues || [];
+      const data = await fetchRugbyAPI(`/leagues`);
+      const leagues = data.response || [];
       
-      const rugbyLeagues = allLeagues.filter((league: any) => 
-        league.strSport === "Rugby" || 
-        league.strLeague?.toLowerCase().includes("rugby") ||
-        league.strLeague?.toLowerCase().includes("nrl")
-      );
-      
-      res.json({ response: rugbyLeagues });
+      res.json({ response: leagues });
     } catch (error: any) {
+      console.error("Leagues fetch error:", error);
       res.status(500).json({ message: error.message || "Failed to fetch leagues" });
+    }
+  });
+
+  // Get rugby news - using Google News RSS
+  app.get("/api/rugby/news", async (req, res) => {
+    try {
+      const { league } = req.query as { league?: string };
+      
+      // Build search query based on league
+      let searchQuery = "rugby league";
+      if (league) {
+        if (league.toLowerCase().includes("super")) {
+          searchQuery = "Super League rugby";
+        } else if (league.toLowerCase().includes("championship")) {
+          searchQuery = "RFL Championship rugby";
+        } else if (league.toLowerCase().includes("nrl") || league.toLowerCase().includes("national")) {
+          searchQuery = "NRL rugby league";
+        }
+      }
+
+      const encodedQuery = encodeURIComponent(searchQuery);
+      const rssUrl = `https://news.google.com/rss/search?q=${encodedQuery}&hl=en-AU&gl=AU&ceid=AU:en`;
+      
+      const response = await fetch(rssUrl);
+      const rssText = await response.text();
+      
+      // Parse RSS XML
+      const items: any[] = [];
+      const itemMatches = rssText.match(/<item>([\s\S]*?)<\/item>/g) || [];
+      
+      for (const itemXml of itemMatches.slice(0, 10)) {
+        const title = itemXml.match(/<title>([\s\S]*?)<\/title>/)?.[1]?.replace(/<!\[CDATA\[|\]\]>/g, '').trim() || "";
+        const link = itemXml.match(/<link>([\s\S]*?)<\/link>/)?.[1]?.trim() || "";
+        const pubDate = itemXml.match(/<pubDate>([\s\S]*?)<\/pubDate>/)?.[1]?.trim() || "";
+        const source = itemXml.match(/<source[^>]*>([\s\S]*?)<\/source>/)?.[1]?.replace(/<!\[CDATA\[|\]\]>/g, '').trim() || "Unknown";
+        
+        if (title && link) {
+          items.push({
+            id: Buffer.from(link).toString('base64').slice(0, 20),
+            title: title.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>'),
+            link,
+            publishedAt: pubDate,
+            source,
+            league: searchQuery
+          });
+        }
+      }
+      
+      res.json({ response: items });
+    } catch (error: any) {
+      console.error("News fetch error:", error);
+      res.status(500).json({ message: error.message || "Failed to fetch news" });
     }
   });
 
