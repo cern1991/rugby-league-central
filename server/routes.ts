@@ -323,7 +323,8 @@ export async function registerRoutes(
     { id: "135195", name: "St George Illawarra Dragons", league: "NRL", country: { name: "Australia", code: "AU", flag: "https://flagcdn.com/w40/au.png" }, logo: "https://r2.thesportsdb.com/images/media/team/badge/ur74hh1552073186.png" },
     { id: "135192", name: "Sydney Roosters", league: "NRL", country: { name: "Australia", code: "AU", flag: "https://flagcdn.com/w40/au.png" }, logo: "https://r2.thesportsdb.com/images/media/team/badge/by299w1646347883.png" },
     { id: "135189", name: "Wests Tigers", league: "NRL", country: { name: "Australia", code: "AU", flag: "https://flagcdn.com/w40/au.png" }, logo: "https://r2.thesportsdb.com/images/media/team/badge/cs6i6f1646347894.png" },
-    // Super League Teams (12 teams)
+    // Super League Teams (14 teams for 2026 season)
+    { id: "137398", name: "Bradford Bulls", league: "Super League", country: { name: "England", code: "GB", flag: "https://flagcdn.com/w40/gb.png" }, logo: "https://www.thesportsdb.com/images/media/team/badge/mm5kx11764710149.png" },
     { id: "135213", name: "Castleford Tigers", league: "Super League", country: { name: "England", code: "GB", flag: "https://flagcdn.com/w40/gb.png" }, logo: "https://r2.thesportsdb.com/images/media/team/badge/uubtq71656789542.png" },
     { id: "135211", name: "Catalans Dragons", league: "Super League", country: { name: "France", code: "FR", flag: "https://flagcdn.com/w40/fr.png" }, logo: "https://r2.thesportsdb.com/images/media/team/badge/s3hv1a1656789566.png" },
     { id: "135219", name: "Huddersfield Giants", league: "Super League", country: { name: "England", code: "GB", flag: "https://flagcdn.com/w40/gb.png" }, logo: "https://r2.thesportsdb.com/images/media/team/badge/7u1czh1656789587.png" },
@@ -333,9 +334,11 @@ export async function registerRoutes(
     { id: "135217", name: "Leigh Leopards", league: "Super League", country: { name: "England", code: "GB", flag: "https://flagcdn.com/w40/gb.png" }, logo: "https://r2.thesportsdb.com/images/media/team/badge/wqutpt1706621089.png" },
     { id: "135212", name: "Salford Red Devils", league: "Super League", country: { name: "England", code: "GB", flag: "https://flagcdn.com/w40/gb.png" }, logo: "https://r2.thesportsdb.com/images/media/team/badge/3dnjjp1656789716.png" },
     { id: "135218", name: "St Helens", league: "Super League", country: { name: "England", code: "GB", flag: "https://flagcdn.com/w40/gb.png" }, logo: "https://r2.thesportsdb.com/images/media/team/badge/xolesg1706620870.png" },
-    { id: "135221", name: "Wakefield Trinity", league: "Super League", country: { name: "England", code: "GB", flag: "https://flagcdn.com/w40/gb.png" }, logo: "https://r2.thesportsdb.com/images/media/team/badge/gytlqy1656789733.png" },
+    { id: "137395", name: "Toulouse Olympique", league: "Super League", country: { name: "France", code: "FR", flag: "https://flagcdn.com/w40/fr.png" }, logo: "https://r2.thesportsdb.com/images/media/team/badge/hkg34j1641840692.png" },
+    { id: "135221", name: "Wakefield Trinity", league: "Super League", country: { name: "England", code: "GB", flag: "https://flagcdn.com/w40/gb.png" }, logo: "https://upload.wikimedia.org/wikipedia/en/thumb/d/db/WakefieldTrinity2021.svg/150px-WakefieldTrinity2021.svg.png" },
     { id: "135220", name: "Warrington Wolves", league: "Super League", country: { name: "England", code: "GB", flag: "https://flagcdn.com/w40/gb.png" }, logo: "https://r2.thesportsdb.com/images/media/team/badge/saimjk1656789616.png" },
     { id: "135222", name: "Wigan Warriors", league: "Super League", country: { name: "England", code: "GB", flag: "https://flagcdn.com/w40/gb.png" }, logo: "https://r2.thesportsdb.com/images/media/team/badge/vch5a71673549813.png" },
+    { id: "137405", name: "York Knights", league: "Super League", country: { name: "England", code: "GB", flag: "https://flagcdn.com/w40/gb.png" }, logo: "https://upload.wikimedia.org/wikipedia/en/thumb/6/62/York_RLFC_logo.svg/150px-York_RLFC_logo.svg.png" },
   ];
 
   // Get local teams by league
