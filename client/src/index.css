@@ -224,7 +224,15 @@
   --chart-1: 30 90% 50%;
 }
 
-/* ========== SUPER LEAGUE TEAMS ========== */
+/* ========== SUPER LEAGUE TEAMS (14 teams 2026) ========== */
+
+/* Bradford Bulls - Amber/Black */
+[data-theme="bradford-bulls"] {
+  --primary: 35 85% 50%;
+  --primary-foreground: 0 0% 10%;
+  --ring: 35 70% 60%;
+  --chart-1: 35 85% 50%;
+}
 
 /* Castleford Tigers - Amber/Black */
 [data-theme="castleford-tigers"] {
@@ -282,28 +290,28 @@
   --chart-1: 350 70% 40%;
 }
 
-/* London Broncos - Blue/Red */
-[data-theme="london-broncos"] {
-  --primary: 210 75% 50%;
-  --primary-foreground: 0 0% 100%;
-  --ring: 210 60% 60%;
-  --chart-1: 210 75% 50%;
-}
-
-/* Salford Red Devils - Red */
-[data-theme="salford-red-devils"] {
-  --primary: 0 75% 50%;
-  --primary-foreground: 0 0% 100%;
-  --ring: 0 60% 60%;
-  --chart-1: 0 75% 50%;
-}
-
 /* St Helens - Red/White */
 [data-theme="st-helens"] {
   --primary: 5 80% 50%;
   --primary-foreground: 0 0% 100%;
   --ring: 5 65% 60%;
   --chart-1: 5 80% 50%;
+}
+
+/* Toulouse Olympique - Red/Blue */
+[data-theme="toulouse-olympique"] {
+  --primary: 0 75% 50%;
+  --primary-foreground: 0 0% 100%;
+  --ring: 0 60% 60%;
+  --chart-1: 0 75% 50%;
+}
+
+/* Wakefield Trinity - Blue/White */
+[data-theme="wakefield-trinity"] {
+  --primary: 210 75% 50%;
+  --primary-foreground: 0 0% 100%;
+  --ring: 210 60% 60%;
+  --chart-1: 210 75% 50%;
 }
 
 /* Warrington Wolves - Blue/Yellow */
@@ -322,7 +330,15 @@
   --chart-1: 350 75% 45%;
 }
 
-/* ========== CHAMPIONSHIP TEAMS ========== */
+/* York Knights - Blue/White */
+[data-theme="york-knights"] {
+  --primary: 215 75% 50%;
+  --primary-foreground: 0 0% 100%;
+  --ring: 215 60% 60%;
+  --chart-1: 215 75% 50%;
+}
+
+/* ========== CHAMPIONSHIP TEAMS (13 teams 2025) ========== */
 
 /* Barrow Raiders - Blue/White */
 [data-theme="barrow-raiders"] {
@@ -338,22 +354,6 @@
   --primary-foreground: 0 0% 100%;
   --ring: 320 45% 55%;
   --chart-1: 320 55% 40%;
-}
-
-/* Bradford Bulls - Amber/Black */
-[data-theme="bradford-bulls"] {
-  --primary: 35 85% 50%;
-  --primary-foreground: 0 0% 10%;
-  --ring: 35 70% 60%;
-  --chart-1: 35 85% 50%;
-}
-
-/* Dewsbury Rams - Red/Amber */
-[data-theme="dewsbury-rams"] {
-  --primary: 0 65% 35%;
-  --primary-foreground: 0 0% 100%;
-  --ring: 0 50% 50%;
-  --chart-1: 0 65% 35%;
 }
 
 /* Doncaster - Blue/Yellow */
@@ -380,6 +380,30 @@
   --chart-1: 220 85% 25%;
 }
 
+/* Hunslet - Green/White */
+[data-theme="hunslet"] {
+  --primary: 140 60% 40%;
+  --primary-foreground: 0 0% 100%;
+  --ring: 140 50% 55%;
+  --chart-1: 140 60% 40%;
+}
+
+/* London Broncos - Blue/Red */
+[data-theme="london-broncos"] {
+  --primary: 210 75% 50%;
+  --primary-foreground: 0 0% 100%;
+  --ring: 210 60% 60%;
+  --chart-1: 210 75% 50%;
+}
+
+/* Oldham - Red/White */
+[data-theme="oldham"] {
+  --primary: 0 70% 45%;
+  --primary-foreground: 0 0% 100%;
+  --ring: 0 55% 55%;
+  --chart-1: 0 70% 45%;
+}
+
 /* Sheffield Eagles - Amber/Red */
 [data-theme="sheffield-eagles"] {
   --primary: 40 85% 50%;
@@ -388,52 +412,12 @@
   --chart-1: 40 85% 50%;
 }
 
-/* Swinton Lions - Blue/White */
-[data-theme="swinton-lions"] {
-  --primary: 215 70% 50%;
-  --primary-foreground: 0 0% 100%;
-  --ring: 215 55% 60%;
-  --chart-1: 215 70% 50%;
-}
-
-/* Toulouse Olympique - Red/Blue */
-[data-theme="toulouse-olympique"] {
-  --primary: 0 75% 50%;
-  --primary-foreground: 0 0% 100%;
-  --ring: 0 60% 60%;
-  --chart-1: 0 75% 50%;
-}
-
-/* Wakefield Trinity - Blue/White */
-[data-theme="wakefield-trinity"] {
-  --primary: 210 75% 50%;
-  --primary-foreground: 0 0% 100%;
-  --ring: 210 60% 60%;
-  --chart-1: 210 75% 50%;
-}
-
-/* Whitehaven - Teal/Black */
-[data-theme="whitehaven"] {
-  --primary: 175 60% 45%;
-  --primary-foreground: 0 0% 100%;
-  --ring: 175 50% 55%;
-  --chart-1: 175 60% 45%;
-}
-
 /* Widnes Vikings - Black/White */
 [data-theme="widnes-vikings"] {
   --primary: 210 20% 35%;
   --primary-foreground: 0 0% 100%;
   --ring: 210 15% 50%;
   --chart-1: 210 20% 35%;
-}
-
-/* York Knights - Blue/White */
-[data-theme="york-knights"] {
-  --primary: 215 75% 50%;
-  --primary-foreground: 0 0% 100%;
-  --ring: 215 60% 60%;
-  --chart-1: 215 75% 50%;
 }
 
 /* ========== STATE OF ORIGIN ========== */

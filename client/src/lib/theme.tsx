@@ -10,7 +10,7 @@ export interface TeamTheme {
 
 export const TEAM_THEMES: TeamTheme[] = [
   { id: "default", name: "Default Blue", league: "System", previewColor: "bg-blue-500" },
-  // NRL Teams
+  // NRL Teams (17 teams)
   { id: "brisbane-broncos", name: "Brisbane Broncos", league: "NRL", previewColor: "bg-yellow-500" },
   { id: "canberra-raiders", name: "Canberra Raiders", league: "NRL", previewColor: "bg-lime-500" },
   { id: "canterbury-bulldogs", name: "Canterbury Bulldogs", league: "NRL", previewColor: "bg-blue-600" },
@@ -28,7 +28,8 @@ export const TEAM_THEMES: TeamTheme[] = [
   { id: "st-george-dragons", name: "St George Illawarra Dragons", league: "NRL", previewColor: "bg-red-600" },
   { id: "sydney-roosters", name: "Sydney Roosters", league: "NRL", previewColor: "bg-red-500" },
   { id: "wests-tigers", name: "Wests Tigers", league: "NRL", previewColor: "bg-orange-500" },
-  // Super League Teams
+  // Super League Teams (14 teams for 2026)
+  { id: "bradford-bulls", name: "Bradford Bulls", league: "Super League", previewColor: "bg-amber-600" },
   { id: "castleford-tigers", name: "Castleford Tigers", league: "Super League", previewColor: "bg-amber-500" },
   { id: "catalans-dragons", name: "Catalans Dragons", league: "Super League", previewColor: "bg-amber-500" },
   { id: "huddersfield-giants", name: "Huddersfield Giants", league: "Super League", previewColor: "bg-blue-900" },
@@ -36,26 +37,23 @@ export const TEAM_THEMES: TeamTheme[] = [
   { id: "hull-kr", name: "Hull Kingston Rovers", league: "Super League", previewColor: "bg-red-700" },
   { id: "leeds-rhinos", name: "Leeds Rhinos", league: "Super League", previewColor: "bg-amber-400" },
   { id: "leigh-leopards", name: "Leigh Leopards", league: "Super League", previewColor: "bg-red-800" },
-  { id: "london-broncos", name: "London Broncos", league: "Super League", previewColor: "bg-blue-500" },
-  { id: "salford-red-devils", name: "Salford Red Devils", league: "Super League", previewColor: "bg-red-600" },
   { id: "st-helens", name: "St Helens", league: "Super League", previewColor: "bg-red-600" },
+  { id: "toulouse-olympique", name: "Toulouse Olympique", league: "Super League", previewColor: "bg-red-500" },
+  { id: "wakefield-trinity", name: "Wakefield Trinity", league: "Super League", previewColor: "bg-blue-500" },
   { id: "warrington-wolves", name: "Warrington Wolves", league: "Super League", previewColor: "bg-blue-400" },
   { id: "wigan-warriors", name: "Wigan Warriors", league: "Super League", previewColor: "bg-rose-600" },
-  // Championship Teams
+  { id: "york-knights", name: "York Knights", league: "Super League", previewColor: "bg-blue-600" },
+  // Championship Teams (13 teams for 2025)
   { id: "barrow-raiders", name: "Barrow Raiders", league: "Championship", previewColor: "bg-blue-800" },
   { id: "batley-bulldogs", name: "Batley Bulldogs", league: "Championship", previewColor: "bg-fuchsia-700" },
-  { id: "bradford-bulls", name: "Bradford Bulls", league: "Championship", previewColor: "bg-amber-600" },
-  { id: "dewsbury-rams", name: "Dewsbury Rams", league: "Championship", previewColor: "bg-red-900" },
   { id: "doncaster", name: "Doncaster", league: "Championship", previewColor: "bg-blue-500" },
   { id: "featherstone-rovers", name: "Featherstone Rovers", league: "Championship", previewColor: "bg-blue-700" },
   { id: "halifax-panthers", name: "Halifax Panthers", league: "Championship", previewColor: "bg-blue-950" },
+  { id: "hunslet", name: "Hunslet", league: "Championship", previewColor: "bg-green-700" },
+  { id: "london-broncos", name: "London Broncos", league: "Championship", previewColor: "bg-blue-500" },
+  { id: "oldham", name: "Oldham", league: "Championship", previewColor: "bg-red-700" },
   { id: "sheffield-eagles", name: "Sheffield Eagles", league: "Championship", previewColor: "bg-amber-500" },
-  { id: "swinton-lions", name: "Swinton Lions", league: "Championship", previewColor: "bg-blue-600" },
-  { id: "toulouse-olympique", name: "Toulouse Olympique", league: "Championship", previewColor: "bg-red-500" },
-  { id: "wakefield-trinity", name: "Wakefield Trinity", league: "Championship", previewColor: "bg-blue-500" },
-  { id: "whitehaven", name: "Whitehaven", league: "Championship", previewColor: "bg-teal-600" },
   { id: "widnes-vikings", name: "Widnes Vikings", league: "Championship", previewColor: "bg-slate-700" },
-  { id: "york-knights", name: "York Knights", league: "Championship", previewColor: "bg-blue-600" },
   // State of Origin
   { id: "new-south-wales", name: "NSW Blues", league: "State of Origin", previewColor: "bg-sky-500" },
   { id: "queensland", name: "QLD Maroons", league: "State of Origin", previewColor: "bg-rose-800" },
@@ -88,7 +86,8 @@ export const AVAILABLE_TEAMS = [
   { name: "St George Illawarra Dragons", league: "NRL", themeId: "st-george-dragons" },
   { name: "Sydney Roosters", league: "NRL", themeId: "sydney-roosters" },
   { name: "Wests Tigers", league: "NRL", themeId: "wests-tigers" },
-  // Super League - All 12 teams
+  // Super League - 14 teams (2026 season)
+  { name: "Bradford Bulls", league: "Super League", themeId: "bradford-bulls" },
   { name: "Castleford Tigers", league: "Super League", themeId: "castleford-tigers" },
   { name: "Catalans Dragons", league: "Super League", themeId: "catalans-dragons" },
   { name: "Huddersfield Giants", league: "Super League", themeId: "huddersfield-giants" },
@@ -96,26 +95,23 @@ export const AVAILABLE_TEAMS = [
   { name: "Hull Kingston Rovers", league: "Super League", themeId: "hull-kr" },
   { name: "Leeds Rhinos", league: "Super League", themeId: "leeds-rhinos" },
   { name: "Leigh Leopards", league: "Super League", themeId: "leigh-leopards" },
-  { name: "London Broncos", league: "Super League", themeId: "london-broncos" },
-  { name: "Salford Red Devils", league: "Super League", themeId: "salford-red-devils" },
   { name: "St Helens", league: "Super League", themeId: "st-helens" },
+  { name: "Toulouse Olympique", league: "Super League", themeId: "toulouse-olympique" },
+  { name: "Wakefield Trinity", league: "Super League", themeId: "wakefield-trinity" },
   { name: "Warrington Wolves", league: "Super League", themeId: "warrington-wolves" },
   { name: "Wigan Warriors", league: "Super League", themeId: "wigan-warriors" },
-  // Championship - All 14 teams
+  { name: "York Knights", league: "Super League", themeId: "york-knights" },
+  // Championship - 13 teams (2025 season)
   { name: "Barrow Raiders", league: "Championship", themeId: "barrow-raiders" },
   { name: "Batley Bulldogs", league: "Championship", themeId: "batley-bulldogs" },
-  { name: "Bradford Bulls", league: "Championship", themeId: "bradford-bulls" },
-  { name: "Dewsbury Rams", league: "Championship", themeId: "dewsbury-rams" },
   { name: "Doncaster", league: "Championship", themeId: "doncaster" },
   { name: "Featherstone Rovers", league: "Championship", themeId: "featherstone-rovers" },
   { name: "Halifax Panthers", league: "Championship", themeId: "halifax-panthers" },
+  { name: "Hunslet", league: "Championship", themeId: "hunslet" },
+  { name: "London Broncos", league: "Championship", themeId: "london-broncos" },
+  { name: "Oldham", league: "Championship", themeId: "oldham" },
   { name: "Sheffield Eagles", league: "Championship", themeId: "sheffield-eagles" },
-  { name: "Swinton Lions", league: "Championship", themeId: "swinton-lions" },
-  { name: "Toulouse Olympique", league: "Championship", themeId: "toulouse-olympique" },
-  { name: "Wakefield Trinity", league: "Championship", themeId: "wakefield-trinity" },
-  { name: "Whitehaven", league: "Championship", themeId: "whitehaven" },
   { name: "Widnes Vikings", league: "Championship", themeId: "widnes-vikings" },
-  { name: "York Knights", league: "Championship", themeId: "york-knights" },
   // State of Origin
   { name: "NSW Blues", league: "State of Origin", themeId: "new-south-wales" },
   { name: "QLD Maroons", league: "State of Origin", themeId: "queensland" },
