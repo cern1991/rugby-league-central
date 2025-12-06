@@ -494,38 +494,44 @@ export async function registerRoutes(
     }
   });
 
-  // Get fixtures/games for a league
+  // Get fixtures/games for a league (uses season data for rugby league)
   app.get("/api/rugby/fixtures", async (req, res) => {
     try {
-      const { league } = req.query as { league?: string };
+      const { league, season } = req.query as { league?: string; season?: string };
       const leagueName = league || "NRL";
       const leagueId = LEAGUE_IDS[leagueName];
+      const seasonYear = season || "2025";
       
       if (leagueId) {
-        // Get next 15 events
-        const data = await fetchFromSportsDB(`/eventsnextleague.php?id=${leagueId}`);
-        if (data?.events) {
-          const events = data.events.map((e: any) => ({
-            id: e.idEvent,
-            date: e.dateEvent,
-            time: e.strTime,
-            homeTeam: {
-              id: e.idHomeTeam,
-              name: e.strHomeTeam,
-              logo: e.strHomeTeamBadge,
-              score: e.intHomeScore,
-            },
-            awayTeam: {
-              id: e.idAwayTeam,
-              name: e.strAwayTeam,
-              logo: e.strAwayTeamBadge,
-              score: e.intAwayScore,
-            },
-            venue: e.strVenue,
-            status: e.strStatus,
-            round: e.intRound,
-            league: { id: leagueId, name: leagueName },
-          }));
+        // Use eventsseason.php for complete season data (works during off-season)
+        const data = await fetchFromSportsDB(`/eventsseason.php?id=${leagueId}&s=${seasonYear}`);
+        if (data?.events && Array.isArray(data.events)) {
+          // Filter to only rugby league events and sort by date
+          const events = data.events
+            .filter((e: any) => e.strSport === "Rugby League" || e.idLeague === leagueId)
+            .map((e: any) => ({
+              id: e.idEvent,
+              date: e.dateEvent,
+              time: e.strTime,
+              homeTeam: {
+                id: e.idHomeTeam,
+                name: e.strHomeTeam,
+                logo: e.strHomeTeamBadge,
+                score: e.intHomeScore,
+              },
+              awayTeam: {
+                id: e.idAwayTeam,
+                name: e.strAwayTeam,
+                logo: e.strAwayTeamBadge,
+                score: e.intAwayScore,
+              },
+              venue: e.strVenue,
+              status: e.strStatus || (e.intHomeScore !== null ? "Match Finished" : "Not Started"),
+              round: e.intRound,
+              league: { id: leagueId, name: leagueName },
+            }))
+            .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
+            .slice(0, 50);
           return res.json({ response: events });
         }
       }
@@ -639,10 +645,15 @@ export async function registerRoutes(
         };
       };
       
-      const events = [
-        ...(pastData?.results || []).map(mapEvent),
-        ...(nextData?.events || []).map(mapEvent),
-      ];
+      // Filter for rugby league only and map events
+      const pastEvents = (pastData?.results || [])
+        .filter((e: any) => e.strSport === "Rugby League")
+        .map(mapEvent);
+      const nextEvents = (nextData?.events || [])
+        .filter((e: any) => e.strSport === "Rugby League")
+        .map(mapEvent);
+      
+      const events = [...pastEvents, ...nextEvents];
       
       res.json({ response: events });
     } catch (error: any) {
