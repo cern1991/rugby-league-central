@@ -353,6 +353,10 @@ export default function TeamPage() {
 }
 
 function GameCard({ game, teamId }: { game: Game; teamId: number }) {
+  if (!game.teams?.home || !game.teams?.away || !game.scores || !game.status) {
+    return null;
+  }
+  
   const isHome = game.teams.home.id === teamId;
   const opponent = isHome ? game.teams.away : game.teams.home;
   const ourScore = isHome ? game.scores.home : game.scores.away;
