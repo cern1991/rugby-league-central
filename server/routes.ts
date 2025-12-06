@@ -298,7 +298,8 @@ export async function registerRoutes(
 
     const response = await fetch(url.toString(), {
       headers: {
-        "x-apisports-key": RAPIDAPI_KEY,
+        "x-rapidapi-key": RAPIDAPI_KEY,
+        "x-rapidapi-host": "v1.rugby.api-sports.io",
       },
     });
 
