@@ -425,35 +425,40 @@ export async function registerRoutes(
     try {
       const { id } = req.params;
       
-      // Try TheSportsDB first
+      // Check local data first for known rugby league teams
+      const localTeam = LOCAL_TEAMS.find((t: any) => String(t.id) === String(id));
+      
+      // Try TheSportsDB for additional details, but verify it's rugby league
       const data = await fetchFromSportsDB(`/lookupteam.php?id=${id}`);
       if (data?.teams && data.teams.length > 0) {
         const team = data.teams[0];
-        return res.json({ response: [{
-          id: team.idTeam,
-          name: team.strTeam,
-          logo: team.strBadge || team.strLogo,
-          league: team.strLeague,
-          country: {
-            name: team.strCountry,
-            code: team.strCountry === "Australia" ? "AU" : team.strCountry === "New Zealand" ? "NZ" : "GB",
-            flag: team.strCountry === "Australia" ? "https://flagcdn.com/w40/au.png" : 
-                  team.strCountry === "New Zealand" ? "https://flagcdn.com/w40/nz.png" :
-                  team.strCountry === "France" ? "https://flagcdn.com/w40/fr.png" : "https://flagcdn.com/w40/gb.png"
-          },
-          stadium: team.strStadium,
-          description: team.strDescriptionEN,
-          founded: team.intFormedYear,
-          website: team.strWebsite,
-          facebook: team.strFacebook,
-          twitter: team.strTwitter,
-          instagram: team.strInstagram,
-          jersey: team.strEquipment,
-        }] });
+        // Only use API data if it's a rugby league team
+        if (team.strSport === "Rugby League") {
+          return res.json({ response: [{
+            id: team.idTeam,
+            name: team.strTeam,
+            logo: localTeam?.logo || team.strBadge || team.strLogo,
+            league: team.strLeague,
+            country: {
+              name: team.strCountry,
+              code: team.strCountry === "Australia" ? "AU" : team.strCountry === "New Zealand" ? "NZ" : "GB",
+              flag: team.strCountry === "Australia" ? "https://flagcdn.com/w40/au.png" : 
+                    team.strCountry === "New Zealand" ? "https://flagcdn.com/w40/nz.png" :
+                    team.strCountry === "France" ? "https://flagcdn.com/w40/fr.png" : "https://flagcdn.com/w40/gb.png"
+            },
+            stadium: team.strStadium,
+            description: team.strDescriptionEN,
+            founded: team.intFormedYear,
+            website: team.strWebsite,
+            facebook: team.strFacebook,
+            twitter: team.strTwitter,
+            instagram: team.strInstagram,
+            jersey: team.strEquipment,
+          }] });
+        }
       }
       
-      // Fallback to local data
-      const localTeam = LOCAL_TEAMS.find((t: any) => String(t.id) === String(id));
+      // Fallback to local data for rugby league teams
       if (localTeam) {
         res.json({ response: [localTeam] });
       } else {
