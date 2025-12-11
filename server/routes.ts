@@ -319,6 +319,76 @@ export async function registerRoutes(
     return acc;
   }, {});
 
+  const LOCAL_GAME_ID_PREFIX = "local-";
+
+  function toBase64Url(value: string) {
+    return Buffer.from(value, "utf8")
+      .toString("base64")
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=+$/g, "");
+  }
+
+  function fromBase64Url(value: string) {
+    let base64 = value.replace(/-/g, "+").replace(/_/g, "/");
+    while (base64.length % 4 !== 0) {
+      base64 += "=";
+    }
+    return Buffer.from(base64, "base64").toString("utf8");
+  }
+
+  function createLocalMatchId(leagueName: string, matchNumber: number, homeTeam: string, awayTeam: string) {
+    const payload = JSON.stringify({ leagueName, matchNumber, homeTeam, awayTeam });
+    return `${LOCAL_GAME_ID_PREFIX}${toBase64Url(payload)}`;
+  }
+
+  function createLegacyLocalMatchId(leagueName: string, matchNumber: number, homeTeam: string, awayTeam: string) {
+    return `${LOCAL_GAME_ID_PREFIX}${leagueName}-${matchNumber}-${homeTeam}-${awayTeam}`;
+  }
+
+  function decodeLocalMatchId(matchId: string) {
+    if (!matchId.startsWith(LOCAL_GAME_ID_PREFIX)) {
+      return null;
+    }
+    const encoded = matchId.slice(LOCAL_GAME_ID_PREFIX.length);
+    try {
+      const json = fromBase64Url(encoded);
+      return JSON.parse(json);
+    } catch {
+      return null;
+    }
+  }
+
+  function normalizeNameForComparison(value: string) {
+    return value?.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  }
+
+  function namesMatch(a: string, b: string) {
+    const normA = normalizeNameForComparison(a);
+    const normB = normalizeNameForComparison(b);
+    return normA === normB || normA.includes(normB) || normB.includes(normA);
+  }
+
+  function decodeLegacyLocalMatchId(matchId: string) {
+    if (!matchId.startsWith(LOCAL_GAME_ID_PREFIX)) {
+      return null;
+    }
+    const withoutPrefix = matchId.slice(LOCAL_GAME_ID_PREFIX.length);
+    const parts = withoutPrefix.split("-");
+    if (parts.length < 4) {
+      return null;
+    }
+    const leagueName = parts[0];
+    const matchNumber = parseInt(parts[1], 10);
+    if (Number.isNaN(matchNumber)) {
+      return null;
+    }
+    const homeParts = parts.slice(2, parts.length - 1);
+    const homeTeam = homeParts.join("-") || parts[2];
+    const awayTeam = parts[parts.length - 1];
+    return { leagueName, matchNumber, homeTeam, awayTeam };
+  }
+
   function findLocalTeamByFragment(name: string) {
     if (!name) return undefined;
     const normalized = name.trim().toLowerCase();
@@ -349,8 +419,13 @@ export async function registerRoutes(
     const awayTeam = findLocalTeamByFragment(fixture.awayTeam);
     const defaultCountry = { name: "Australia", code: "AU", flag: "https://flagcdn.com/w40/au.png" };
 
+    const legacyId = createLegacyLocalMatchId(leagueName, fixture.matchNumber, fixture.homeTeam, fixture.awayTeam);
+    const encodedId = createLocalMatchId(leagueName, fixture.matchNumber, fixture.homeTeam, fixture.awayTeam);
+
     return {
-      id: `local-${leagueName}-${fixture.matchNumber}-${fixture.homeTeam}-${fixture.awayTeam}`,
+      id: encodedId,
+      legacyId,
+      matchNumber: fixture.matchNumber,
       date: datePart,
       time: (timePart || "00:00:00").substring(0, 8),
       timestamp: dateObj.getTime(),
@@ -444,17 +519,54 @@ export async function registerRoutes(
   }
 
   function findLocalGameById(eventId: string) {
-    if (!eventId?.startsWith("local-")) {
+    if (!eventId?.startsWith(LOCAL_GAME_ID_PREFIX)) {
       return null;
     }
-    const nrlFixtures = buildNrlFixturesFromLocalData();
-    const nrlMatch = nrlFixtures.find((fixture) => fixture.id === eventId);
-    if (nrlMatch) {
-      return transformLocalGameForMatchDetail(nrlMatch);
+    const combinedFixtures = [
+      ...buildNrlFixturesFromLocalData(),
+      ...buildSuperLeagueFixturesFromLocalData(),
+    ];
+
+    const directMatch = combinedFixtures.find((fixture: any) => fixture.id === eventId);
+    if (directMatch) {
+      return transformLocalGameForMatchDetail(directMatch);
     }
-    const superLeagueFixtures = buildSuperLeagueFixturesFromLocalData();
-    const slMatch = superLeagueFixtures.find((fixture) => fixture.id === eventId);
-    return transformLocalGameForMatchDetail(slMatch);
+
+    // Fallback for legacy IDs that used raw team names
+    const legacyMatch = combinedFixtures.find((fixture: any) => {
+      if (typeof fixture.matchNumber !== "number") {
+        return false;
+      }
+      const leagueLabel = fixture.league?.name || "";
+      const homeName = fixture.teams?.home?.name || "";
+      const awayName = fixture.teams?.away?.name || "";
+      const candidateLegacyId = createLegacyLocalMatchId(leagueLabel, fixture.matchNumber, homeName, awayName);
+      if (candidateLegacyId === eventId) {
+        return true;
+      }
+
+      const decodedTarget = decodeLegacyLocalMatchId(eventId);
+      if (!decodedTarget) {
+        return false;
+      }
+
+      const decodedFixtureId = decodeLocalMatchId(fixture.id);
+      if (decodedFixtureId) {
+        return (
+          decodedFixtureId.matchNumber === decodedTarget.matchNumber &&
+          namesMatch(decodedFixtureId.homeTeam, decodedTarget.homeTeam) &&
+          namesMatch(decodedFixtureId.awayTeam, decodedTarget.awayTeam)
+        );
+      }
+
+      return (
+        decodedTarget.matchNumber === fixture.matchNumber &&
+        namesMatch(decodedTarget.homeTeam, homeName) &&
+        namesMatch(decodedTarget.awayTeam, awayName)
+      );
+    });
+
+    return legacyMatch ? transformLocalGameForMatchDetail(legacyMatch) : null;
   }
 
   // Get local teams by league
