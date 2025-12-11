@@ -416,6 +416,19 @@ export async function registerRoutes(
     return NRL_2026_FIXTURES_BY_TEAM[teamId];
   }
 
+  function findLocalGameById(eventId: string) {
+    if (!eventId?.startsWith("local-")) {
+      return null;
+    }
+    const nrlFixtures = buildNrlFixturesFromLocalData();
+    const nrlMatch = nrlFixtures.find((fixture) => fixture.id === eventId);
+    if (nrlMatch) {
+      return nrlMatch;
+    }
+    const superLeagueFixtures = buildSuperLeagueFixturesFromLocalData();
+    return superLeagueFixtures.find((fixture) => fixture.id === eventId) || null;
+  }
+
   // Get local teams by league
   function getLocalTeams(league?: string): any[] {
     if (!league) return LOCAL_TEAMS;
@@ -1060,6 +1073,10 @@ export async function registerRoutes(
   app.get("/api/rugby/game/:id", async (req, res) => {
     try {
       const { id } = req.params;
+      const localGame = findLocalGameById(id);
+      if (localGame) {
+        return res.json({ response: [localGame] });
+      }
       
       const data = await fetchFromSportsDB(`/lookupevent.php?id=${id}`);
       if (data?.events && data.events.length > 0) {
