@@ -258,7 +258,7 @@ export default function TeamPage() {
                   Upcoming Fixtures
                 </h3>
                 <div className="space-y-3">
-                  {upcomingGames.slice(0, 10).map(game => (
+                  {upcomingGames.map(game => (
                     <GameCard key={game.id} game={game} teamId={parseInt(teamId)} />
                   ))}
                 </div>
@@ -272,7 +272,7 @@ export default function TeamPage() {
                   Recent Results
                 </h3>
                 <div className="space-y-3">
-                  {pastGames.slice(-10).reverse().map(game => (
+                  {pastGames.slice().reverse().map(game => (
                     <GameCard key={game.id} game={game} teamId={parseInt(teamId)} />
                   ))}
                 </div>

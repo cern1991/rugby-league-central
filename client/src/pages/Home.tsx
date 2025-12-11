@@ -100,8 +100,8 @@ export default function Home() {
   const games = gamesData?.response || [];
   const news = newsData?.response || [];
   
-  const upcomingGames = games.filter(g => g.status.short === "NS" || g.status.short === "TBD").slice(0, 10);
-  const completedGames = games.filter(g => g.status.short === "FT" || g.status.short === "AET").slice(0, 10);
+  const upcomingGames = games.filter(g => g.status.short === "NS" || g.status.short === "TBD");
+  const completedGames = games.filter(g => g.status.short === "FT" || g.status.short === "AET");
   const liveGames = games.filter(g => g.status.short !== "FT" && g.status.short !== "AET" && g.status.short !== "NS" && g.status.short !== "TBD");
 
   const displayLeagueName = FEATURED_LEAGUES.find(l => l.id === selectedLeague)?.name || selectedLeague;

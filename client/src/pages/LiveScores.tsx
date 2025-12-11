@@ -118,7 +118,7 @@ export default function LiveScores() {
                 </h2>
                 {upcomingGames.length > 0 ? (
                   <div className="space-y-3">
-                    {upcomingGames.slice(0, 15).map(game => (
+                    {upcomingGames.map(game => (
                       <GameCard key={game.id} game={game} />
                     ))}
                   </div>
@@ -137,16 +137,16 @@ export default function LiveScores() {
                 </h2>
                 {completedGames.length > 0 ? (
                   <div className="space-y-3">
-                    {completedGames.slice(0, 15).map(game => (
+                    {completedGames.map(game => (
                       <GameCard key={game.id} game={game} />
                     ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 text-muted-foreground border border-dashed border-border rounded-xl">
-                      <CheckCircle className="w-10 h-10 mx-auto mb-3 opacity-50" />
-                      <p>No recent results for {displayLeagueName}</p>
-                    </div>
-                  )}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground border border-dashed border-border rounded-xl">
+                    <CheckCircle className="w-10 h-10 mx-auto mb-3 opacity-50" />
+                    <p>No recent results for {displayLeagueName}</p>
+                  </div>
+                )}
               </section>
             </>
           )}
