@@ -1,39 +1,47 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Stylized low-angle 'H' logo inside a spherical gradient -->
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" role="img" aria-label="Rugby League Central logo">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" width="160" height="160" role="img" aria-label="Rugby League Central logo">
   <defs>
-    <radialGradient id="sphereGrad" cx="35%" cy="30%" r="80%">
-      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.18" />
-      <stop offset="30%" stop-color="#16a34a" stop-opacity="0.95" />
-      <stop offset="100%" stop-color="#0b6f3f" stop-opacity="1" />
+    <radialGradient id="badgeGlow" cx="50%" cy="35%" r="70%">
+      <stop offset="0%" stop-color="#33ff99" stop-opacity="0.4" />
+      <stop offset="55%" stop-color="#0d6b3f" stop-opacity="0.95" />
+      <stop offset="100%" stop-color="#06341f" />
     </radialGradient>
-    <linearGradient id="hGrad" x1="0" x2="0" y1="0" y2="1">
-      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.98" />
-      <stop offset="100%" stop-color="#d7f3e1" stop-opacity="0.9" />
+    <linearGradient id="shieldGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0b2a1b" />
+      <stop offset="45%" stop-color="#0e5930" />
+      <stop offset="100%" stop-color="#0a1d16" />
     </linearGradient>
-    <filter id="softShadow" x="-40%" y="-40%" width="180%" height="180%">
-      <feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#000" flood-opacity="0.2" />
+    <linearGradient id="seamGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#fafdff" stop-opacity="0.8" />
+      <stop offset="100%" stop-color="#d4fce4" />
+    </linearGradient>
+    <filter id="softGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="5" stdDeviation="10" flood-color="#04150d" flood-opacity="0.45" />
     </filter>
   </defs>
 
-  <!-- spherical background -->
-  <g filter="url(#softShadow)">
-    <circle cx="60" cy="60" r="52" fill="url(#sphereGrad)" />
+  <g filter="url(#softGlow)">
+    <circle cx="80" cy="80" r="66" fill="url(#badgeGlow)" />
+    <path
+      d="M80 32c18 0 46 11 46 36v24c0 24-20 42-46 52-26-10-46-28-46-52V68c0-25 28-36 46-36z"
+      fill="url(#shieldGrad)"
+      stroke="#0cf692"
+      stroke-width="2.2"
+      stroke-linejoin="round"
+    />
   </g>
 
-  <!-- highlight on sphere -->
-  <ellipse cx="44" cy="42" rx="22" ry="12" fill="rgba(255,255,255,0.18)" />
-
-  <!-- Low-angle 'H' (constructed with trapezoids for perspective) -->
-  <g transform="translate(60,60) skewX(-10) scale(1,1.05)">
-    <!-- left pillar -->
-    <path d="M -28 -28 L -18 -26 L -18 28 L -28 30 Z" fill="url(#hGrad)" stroke="#bfead0" stroke-width="0.8" />
-    <!-- right pillar -->
-    <path d="M 18 -26 L 28 -28 L 28 30 L 18 28 Z" fill="url(#hGrad)" stroke="#bfead0" stroke-width="0.8" />
-    <!-- crossbar (slightly skewed to appear lower angle) -->
-    <path d="M -18 2 L 18 -2 L 20 10 L -20 14 Z" fill="#f8fffb" stroke="#cdeedd" stroke-width="0.8" />
+  <!-- rugby ball icon -->
+  <g transform="translate(80 78)">
+    <ellipse rx="38" ry="20" fill="none" stroke="#f4fff8" stroke-width="5" />
+    <path d="M-22 -6C-12 0 -12 0 -2 0S8 0 18 -6" stroke="url(#seamGrad)" stroke-width="3" fill="none" stroke-linecap="round" />
+    <path d="M-22 6C-12 12 -12 12 -2 12S8 12 18 6" stroke="url(#seamGrad)" stroke-width="3" fill="none" stroke-linecap="round" />
+    <path d="M-6 -10v20m12-20v20" stroke="#f4fff8" stroke-width="3" stroke-linecap="round" />
   </g>
 
-  <!-- small base shadow under 'H' -->
-  <ellipse cx="60" cy="86" rx="24" ry="6" fill="rgba(0,0,0,0.12)" />
+  <!-- subtle accents referencing a field -->
+  <g stroke="rgba(255,255,255,0.18)" stroke-width="2" stroke-linecap="round">
+    <path d="M35 78h20m50 0h20" />
+    <path d="M35 96h25m45 0h25" />
+  </g>
 </svg>

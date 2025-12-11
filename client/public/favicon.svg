@@ -1,20 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- favicon: spherical badge with low-angle 'H' -->
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="RLC favicon">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Rugby League Central favicon">
   <defs>
-    <radialGradient id="fg" cx="30%" cy="30%" r="90%">
-      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.12" />
-      <stop offset="40%" stop-color="#16a34a" stop-opacity="0.95" />
-      <stop offset="100%" stop-color="#0b6f3f" stop-opacity="1" />
+    <radialGradient id="badge" cx="50%" cy="35%" r="70%">
+      <stop offset="0%" stop-color="#33ff99" stop-opacity="0.35" />
+      <stop offset="60%" stop-color="#0d6b3f" />
+      <stop offset="100%" stop-color="#052616" />
     </radialGradient>
   </defs>
 
-  <circle cx="32" cy="32" r="28" fill="url(#fg)" />
+  <circle cx="32" cy="32" r="28" fill="url(#badge)" stroke="#0cf692" stroke-width="1.6" />
 
-  <!-- tiny low-angle 'H' -->
-  <g transform="translate(32,32) skewX(-10) scale(0.9,1.05)">
-    <rect x="-10" y="-10" width="6" height="20" rx="1" fill="#ffffff" opacity="0.95" />
-    <rect x="4" y="-11" width="6" height="22" rx="1" fill="#ffffff" opacity="0.95" />
-    <rect x="-9" y="1" width="18" height="4" rx="1" fill="#f8fffb" />
+  <g transform="translate(32,32)">
+    <ellipse rx="18" ry="10" fill="none" stroke="#f4fff8" stroke-width="3" />
+    <path d="M-10 -4C-4 -1 -4 -1 0 -1s4 0 10 -3" stroke="#d7ffe9" stroke-width="2" fill="none" stroke-linecap="round" />
+    <path d="M-10 4C-4 7 -4 7 0 7s4 0 10 -3" stroke="#d7ffe9" stroke-width="2" fill="none" stroke-linecap="round" />
   </g>
 </svg>
