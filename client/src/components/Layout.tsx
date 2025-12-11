@@ -40,8 +40,8 @@ export function Layout({ children }: LayoutProps) {
             {/* Logo */}
             <Link href="/">
               <div className="flex items-center gap-3 cursor-pointer" data-testid="link-logo">
-                <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
-                  <Trophy className="w-5 h-5 text-primary-foreground" />
+                <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center shadow-lg shadow-primary/20 overflow-hidden">
+                  <img src="/logo.svg" alt="Rugby League Central" className="w-7 h-7 object-contain" />
                 </div>
                 <span className="font-display font-bold text-xl tracking-tight hidden sm:inline">
                   Rugby League Central

@@ -1,13 +1,11 @@
-import { Switch, Route, useLocation } from "wouter";
+import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/lib/auth";
 import { ThemeProvider } from "@/lib/theme";
-import { WelcomeScreen } from "@/components/WelcomeScreen";
 import { TeamSelection } from "@/components/TeamSelection";
-import { useState, useEffect } from "react";
 import Home from "@/pages/Home";
 import LiveScores from "@/pages/LiveScores";
 import News from "@/pages/News";
@@ -25,7 +23,7 @@ import NotFound from "@/pages/not-found";
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={HomeWithWelcome} />
+      <Route path="/" component={Home} />
       <Route path="/live" component={LiveScores} />
       <Route path="/news" component={News} />
       <Route path="/tables" component={LeagueTables} />
@@ -41,24 +39,6 @@ function Router() {
       <Route component={NotFound} />
     </Switch>
   );
-}
-
-function HomeWithWelcome() {
-  const [showWelcome, setShowWelcome] = useState(() => {
-    const hasSeenWelcome = sessionStorage.getItem("hasSeenWelcome");
-    return !hasSeenWelcome;
-  });
-
-  const handleWelcomeComplete = () => {
-    sessionStorage.setItem("hasSeenWelcome", "true");
-    setShowWelcome(false);
-  };
-
-  if (showWelcome) {
-    return <WelcomeScreen onComplete={handleWelcomeComplete} />;
-  }
-
-  return <Home />;
 }
 
 function App() {

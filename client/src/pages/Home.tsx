@@ -19,6 +19,8 @@ import {
   ExternalLink
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
+import LeagueFilter from "@/components/LeagueFilter";
+import { FEATURED_LEAGUES } from "@shared/schema";
 
 interface Team {
   id: string;
@@ -47,12 +49,6 @@ interface NewsItem {
   pubDate: string;
   source: string;
 }
-
-const FEATURED_LEAGUES = [
-  { id: "NRL", name: "NRL", shortName: "NRL", country: "Australia", color: "from-green-600 to-green-800", icon: "🦘" },
-  { id: "Super League", name: "Super League", shortName: "Super League", country: "England", color: "from-red-600 to-red-800", icon: "🏴󠁧󠁢󠁥󠁮󠁧󠁿" },
-  { id: "Championship", name: "Championship", shortName: "Championship", country: "England", color: "from-orange-600 to-orange-800", icon: "🏆" },
-];
 
 export default function Home() {
   const [selectedLeague, setSelectedLeague] = useState<string>("NRL");
@@ -147,41 +143,22 @@ export default function Home() {
           )}>
             <div className="bg-card border border-border rounded-xl p-4">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-bold flex items-center gap-2">
-                  <Filter className="w-4 h-4 text-primary" />
-                  Filters
-                </h3>
-                <button 
-                  onClick={() => setShowFilters(false)}
-                  className="lg:hidden p-1 hover:bg-muted rounded"
-                  data-testid="button-close-filters"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              <div className="space-y-3">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">League</p>
-                {FEATURED_LEAGUES.map((league) => (
-                  <button
-                    key={league.id}
-                    onClick={() => setSelectedLeague(league.id)}
-                    className={cn(
-                      "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm font-medium transition-all",
-                      selectedLeague === league.id 
-                        ? "bg-primary/10 text-primary border border-primary/20"
-                        : "hover:bg-muted text-muted-foreground hover:text-foreground"
-                    )}
-                    data-testid={`filter-league-${league.shortName.toLowerCase().replace(/\s+/g, '-')}`}
+                  <h3 className="font-bold flex items-center gap-2">
+                    <Trophy className="w-4 h-4 text-primary" />
+                    Leagues
+                  </h3>
+                  <button 
+                    onClick={() => setShowFilters(false)}
+                    className="lg:hidden p-1 hover:bg-muted rounded"
+                    data-testid="button-close-leagues"
                   >
-                    <span className="text-lg">{league.icon}</span>
-                    <div>
-                      <div>{league.name}</div>
-                      <div className="text-xs text-muted-foreground">{league.country}</div>
-                    </div>
+                    <X className="w-4 h-4" />
                   </button>
-                ))}
-              </div>
+                </div>
+
+                <div className="space-y-3">
+                  <LeagueFilter selectedLeague={selectedLeague} setSelectedLeague={setSelectedLeague} />
+                </div>
             </div>
 
             {/* Quick Stats */}
@@ -213,10 +190,10 @@ export default function Home() {
               <button 
                 onClick={() => setShowFilters(!showFilters)}
                 className="flex items-center gap-2 text-sm bg-muted px-3 py-2 rounded-lg"
-                data-testid="button-toggle-filters"
+                data-testid="button-toggle-leagues"
               >
-                <Filter className="w-4 h-4" />
-                Filters
+                <Trophy className="w-4 h-4" />
+                Leagues
               </button>
             </div>
 

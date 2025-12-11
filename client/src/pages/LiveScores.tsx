@@ -4,13 +4,13 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Link } from "wouter";
-import { Zap, Clock, CheckCircle, Calendar, Filter, X } from "lucide-react";
+import { Zap, Clock, CheckCircle, Calendar } from "lucide-react";
+import LeagueFilter from "@/components/LeagueFilter";
 import { format, parseISO } from "date-fns";
 import { Game, FEATURED_LEAGUES } from "@shared/schema";
 
 export default function LiveScores() {
   const [selectedLeague, setSelectedLeague] = useState<string>("NRL");
-  const [showFilters, setShowFilters] = useState(false);
 
   const { data: gamesData, isLoading } = useQuery<{ response: Game[] }>({
     queryKey: ["fixtures", selectedLeague],
@@ -41,143 +41,103 @@ export default function LiveScores() {
         keywords={`${displayLeagueName} live scores, rugby league scores, ${displayLeagueName} fixtures, ${displayLeagueName} results, live rugby`}
       />
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="font-display text-3xl font-bold flex items-center gap-3" data-testid="text-page-title">
-              <Zap className="w-8 h-8 text-primary" />
-              Live Scores & Fixtures
-            </h1>
-            <p className="text-muted-foreground mt-1">Real-time scores and upcoming matches</p>
-          </div>
-          <button 
-            onClick={() => setShowFilters(!showFilters)}
-            className="lg:hidden flex items-center gap-2 text-sm bg-muted px-3 py-2 rounded-lg"
-            data-testid="button-toggle-filters"
-          >
-            <Filter className="w-4 h-4" />
-            Filters
-          </button>
+        <div>
+          <h1 className="font-display text-3xl font-bold flex items-center gap-3" data-testid="text-page-title">
+            <Zap className="w-8 h-8 text-primary" />
+            Live Scores & Fixtures
+          </h1>
+          <p className="text-muted-foreground mt-1">Real-time scores and upcoming matches</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          <aside className={cn(
-            "lg:col-span-1 space-y-4",
-            showFilters ? "block" : "hidden lg:block"
-          )}>
-            <div className="bg-card border border-border rounded-xl p-4">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-bold flex items-center gap-2">
-                  <Filter className="w-4 h-4 text-primary" />
-                  League Filter
-                </h3>
-                <button 
-                  onClick={() => setShowFilters(false)}
-                  className="lg:hidden p-1 hover:bg-muted rounded"
-                  data-testid="button-close-filters"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-              <div className="space-y-2">
-                {FEATURED_LEAGUES.map((league) => (
-                  <button
-                    key={league.id}
-                    onClick={() => setSelectedLeague(league.id)}
-                    className={cn(
-                      "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm font-medium transition-all",
-                      selectedLeague === league.id 
-                        ? "bg-primary/10 text-primary border border-primary/20"
-                        : "hover:bg-muted text-muted-foreground hover:text-foreground"
-                    )}
-                    data-testid={`filter-league-${league.shortName.toLowerCase().replace(/\s+/g, '-')}`}
-                  >
-                    <span className="text-lg">{league.icon}</span>
-                    <div>
-                      <div>{league.name}</div>
-                      <div className="text-xs text-muted-foreground">{league.country}</div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
+        {/* League Filter Buttons - Always Visible */}
+        <LeagueFilter selectedLeague={selectedLeague} setSelectedLeague={setSelectedLeague} />
 
-            <div className="bg-card border border-border rounded-xl p-4">
-              <h3 className="font-bold mb-3 text-sm">Match Summary</h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Live</span>
-                  <span className="font-medium text-red-500" data-testid="stat-live-count">{liveGames.length}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Upcoming</span>
-                  <span className="font-medium text-blue-500" data-testid="stat-upcoming-count">{upcomingGames.length}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Completed</span>
-                  <span className="font-medium text-green-500" data-testid="stat-completed-count">{completedGames.length}</span>
-                </div>
-              </div>
+        {/* Match Summary Stats */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="bg-card border border-border rounded-lg p-3 sm:p-4 flex items-center gap-3">
+            <div className="bg-red-500/10 rounded-lg p-2">
+              <Zap className="w-5 h-5 text-red-500" />
             </div>
-          </aside>
+            <div>
+              <p className="text-xs sm:text-sm text-muted-foreground">Live Matches</p>
+              <div className="text-xl sm:text-2xl font-bold text-red-500" data-testid="stat-live-count">{liveGames.length}</div>
+            </div>
+          </div>
+          <div className="bg-card border border-border rounded-lg p-3 sm:p-4 flex items-center gap-3">
+            <div className="bg-blue-500/10 rounded-lg p-2">
+              <Calendar className="w-5 h-5 text-blue-500" />
+            </div>
+            <div>
+              <p className="text-xs sm:text-sm text-muted-foreground">Upcoming</p>
+              <div className="text-xl sm:text-2xl font-bold text-blue-500" data-testid="stat-upcoming-count">{upcomingGames.length}</div>
+            </div>
+          </div>
+          <div className="bg-card border border-border rounded-lg p-3 sm:p-4 flex items-center gap-3">
+            <div className="bg-green-500/10 rounded-lg p-2">
+              <CheckCircle className="w-5 h-5 text-green-500" />
+            </div>
+            <div>
+              <p className="text-xs sm:text-sm text-muted-foreground">Completed</p>
+              <div className="text-xl sm:text-2xl font-bold text-green-500" data-testid="stat-completed-count">{completedGames.length}</div>
+            </div>
+          </div>
+        </div>
 
-          <div className="lg:col-span-3 space-y-8">
-            {isLoading ? (
-              <div className="space-y-4">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <div key={i} className="animate-pulse bg-card border border-border rounded-xl p-6">
-                    <div className="h-5 bg-muted rounded w-1/3 mb-3" />
-                    <div className="h-4 bg-muted rounded w-1/2" />
+        <div>
+          {isLoading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="animate-pulse bg-card border border-border rounded-xl p-4 h-24" />
+              ))}
+            </div>
+          ) : (
+            <>
+              {liveGames.length > 0 && (
+                <section className="mb-8">
+                  <h2 className="font-bold text-xl mb-4 flex items-center gap-2" data-testid="section-live">
+                    <span className="relative flex h-3 w-3">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                    </span>
+                    Live Now
+                  </h2>
+                  <div className="space-y-3">
+                    {liveGames.map(game => (
+                      <GameCard key={game.id} game={game} isLive />
+                    ))}
                   </div>
-                ))}
-              </div>
-            ) : (
-              <>
-                {liveGames.length > 0 && (
-                  <section>
-                    <h2 className="font-bold text-xl mb-4 flex items-center gap-2" data-testid="section-live">
-                      <span className="relative flex h-3 w-3">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-                      </span>
-                      Live Now
-                    </h2>
-                    <div className="space-y-3">
-                      {liveGames.map(game => (
-                        <GameCard key={game.id} game={game} isLive />
-                      ))}
-                    </div>
-                  </section>
-                )}
-
-                <section>
-                  <h2 className="font-bold text-xl mb-4 flex items-center gap-2" data-testid="section-upcoming">
-                    <Clock className="w-5 h-5 text-blue-500" />
-                    Upcoming Fixtures
-                  </h2>
-                  {upcomingGames.length > 0 ? (
-                    <div className="space-y-3">
-                      {upcomingGames.slice(0, 15).map(game => (
-                        <GameCard key={game.id} game={game} />
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 text-muted-foreground border border-dashed border-border rounded-xl">
-                      <Calendar className="w-10 h-10 mx-auto mb-3 opacity-50" />
-                      <p>No upcoming fixtures for {displayLeagueName}</p>
-                    </div>
-                  )}
                 </section>
+              )}
 
-                <section>
-                  <h2 className="font-bold text-xl mb-4 flex items-center gap-2" data-testid="section-results">
-                    <CheckCircle className="w-5 h-5 text-green-500" />
-                    Recent Results
-                  </h2>
-                  {completedGames.length > 0 ? (
-                    <div className="space-y-3">
-                      {completedGames.slice(0, 15).map(game => (
-                        <GameCard key={game.id} game={game} />
-                      ))}
+              <section className="mb-8">
+                <h2 className="font-bold text-xl mb-4 flex items-center gap-2" data-testid="section-upcoming">
+                  <Clock className="w-5 h-5 text-blue-500" />
+                  Upcoming Fixtures
+                </h2>
+                {upcomingGames.length > 0 ? (
+                  <div className="space-y-3">
+                    {upcomingGames.slice(0, 15).map(game => (
+                      <GameCard key={game.id} game={game} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground border border-dashed border-border rounded-xl">
+                    <Calendar className="w-10 h-10 mx-auto mb-3 opacity-50" />
+                    <p>No upcoming fixtures for {displayLeagueName}</p>
+                  </div>
+                )}
+              </section>
+
+              <section>
+                <h2 className="font-bold text-xl mb-4 flex items-center gap-2" data-testid="section-results">
+                  <CheckCircle className="w-5 h-5 text-green-500" />
+                  Recent Results
+                </h2>
+                {completedGames.length > 0 ? (
+                  <div className="space-y-3">
+                    {completedGames.slice(0, 15).map(game => (
+                      <GameCard key={game.id} game={game} />
+                    ))}
                     </div>
                   ) : (
                     <div className="text-center py-8 text-muted-foreground border border-dashed border-border rounded-xl">
@@ -185,10 +145,9 @@ export default function LiveScores() {
                       <p>No recent results for {displayLeagueName}</p>
                     </div>
                   )}
-                </section>
-              </>
-            )}
-          </div>
+              </section>
+            </>
+          )}
         </div>
       </div>
     </Layout>

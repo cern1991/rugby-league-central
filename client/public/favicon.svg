@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- favicon: spherical badge with low-angle 'H' -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="RLC favicon">
+  <defs>
+    <radialGradient id="fg" cx="30%" cy="30%" r="90%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.12" />
+      <stop offset="40%" stop-color="#16a34a" stop-opacity="0.95" />
+      <stop offset="100%" stop-color="#0b6f3f" stop-opacity="1" />
+    </radialGradient>
+  </defs>
+
+  <circle cx="32" cy="32" r="28" fill="url(#fg)" />
+
+  <!-- tiny low-angle 'H' -->
+  <g transform="translate(32,32) skewX(-10) scale(0.9,1.05)">
+    <rect x="-10" y="-10" width="6" height="20" rx="1" fill="#ffffff" opacity="0.95" />
+    <rect x="4" y="-11" width="6" height="22" rx="1" fill="#ffffff" opacity="0.95" />
+    <rect x="-9" y="1" width="18" height="4" rx="1" fill="#f8fffb" />
+  </g>
+</svg>

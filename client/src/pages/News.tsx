@@ -2,12 +2,12 @@ import { Layout } from "@/components/Layout";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { Newspaper, ExternalLink, Filter, X, RefreshCw } from "lucide-react";
-import { NewsItem, FEATURED_LEAGUES } from "@shared/schema";
+import { Newspaper, ExternalLink, RefreshCw } from "lucide-react";
+import { NewsItem } from "@shared/schema";
+import LeagueFilter from "@/components/LeagueFilter";
 
 export default function News() {
   const [selectedLeague, setSelectedLeague] = useState<string>("NRL");
-  const [showFilters, setShowFilters] = useState(false);
 
   const { data: newsData, isLoading, refetch, isFetching } = useQuery<{ response: NewsItem[] }>({
     queryKey: ["news", selectedLeague],
@@ -33,81 +33,31 @@ export default function News() {
             </h1>
             <p className="text-muted-foreground mt-1">Latest news from {displayLeagueName}</p>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => refetch()}
-              disabled={isFetching}
-              className={cn(
-                "flex items-center gap-2 text-sm bg-primary/10 text-primary px-3 py-2 rounded-lg hover:bg-primary/20 transition-colors",
-                isFetching && "opacity-50 cursor-not-allowed"
-              )}
-              data-testid="button-refresh"
-            >
-              <RefreshCw className={cn("w-4 h-4", isFetching && "animate-spin")} />
-              Refresh
-            </button>
-            <button 
-              onClick={() => setShowFilters(!showFilters)}
-              className="lg:hidden flex items-center gap-2 text-sm bg-muted px-3 py-2 rounded-lg"
-              data-testid="button-toggle-filters"
-            >
-              <Filter className="w-4 h-4" />
-              Filters
-            </button>
-          </div>
+          <button
+            onClick={() => refetch()}
+            disabled={isFetching}
+            className={cn(
+              "flex items-center gap-2 text-sm bg-primary/10 text-primary px-3 py-2 rounded-lg hover:bg-primary/20 transition-colors",
+              isFetching && "opacity-50 cursor-not-allowed"
+            )}
+            data-testid="button-refresh"
+          >
+            <RefreshCw className={cn("w-4 h-4", isFetching && "animate-spin")} />
+            Refresh
+          </button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          <aside className={cn(
-            "lg:col-span-1 space-y-4",
-            showFilters ? "block" : "hidden lg:block"
-          )}>
-            <div className="bg-card border border-border rounded-xl p-4">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-bold flex items-center gap-2">
-                  <Filter className="w-4 h-4 text-primary" />
-                  News Source
-                </h3>
-                <button 
-                  onClick={() => setShowFilters(false)}
-                  className="lg:hidden p-1 hover:bg-muted rounded"
-                  data-testid="button-close-filters"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-              <div className="space-y-2">
-                {FEATURED_LEAGUES.map((league) => (
-                  <button
-                    key={league.id}
-                    onClick={() => setSelectedLeague(league.id)}
-                    className={cn(
-                      "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm font-medium transition-all",
-                      selectedLeague === league.id 
-                        ? "bg-primary/10 text-primary border border-primary/20"
-                        : "hover:bg-muted text-muted-foreground hover:text-foreground"
-                    )}
-                    data-testid={`filter-league-${league.shortName.toLowerCase().replace(/\s+/g, '-')}`}
-                  >
-                    <span className="text-lg">{league.icon}</span>
-                    <div>
-                      <div>{league.name}</div>
-                      <div className="text-xs text-muted-foreground">{league.country}</div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
+        {/* League Filter Buttons - Always Visible */}
+        <LeagueFilter selectedLeague={selectedLeague} setSelectedLeague={setSelectedLeague} />
 
-            <div className="bg-card border border-border rounded-xl p-4">
-              <h3 className="font-bold mb-3 text-sm">About</h3>
-              <p className="text-sm text-muted-foreground">
-                News is automatically updated every 5 minutes. Click refresh to get the latest articles now.
-              </p>
-            </div>
-          </aside>
+        <div className="bg-card border border-border rounded-lg p-3 sm:p-4">
+          <h3 className="font-bold mb-2 text-sm">Auto-Refresh</h3>
+          <p className="text-sm text-muted-foreground">
+            News is automatically updated every 5 minutes. Click refresh to get the latest articles now.
+          </p>
+        </div>
 
-          <div className="lg:col-span-3">
+        <div>
             {isLoading ? (
               <div className="space-y-4">
                 {Array.from({ length: 8 }).map((_, i) => (
@@ -162,7 +112,6 @@ export default function News() {
             )}
           </div>
         </div>
-      </div>
-    </Layout>
+      </Layout>
   );
 }

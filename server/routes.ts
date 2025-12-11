@@ -320,7 +320,7 @@ export async function registerRoutes(
     { id: "135183", name: "Parramatta Eels", league: "NRL", country: { name: "Australia", code: "AU", flag: "https://flagcdn.com/w40/au.png" }, logo: "https://r2.thesportsdb.com/images/media/team/badge/5tvma21646347846.png" },
     { id: "135197", name: "Penrith Panthers", league: "NRL", country: { name: "Australia", code: "AU", flag: "https://flagcdn.com/w40/au.png" }, logo: "https://r2.thesportsdb.com/images/media/team/badge/239jb41552073712.png" },
     { id: "135185", name: "South Sydney Rabbitohs", league: "NRL", country: { name: "Australia", code: "AU", flag: "https://flagcdn.com/w40/au.png" }, logo: "https://r2.thesportsdb.com/images/media/team/badge/0m4unp1552072677.png" },
-    { id: "135195", name: "St George Illawarra Dragons", league: "NRL", country: { name: "Australia", code: "AU", flag: "https://flagcdn.com/w40/au.png" }, logo: "https://r2.thesportsdb.com/images/media/team/badge/ur74hh1552073186.png" },
+    { id: "135195", name: "St George Illawarra Dragons", league: "NRL", country: { name: "Australia", code: "AU", flag: "https://flagcdn.com/w40/au.png" }, logo: "/api/assets/logo/st-george-illawarra.svg" },
     { id: "135192", name: "Sydney Roosters", league: "NRL", country: { name: "Australia", code: "AU", flag: "https://flagcdn.com/w40/au.png" }, logo: "https://r2.thesportsdb.com/images/media/team/badge/by299w1646347883.png" },
     { id: "135189", name: "Wests Tigers", league: "NRL", country: { name: "Australia", code: "AU", flag: "https://flagcdn.com/w40/au.png" }, logo: "https://r2.thesportsdb.com/images/media/team/badge/cs6i6f1646347894.png" },
     // Super League Teams (14 teams for 2026 season)
@@ -335,10 +335,10 @@ export async function registerRoutes(
     { id: "135217", name: "Salford Red Devils", league: "Super League", country: { name: "England", code: "GB", flag: "https://flagcdn.com/w40/gb.png" }, logo: "https://r2.thesportsdb.com/images/media/team/badge/y8n3bh1706620843.png" },
     { id: "135218", name: "St Helens", league: "Super League", country: { name: "England", code: "GB", flag: "https://flagcdn.com/w40/gb.png" }, logo: "https://r2.thesportsdb.com/images/media/team/badge/xolesg1706620870.png" },
     { id: "137395", name: "Toulouse Olympique", league: "Super League", country: { name: "France", code: "FR", flag: "https://flagcdn.com/w40/fr.png" }, logo: "https://r2.thesportsdb.com/images/media/team/badge/hkg34j1641840692.png" },
-    { id: "135221", name: "Wakefield Trinity", league: "Super League", country: { name: "England", code: "GB", flag: "https://flagcdn.com/w40/gb.png" }, logo: "https://upload.wikimedia.org/wikipedia/en/thumb/d/db/WakefieldTrinity2021.svg/150px-WakefieldTrinity2021.svg.png" },
+    { id: "135221", name: "Wakefield Trinity", league: "Super League", country: { name: "England", code: "GB", flag: "https://flagcdn.com/w40/gb.png" }, logo: "/api/assets/logo/wakefield.png" },
     { id: "135220", name: "Warrington Wolves", league: "Super League", country: { name: "England", code: "GB", flag: "https://flagcdn.com/w40/gb.png" }, logo: "https://r2.thesportsdb.com/images/media/team/badge/saimjk1656789616.png" },
     { id: "135222", name: "Wigan Warriors", league: "Super League", country: { name: "England", code: "GB", flag: "https://flagcdn.com/w40/gb.png" }, logo: "https://r2.thesportsdb.com/images/media/team/badge/vch5a71673549813.png" },
-    { id: "137405", name: "York Knights", league: "Super League", country: { name: "England", code: "GB", flag: "https://flagcdn.com/w40/gb.png" }, logo: "https://upload.wikimedia.org/wikipedia/en/thumb/6/62/York_RLFC_logo.svg/150px-York_RLFC_logo.svg.png" },
+    { id: "137405", name: "York Knights", league: "Super League", country: { name: "England", code: "GB", flag: "https://flagcdn.com/w40/gb.png" }, logo: "/api/assets/logo/york.webp" },
   ];
 
   // Get local teams by league
@@ -354,6 +354,12 @@ export async function registerRoutes(
       return LOCAL_TEAMS.filter(t => t.league === "NRL");
     }
     return LOCAL_TEAMS.filter(t => t.league === league);
+  }
+
+  // Helper: get local team logo by id
+  function getLocalTeamLogo(id: any): string | null {
+    const team = LOCAL_TEAMS.find((t: any) => String(t.id) === String(id));
+    return team?.logo || null;
   }
 
   // Search local teams by name
@@ -473,6 +479,102 @@ export async function registerRoutes(
     }
   });
 
+  // Proxy Wakefield Trinity logo from Wikimedia to avoid CORS/user-agent issues
+  app.get("/api/assets/logo/wakefield.png", async (_req, res) => {
+    try {
+      // Use MediaWiki API to get the file URL for File:Wakey_new_logo.png
+      const apiUrl = "https://en.wikipedia.org/w/api.php?action=query&titles=File:Wakey_new_logo.png&prop=imageinfo&iiprop=url&format=json";
+      const apiResp = await fetch(apiUrl);
+      if (!apiResp.ok) return res.status(502).send("Failed to contact Wikimedia API");
+      const apiJson = await apiResp.json();
+      const pages = apiJson?.query?.pages || {};
+      const pageKey = Object.keys(pages)[0];
+      const imageinfo = pages[pageKey]?.imageinfo;
+      const imageUrl = imageinfo && imageinfo[0] && imageinfo[0].url;
+
+      if (!imageUrl) {
+        return res.status(404).send("Wakefield logo not found on Wikimedia");
+      }
+
+      const imgResp = await fetch(imageUrl);
+      if (!imgResp.ok) return res.status(502).send("Failed to fetch image from Wikimedia");
+
+      const contentType = imgResp.headers.get("content-type") || "image/png";
+      const buffer = Buffer.from(await imgResp.arrayBuffer());
+
+      res.setHeader("Content-Type", contentType);
+      res.setHeader("Cache-Control", "public, max-age=86400");
+      res.send(buffer);
+    } catch (error) {
+      console.error("Error proxying Wakefield logo:", error);
+      res.status(500).send("Internal server error while proxying logo");
+    }
+  });
+
+  // Proxy York Knights logo from Wikimedia to avoid CORS/user-agent issues
+  app.get("/api/assets/logo/york.webp", async (_req, res) => {
+    try {
+      // Use MediaWiki API to get the file URL for File:York_RLFC_Knights_logo.webp
+      const apiUrl = "https://en.wikipedia.org/w/api.php?action=query&titles=File:York_RLFC_Knights_logo.webp&prop=imageinfo&iiprop=url&format=json";
+      const apiResp = await fetch(apiUrl);
+      if (!apiResp.ok) return res.status(502).send("Failed to contact Wikimedia API");
+      const apiJson = await apiResp.json();
+      const pages = apiJson?.query?.pages || {};
+      const pageKey = Object.keys(pages)[0];
+      const imageinfo = pages[pageKey]?.imageinfo;
+      const imageUrl = imageinfo && imageinfo[0] && imageinfo[0].url;
+
+      if (!imageUrl) {
+        return res.status(404).send("York Knights logo not found on Wikimedia");
+      }
+
+      const imgResp = await fetch(imageUrl);
+      if (!imgResp.ok) return res.status(502).send("Failed to fetch image from Wikimedia");
+
+      const contentType = imgResp.headers.get("content-type") || "image/webp";
+      const buffer = Buffer.from(await imgResp.arrayBuffer());
+
+      res.setHeader("Content-Type", contentType);
+      res.setHeader("Cache-Control", "public, max-age=86400");
+      res.send(buffer);
+    } catch (error) {
+      console.error("Error proxying York Knights logo:", error);
+      res.status(500).send("Internal server error while proxying logo");
+    }
+  });
+
+  // Proxy St George Illawarra Dragons logo from Wikimedia to avoid CORS/user-agent issues
+  app.get("/api/assets/logo/st-george-illawarra.svg", async (_req, res) => {
+    try {
+      // Use MediaWiki API to get the file URL for File:St._George_Illawarra_Dragons_logo.svg
+      const apiUrl = "https://en.wikipedia.org/w/api.php?action=query&titles=File:St._George_Illawarra_Dragons_logo.svg&prop=imageinfo&iiprop=url&format=json";
+      const apiResp = await fetch(apiUrl);
+      if (!apiResp.ok) return res.status(502).send("Failed to contact Wikimedia API");
+      const apiJson = await apiResp.json();
+      const pages = apiJson?.query?.pages || {};
+      const pageKey = Object.keys(pages)[0];
+      const imageinfo = pages[pageKey]?.imageinfo;
+      const imageUrl = imageinfo && imageinfo[0] && imageinfo[0].url;
+
+      if (!imageUrl) {
+        return res.status(404).send("St George Illawarra Dragons logo not found on Wikimedia");
+      }
+
+      const imgResp = await fetch(imageUrl);
+      if (!imgResp.ok) return res.status(502).send("Failed to fetch image from Wikimedia");
+
+      const contentType = imgResp.headers.get("content-type") || "image/svg+xml";
+      const buffer = Buffer.from(await imgResp.arrayBuffer());
+
+      res.setHeader("Content-Type", contentType);
+      res.setHeader("Cache-Control", "public, max-age=86400");
+      res.send(buffer);
+    } catch (error) {
+      console.error("Error proxying St George Illawarra Dragons logo:", error);
+      res.status(500).send("Internal server error while proxying logo");
+    }
+  });
+
   // Get team roster/squad
   app.get("/api/rugby/team/:id/players", async (req, res) => {
     try {
@@ -529,15 +631,15 @@ export async function registerRoutes(
                 time: e.strTime,
                 teams: {
                   home: {
-                    id: e.idHomeTeam,
-                    name: e.strHomeTeam,
-                    logo: e.strHomeTeamBadge,
-                  },
-                  away: {
-                    id: e.idAwayTeam,
-                    name: e.strAwayTeam,
-                    logo: e.strAwayTeamBadge,
-                  },
+                      id: e.idHomeTeam,
+                      name: e.strHomeTeam,
+                      logo: e.strHomeTeamBadge || getLocalTeamLogo(e.idHomeTeam),
+                    },
+                    away: {
+                      id: e.idAwayTeam,
+                      name: e.strAwayTeam,
+                      logo: e.strAwayTeamBadge || getLocalTeamLogo(e.idAwayTeam),
+                    },
                 },
                 scores: {
                   home: e.intHomeScore !== null ? parseInt(e.intHomeScore) : null,
@@ -681,8 +783,50 @@ export async function registerRoutes(
         .filter((e: any) => e.strSport === "Rugby League")
         .map(mapEvent);
       
-      const events = [...pastEvents, ...nextEvents];
-      
+      let events = [...pastEvents, ...nextEvents];
+
+      // Fallback: if no team-specific events found, try season events for leagues
+      if (events.length === 0) {
+        try {
+          const teamLookup = await fetchFromSportsDB(`/lookupteam.php?id=${id}`);
+          const seasonYear = String(new Date().getFullYear());
+          const leagueCandidates: string[] = [];
+
+          if (teamLookup?.teams && teamLookup.teams[0]) {
+            const teamInfo = teamLookup.teams[0];
+            if (teamInfo.idLeague) leagueCandidates.push(String(teamInfo.idLeague));
+            if (teamInfo.strLeague) {
+              // try to find known league id by name
+              const matched = Object.entries(LEAGUE_IDS).find(([k, v]) => (teamInfo.strLeague || '').toLowerCase().includes(k.toLowerCase()));
+              if (matched) leagueCandidates.push(matched[1]);
+            }
+          }
+
+          // Add known league ids as additional candidates
+          for (const v of Object.values(LEAGUE_IDS)) {
+            if (!leagueCandidates.includes(v)) leagueCandidates.push(v);
+          }
+
+          const fallbackEvents: any[] = [];
+          for (const lId of leagueCandidates) {
+            const seasonData = await fetchFromSportsDB(`/eventsseason.php?id=${lId}&s=${seasonYear}`);
+            if (seasonData?.events) {
+              const matches = seasonData.events.filter((e: any) => String(e.idHomeTeam) === String(id) || String(e.idAwayTeam) === String(id));
+              for (const me of matches) {
+                fallbackEvents.push(mapEvent(me));
+              }
+            }
+            if (fallbackEvents.length > 0) break;
+          }
+
+          if (fallbackEvents.length > 0) {
+            events = fallbackEvents;
+          }
+        } catch (err) {
+          console.warn('Team games fallback failed for', id, err);
+        }
+      }
+
       res.json({ response: events });
     } catch (error: any) {
       console.error("Team games fetch error:", error);
@@ -698,6 +842,15 @@ export async function registerRoutes(
       const data = await fetchFromSportsDB(`/lookupevent.php?id=${id}`);
       if (data?.events && data.events.length > 0) {
         const e = data.events[0];
+        // Ensure the event is a Rugby League event; SportsDB can return other sports for the same id
+        const isRugbyEvent = (e.strSport === "Rugby League") ||
+          (e.idLeague && Object.values(LEAGUE_IDS).includes(String(e.idLeague))) ||
+          (e.strLeague && /Rugby|NRL|Super League/i.test(e.strLeague || ''));
+
+        if (!isRugbyEvent) {
+          console.warn(`Event ${id} is not Rugby League (found sport/league: ${e.strSport || e.strLeague || e.idLeague})`);
+          return res.json({ response: [] });
+        }
         return res.json({ response: [{
           id: e.idEvent,
           date: e.dateEvent,
