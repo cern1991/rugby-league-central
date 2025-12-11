@@ -2,8 +2,8 @@ import { Layout } from "@/components/Layout";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { Newspaper, ExternalLink, RefreshCw } from "lucide-react";
-import { NewsItem } from "@shared/schema";
+import { Newspaper, RefreshCw } from "lucide-react";
+import { NewsItem, FEATURED_LEAGUES } from "@shared/schema";
 import LeagueFilter from "@/components/LeagueFilter";
 
 export default function News() {
@@ -70,37 +70,31 @@ export default function News() {
             ) : news.length > 0 ? (
               <div className="space-y-4">
                 {news.map((item, index) => (
-                  <a 
-                    key={index} 
-                    href={item.link} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="block"
-                    data-testid={`link-news-${index}`}
+                  <article 
+                    key={index}
+                    className="bg-card border border-border rounded-xl p-6 hover:border-primary/50 hover:shadow-lg transition-all"
+                    data-testid={`card-news-${index}`}
                   >
-                    <article 
-                      className="bg-card border border-border rounded-xl p-6 hover:border-primary/50 hover:shadow-lg transition-all cursor-pointer group"
-                      data-testid={`card-news-${index}`}
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1 min-w-0">
-                          <h2 className="font-semibold text-lg group-hover:text-primary transition-colors line-clamp-2 mb-3">
-                            {item.title}
-                          </h2>
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                            <span className="font-medium text-foreground">{item.source}</span>
-                            {item.pubDate && (
-                              <>
-                                <span className="w-1 h-1 rounded-full bg-muted-foreground/50" />
-                                <span>{item.pubDate}</span>
-                              </>
-                            )}
-                          </div>
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <h2 className="font-semibold text-lg line-clamp-3 mb-3">
+                          {item.title}
+                        </h2>
+                        <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                          <span className="font-medium text-foreground">{item.source}</span>
+                          {item.pubDate && (
+                            <>
+                              <span className="w-1 h-1 rounded-full bg-muted-foreground/50" />
+                              <span>{item.pubDate}</span>
+                            </>
+                          )}
                         </div>
-                        <ExternalLink className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0 mt-1" />
+                        {item.league && (
+                          <p className="text-xs text-muted-foreground mt-2 uppercase tracking-wide">{item.league}</p>
+                        )}
                       </div>
-                    </article>
-                  </a>
+                    </div>
+                  </article>
                 ))}
               </div>
             ) : (
