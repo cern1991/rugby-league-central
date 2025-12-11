@@ -1100,13 +1100,19 @@ export async function registerRoutes(
   // Get event/game details
   app.get("/api/rugby/game/:id", async (req, res) => {
     try {
-      const { id } = req.params;
-      const localGame = findLocalGameById(id);
+      const rawId = req.params.id;
+      let decodedId: string;
+      try {
+        decodedId = decodeURIComponent(rawId);
+      } catch {
+        decodedId = rawId;
+      }
+      const localGame = findLocalGameById(decodedId);
       if (localGame) {
         return res.json({ response: [localGame] });
       }
       
-      const data = await fetchFromSportsDB(`/lookupevent.php?id=${id}`);
+      const data = await fetchFromSportsDB(`/lookupevent.php?id=${encodeURIComponent(decodedId)}`);
       if (data?.events && data.events.length > 0) {
         const e = data.events[0];
         // Ensure the event is a Rugby League event; SportsDB can return other sports for the same id
