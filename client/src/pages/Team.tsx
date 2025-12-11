@@ -6,6 +6,8 @@ import { ArrowLeft, Calendar, Users, Trophy, MapPin, Clock, ChevronRight } from 
 import { useState } from "react";
 import { format, parseISO, isPast, isFuture, isToday } from "date-fns";
 
+const DEFAULT_TEAM_SEASON = "2026";
+
 interface Team {
   id: number;
   name: string;
@@ -94,7 +96,7 @@ export default function TeamPage() {
   const { data: gamesData, isLoading: gamesLoading } = useQuery<ApiResponse<Game[]>>({
     queryKey: ["team-games", teamId],
     queryFn: async () => {
-      const res = await fetch(`/api/rugby/team/${teamId}/games?season=2025`);
+      const res = await fetch(`/api/rugby/team/${teamId}/games?season=${DEFAULT_TEAM_SEASON}`);
       if (!res.ok) throw new Error("Failed to fetch games");
       return res.json();
     },

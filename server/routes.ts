@@ -7,6 +7,10 @@ import passport from "./auth";
 import { authenticator } from "otplib";
 import QRCode from "qrcode";
 import type { User } from "@shared/schema";
+import { LOCAL_TEAM_ROSTERS } from "./data/localRosters";
+import { NRL_2026_FIXTURES_BY_TEAM, type LocalFixture } from "./data/localFixtures";
+import { SUPER_LEAGUE_FIXTURES_BY_TEAM, SUPER_LEAGUE_TEAM_ID_BY_CODE } from "./data/localSuperLeagueFixtures";
+import { SUPER_LEAGUE_SQUADS, type SuperLeagueSquad } from "./data/localSuperLeagueSquads";
 
 const SPORTSDB_API_KEY = "3";
 const SPORTSDB_BASE_URL = `https://www.thesportsdb.com/api/v1/json/${SPORTSDB_API_KEY}`;
@@ -15,6 +19,7 @@ const LEAGUE_IDS: Record<string, string> = {
   "NRL": "4416",
   "Super League": "4415", 
 };
+const CURRENT_SEASON = "2026";
 
 async function fetchFromSportsDB(endpoint: string): Promise<any> {
   try {
@@ -332,7 +337,6 @@ export async function registerRoutes(
     { id: "135215", name: "Hull Kingston Rovers", league: "Super League", country: { name: "England", code: "GB", flag: "https://flagcdn.com/w40/gb.png" }, logo: "https://r2.thesportsdb.com/images/media/team/badge/23h83f1641840658.png" },
     { id: "135216", name: "Leeds Rhinos", league: "Super League", country: { name: "England", code: "GB", flag: "https://flagcdn.com/w40/gb.png" }, logo: "https://r2.thesportsdb.com/images/media/team/badge/ryqwvv1447875742.png" },
     { id: "137396", name: "Leigh Leopards", league: "Super League", country: { name: "England", code: "GB", flag: "https://flagcdn.com/w40/gb.png" }, logo: "https://r2.thesportsdb.com/images/media/team/badge/qjmky21673549784.png" },
-    { id: "135217", name: "Salford Red Devils", league: "Super League", country: { name: "England", code: "GB", flag: "https://flagcdn.com/w40/gb.png" }, logo: "https://r2.thesportsdb.com/images/media/team/badge/y8n3bh1706620843.png" },
     { id: "135218", name: "St Helens", league: "Super League", country: { name: "England", code: "GB", flag: "https://flagcdn.com/w40/gb.png" }, logo: "https://r2.thesportsdb.com/images/media/team/badge/xolesg1706620870.png" },
     { id: "137395", name: "Toulouse Olympique", league: "Super League", country: { name: "France", code: "FR", flag: "https://flagcdn.com/w40/fr.png" }, logo: "https://r2.thesportsdb.com/images/media/team/badge/hkg34j1641840692.png" },
     { id: "135221", name: "Wakefield Trinity", league: "Super League", country: { name: "England", code: "GB", flag: "https://flagcdn.com/w40/gb.png" }, logo: "/api/assets/logo/wakefield.png" },
@@ -340,6 +344,107 @@ export async function registerRoutes(
     { id: "135222", name: "Wigan Warriors", league: "Super League", country: { name: "England", code: "GB", flag: "https://flagcdn.com/w40/gb.png" }, logo: "https://r2.thesportsdb.com/images/media/team/badge/vch5a71673549813.png" },
     { id: "137405", name: "York Knights", league: "Super League", country: { name: "England", code: "GB", flag: "https://flagcdn.com/w40/gb.png" }, logo: "/api/assets/logo/york.webp" },
   ];
+
+  const SUPER_LEAGUE_TEAM_IDS = new Set(Object.values(SUPER_LEAGUE_TEAM_ID_BY_CODE));
+  const SUPER_LEAGUE_SQUADS_BY_TEAM_ID = Object.entries(SUPER_LEAGUE_SQUADS).reduce<Record<string, SuperLeagueSquad[]>>((acc, [code, squads]) => {
+    const teamId = SUPER_LEAGUE_TEAM_ID_BY_CODE[code];
+    if (teamId) {
+      acc[teamId] = squads;
+    }
+    return acc;
+  }, {});
+
+  function findLocalTeamByFragment(name: string) {
+    if (!name) return undefined;
+    const normalized = name.trim().toLowerCase();
+    return LOCAL_TEAMS.find((team) => {
+      const teamName = team.name.toLowerCase();
+      const simplifiedTeam = teamName.replace(/[^a-z]/g, "");
+      const simplifiedInput = normalized.replace(/[^a-z]/g, "");
+      return (
+        teamName === normalized ||
+        teamName.includes(normalized) ||
+        normalized.includes(teamName) ||
+        simplifiedTeam === simplifiedInput ||
+        simplifiedTeam.includes(simplifiedInput)
+      );
+    });
+  }
+
+  function mapLocalFixtureToGame(fixture: LocalFixture, leagueName: string, leagueId: string) {
+    const dateObj = new Date(fixture.dateUtc);
+    const isoDate = dateObj.toISOString();
+    const [datePart, timePart] = isoDate.split("T");
+    const homeTeam = findLocalTeamByFragment(fixture.homeTeam);
+    const awayTeam = findLocalTeamByFragment(fixture.awayTeam);
+    const defaultCountry = { name: "Australia", code: "AU", flag: "https://flagcdn.com/w40/au.png" };
+
+    return {
+      id: `local-${leagueName}-${fixture.matchNumber}-${fixture.homeTeam}-${fixture.awayTeam}`,
+      date: datePart,
+      time: (timePart || "00:00:00").substring(0, 8),
+      timestamp: dateObj.getTime(),
+      timezone: "UTC",
+      week: `Round ${fixture.roundNumber}`,
+      status: { long: "Not Started", short: "NS" },
+      league: { 
+        id: parseInt(leagueId, 10) || leagueId, 
+        name: leagueName,
+        type: "League",
+        logo: null,
+        season: parseInt(CURRENT_SEASON, 10),
+      },
+      country: homeTeam?.country || defaultCountry,
+      teams: {
+        home: {
+          id: homeTeam ? parseInt(homeTeam.id, 10) : 0,
+          name: homeTeam?.name || fixture.homeTeam,
+          logo: homeTeam?.logo || null,
+        },
+        away: {
+          id: awayTeam ? parseInt(awayTeam.id, 10) : 0,
+          name: awayTeam?.name || fixture.awayTeam,
+          logo: awayTeam?.logo || null,
+        },
+      },
+      scores: { home: null, away: null },
+      venue: fixture.location,
+    };
+  }
+
+  function buildFixturesFromLocalMap(fixturesByTeam: Record<string, LocalFixture[]>, leagueName: string) {
+    const leagueId = LEAGUE_IDS[leagueName];
+    if (!leagueId) return [];
+    const dedup = new Map<string, LocalFixture>();
+    Object.values(fixturesByTeam).forEach((fixtures) => {
+      fixtures.forEach((fixture) => {
+        const key = `${fixture.matchNumber}-${fixture.homeTeam}-${fixture.awayTeam}-${fixture.dateUtc}`;
+        if (!dedup.has(key)) {
+          dedup.set(key, fixture);
+        }
+      });
+    });
+
+    return Array.from(dedup.values())
+      .map((fixture) => mapLocalFixtureToGame(fixture, leagueName, leagueId))
+      .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+  }
+
+  function buildNrlFixturesFromLocalData() {
+    return buildFixturesFromLocalMap(NRL_2026_FIXTURES_BY_TEAM, "NRL");
+  }
+
+  function buildSuperLeagueFixturesFromLocalData() {
+    return buildFixturesFromLocalMap(SUPER_LEAGUE_FIXTURES_BY_TEAM, "Super League");
+  }
+
+  function getLocalFixturesForTeam(teamId: string, leagueName?: string) {
+    const leagueLower = leagueName?.toLowerCase() || "";
+    if (leagueLower.includes("super")) {
+      return SUPER_LEAGUE_FIXTURES_BY_TEAM[teamId];
+    }
+    return NRL_2026_FIXTURES_BY_TEAM[teamId];
+  }
 
   // Get local teams by league
   function getLocalTeams(league?: string): any[] {
@@ -422,7 +527,52 @@ export async function registerRoutes(
       
       // Use local team data with TheSportsDB IDs and badges
       const teams = getLocalTeams(leagueName);
-      res.json({ response: teams });
+      if (teams.length > 0) {
+        return res.json({ response: teams });
+      }
+
+      // Fallback to TheSportsDB if no local teams exist for the league
+      const leagueCandidates = [leagueName];
+      const leagueLower = leagueName.toLowerCase();
+      if (leagueLower.includes("championship") && !leagueLower.includes("rfl")) {
+        leagueCandidates.push("RFL Championship");
+      }
+      if (leagueLower.includes("super") && !leagueLower.includes("league")) {
+        leagueCandidates.push("Super League");
+      }
+
+      for (const leagueLabel of leagueCandidates) {
+        const data = await fetchFromSportsDB(`/search_all_teams.php?l=${encodeURIComponent(leagueLabel)}`);
+        if (data?.teams && data.teams.length > 0) {
+          const mapped = data.teams
+            .filter((team: any) => team.strSport === "Rugby League")
+            .map((team: any) => ({
+              id: team.idTeam,
+              name: team.strTeam,
+              logo: team.strBadge || team.strLogo,
+              league: team.strLeague,
+              country: {
+                name: team.strCountry || "Unknown",
+                code: team.strCountry === "Australia" ? "AU" : team.strCountry === "New Zealand" ? "NZ" : team.strCountry === "France" ? "FR" : "GB",
+                flag:
+                  team.strCountry === "Australia"
+                    ? "https://flagcdn.com/w40/au.png"
+                    : team.strCountry === "New Zealand"
+                      ? "https://flagcdn.com/w40/nz.png"
+                      : team.strCountry === "France"
+                        ? "https://flagcdn.com/w40/fr.png"
+                        : team.strCountry
+                          ? "https://flagcdn.com/w40/gb.png"
+                          : null,
+              },
+            }));
+          if (mapped.length > 0) {
+            return res.json({ response: mapped });
+          }
+        }
+      }
+
+      res.json({ response: [] });
     } catch (error: any) {
       console.error("Teams fetch error:", error);
       res.status(500).json({ message: error.message || "Failed to fetch teams" });
@@ -579,7 +729,68 @@ export async function registerRoutes(
   app.get("/api/rugby/team/:id/players", async (req, res) => {
     try {
       const { id } = req.params;
-      
+      const { season } = req.query as { season?: string };
+      const defaultSeason = parseInt(CURRENT_SEASON, 10);
+      const requestedSeason = season ? parseInt(season, 10) : defaultSeason;
+      const seasonFilter = Number.isNaN(requestedSeason) ? defaultSeason : requestedSeason;
+      const isCurrentSeasonRequest = seasonFilter === defaultSeason;
+      const localRoster = LOCAL_TEAM_ROSTERS[id] || [];
+      const teamInfo = LOCAL_TEAMS.find((team) => String(team.id) === String(id));
+      const superLeagueSquads = SUPER_LEAGUE_SQUADS_BY_TEAM_ID[id] || [];
+
+      const buildLocalRosterPlayers = () => {
+        if (!localRoster || localRoster.length === 0) return null;
+        return localRoster.map((player) => ({
+          id: player.id,
+          name: player.name,
+          position: player.position,
+          nationality: teamInfo?.country?.name || "Australia",
+          birthDate: null,
+          height: null,
+          weight: null,
+          photo: null,
+          thumbnail: null,
+          number: null,
+          description: `${player.name} plays ${player.position} for ${teamInfo?.name || "the club"}.`,
+        }));
+      };
+
+      const buildSuperLeaguePlayers = () => {
+        if (!superLeagueSquads || superLeagueSquads.length === 0) return null;
+        const squad =
+          superLeagueSquads.find((entry) => entry.season === seasonFilter) ||
+          superLeagueSquads[0];
+        if (!squad || !squad.players || squad.players.length === 0) return null;
+        return squad.players.map((player, index) => ({
+          id: `SL-${id}-${player.squad_number ?? index + 1}`,
+          name: player.name,
+          position: player.position,
+          nationality: player.nationality || teamInfo?.country?.name || "England",
+          birthDate: player.dob || null,
+          height: player.height_cm ? `${player.height_cm} cm` : null,
+          weight: player.weight_kg ? `${player.weight_kg} kg` : null,
+          photo: null,
+          thumbnail: null,
+          number: player.squad_number ? String(player.squad_number) : null,
+          description:
+            player.position && squad.source_note
+              ? `${player.name} (${player.position}) - ${squad.source_note}`
+              : squad.source_note || `${player.name} is part of ${squad.team_name}'s ${squad.season} squad.`,
+        }));
+      };
+
+      const localPlayers = buildLocalRosterPlayers();
+      const superLeaguePlayers = buildSuperLeaguePlayers();
+
+      if (isCurrentSeasonRequest) {
+        if (localPlayers) {
+          return res.json({ response: localPlayers });
+        }
+        if (superLeaguePlayers) {
+          return res.json({ response: superLeaguePlayers });
+        }
+      }
+
       const data = await fetchFromSportsDB(`/lookup_all_players.php?id=${id}`);
       if (data?.player) {
         const players = data.player.map((p: any) => ({
@@ -591,10 +802,19 @@ export async function registerRoutes(
           height: p.strHeight,
           weight: p.strWeight,
           photo: p.strThumb || p.strCutout,
+          thumbnail: p.strThumb || p.strCutout,
           number: p.strNumber,
           description: p.strDescriptionEN,
         }));
         return res.json({ response: players });
+      }
+
+      if (localPlayers) {
+        return res.json({ response: localPlayers });
+      }
+
+      if (superLeaguePlayers) {
+        return res.json({ response: superLeaguePlayers });
       }
       
       res.json({ response: [] });
@@ -610,7 +830,24 @@ export async function registerRoutes(
       const { league, season } = req.query as { league?: string; season?: string };
       const leagueName = league || "NRL";
       const leagueId = LEAGUE_IDS[leagueName];
-      const seasonYear = season || "2025";
+      const seasonYear = season || CURRENT_SEASON;
+      const normalizedLeague = leagueName.toLowerCase();
+
+      if (seasonYear === CURRENT_SEASON) {
+        if (normalizedLeague.includes("super")) {
+          const localFixtures = buildSuperLeagueFixturesFromLocalData();
+          if (localFixtures.length > 0) {
+            return res.json({ response: localFixtures });
+          }
+        }
+
+        if (normalizedLeague.includes("nrl")) {
+          const localFixtures = buildNrlFixturesFromLocalData();
+          if (localFixtures.length > 0) {
+            return res.json({ response: localFixtures });
+          }
+        }
+      }
       
       if (leagueId) {
         // Use eventsseason.php for complete season data (works during off-season)
@@ -720,6 +957,19 @@ export async function registerRoutes(
   app.get("/api/rugby/team/:id/games", async (req, res) => {
     try {
       const { id } = req.params;
+      const { season } = req.query as { season?: string };
+      const requestedSeason = season || CURRENT_SEASON;
+      const localTeamInfo = LOCAL_TEAMS.find((team: any) => String(team.id) === String(id));
+      const localFixtures = requestedSeason === CURRENT_SEASON ? getLocalFixturesForTeam(id, localTeamInfo?.league) : undefined;
+      
+      if (localFixtures && localFixtures.length > 0) {
+        const leagueName = localTeamInfo?.league?.toLowerCase().includes("super") ? "Super League" : "NRL";
+        const leagueId = LEAGUE_IDS[leagueName] || LEAGUE_IDS["NRL"];
+        const mapped = localFixtures
+          .map((fixture) => mapLocalFixtureToGame(fixture, leagueName, leagueId))
+          .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+        return res.json({ response: mapped });
+      }
       
       // Get next 5 and last 5 events for the team
       const [nextData, pastData] = await Promise.all([

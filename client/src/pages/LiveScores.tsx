@@ -9,13 +9,15 @@ import LeagueFilter from "@/components/LeagueFilter";
 import { format, parseISO } from "date-fns";
 import { Game, FEATURED_LEAGUES } from "@shared/schema";
 
+const DEFAULT_FIXTURE_SEASON = "2026";
+
 export default function LiveScores() {
   const [selectedLeague, setSelectedLeague] = useState<string>("NRL");
 
   const { data: gamesData, isLoading } = useQuery<{ response: Game[] }>({
     queryKey: ["fixtures", selectedLeague],
     queryFn: async () => {
-      const res = await fetch(`/api/rugby/fixtures?league=${encodeURIComponent(selectedLeague)}`);
+      const res = await fetch(`/api/rugby/fixtures?league=${encodeURIComponent(selectedLeague)}&season=${DEFAULT_FIXTURE_SEASON}`);
       if (!res.ok) throw new Error("Failed to fetch fixtures");
       return res.json();
     },
