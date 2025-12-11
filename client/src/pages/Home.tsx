@@ -2,7 +2,7 @@ import { Layout } from "@/components/Layout";
 import { TeamSearch } from "@/components/TeamSearch";
 import { SEO } from "@/components/SEO";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Link } from "wouter";
 import { 
@@ -87,7 +87,16 @@ export default function Home() {
 
   const teams = teamsData?.response || [];
   const fallbackTeams = LOCAL_TEAMS.filter(team => team.league === selectedLeague);
-  const resolvedTeams = teams.length > 0 ? teams : fallbackTeams;
+  const resolvedTeams = useMemo(() => {
+    const merged = [...(teamsData?.response || []), ...fallbackTeams];
+    const unique = new Map<string, Team>();
+    merged.forEach((team: any) => {
+      if (team?.id && !unique.has(String(team.id))) {
+        unique.set(String(team.id), team);
+      }
+    });
+    return Array.from(unique.values());
+  }, [teamsData, fallbackTeams]);
   const games = gamesData?.response || [];
   const news = newsData?.response || [];
   
