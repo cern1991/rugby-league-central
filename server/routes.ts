@@ -416,6 +416,33 @@ export async function registerRoutes(
     return NRL_2026_FIXTURES_BY_TEAM[teamId];
   }
 
+  function transformLocalGameForMatchDetail(game: any) {
+    if (!game) return null;
+    return {
+      id: game.id,
+      date: game.date,
+      time: game.time,
+      venue: game.venue,
+      status: game.status?.long || "Not Started",
+      round: game.week,
+      league: game.league?.name || "Rugby League",
+      season: game.league?.season ? String(game.league.season) : CURRENT_SEASON,
+      homeTeam: {
+        id: String(game.teams?.home?.id || ""),
+        name: game.teams?.home?.name || "",
+        logo: game.teams?.home?.logo || null,
+        score: game.scores?.home ?? null,
+      },
+      awayTeam: {
+        id: String(game.teams?.away?.id || ""),
+        name: game.teams?.away?.name || "",
+        logo: game.teams?.away?.logo || null,
+        score: game.scores?.away ?? null,
+      },
+      description: null,
+    };
+  }
+
   function findLocalGameById(eventId: string) {
     if (!eventId?.startsWith("local-")) {
       return null;
@@ -423,10 +450,11 @@ export async function registerRoutes(
     const nrlFixtures = buildNrlFixturesFromLocalData();
     const nrlMatch = nrlFixtures.find((fixture) => fixture.id === eventId);
     if (nrlMatch) {
-      return nrlMatch;
+      return transformLocalGameForMatchDetail(nrlMatch);
     }
     const superLeagueFixtures = buildSuperLeagueFixturesFromLocalData();
-    return superLeagueFixtures.find((fixture) => fixture.id === eventId) || null;
+    const slMatch = superLeagueFixtures.find((fixture) => fixture.id === eventId);
+    return transformLocalGameForMatchDetail(slMatch);
   }
 
   // Get local teams by league
