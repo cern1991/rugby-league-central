@@ -505,9 +505,10 @@ function GameCard({ game }: { game: Game }) {
   const isFinished = game.status.short === "FT" || game.status.short === "AET";
   const isLive = game.status.short !== "FT" && game.status.short !== "AET" && game.status.short !== "NS" && game.status.short !== "TBD";
   const gameDate = game.date ? parseISO(game.date) : null;
+  const matchHref = `/match/${encodeURIComponent(game.id)}`;
 
   return (
-    <Link href={`/match/${game.id}`} data-testid={`link-game-${game.id}`}>
+    <Link href={matchHref} data-testid={`link-game-${game.id}`}>
       <div 
         className={cn(
           "p-4 rounded-xl border transition-all hover:shadow-md cursor-pointer group",

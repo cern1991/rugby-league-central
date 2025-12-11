@@ -375,9 +375,10 @@ function GameCard({ game, teamId }: { game: Game; teamId: number }) {
   }
 
   const gameDate = game.date ? parseISO(game.date) : null;
+  const matchHref = `/match/${encodeURIComponent(game.id)}`;
 
   return (
-    <Link href={`/match/${game.id}`}>
+    <Link href={matchHref}>
       <div 
         className={cn(
           "p-4 rounded-xl border transition-all hover:border-primary/50 hover:shadow-lg cursor-pointer group",

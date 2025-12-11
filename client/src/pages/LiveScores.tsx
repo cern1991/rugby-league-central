@@ -159,9 +159,10 @@ export default function LiveScores() {
 function GameCard({ game, isLive }: { game: Game; isLive?: boolean }) {
   const isFinished = game.status.short === "FT" || game.status.short === "AET";
   const gameDate = game.date ? parseISO(game.date) : null;
+  const matchHref = `/match/${encodeURIComponent(game.id)}`;
 
   return (
-    <Link href={`/match/${game.id}`} data-testid={`link-game-${game.id}`}>
+    <Link href={matchHref} data-testid={`link-game-${game.id}`}>
       <div 
         className={cn(
           "p-4 rounded-xl border transition-all hover:shadow-lg cursor-pointer group",

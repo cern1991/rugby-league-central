@@ -9,9 +9,10 @@ interface ScoreCardProps {
 
 export function ScoreCard({ game }: ScoreCardProps) {
   const isLive = game.status === "Live";
+  const matchHref = `/match/${encodeURIComponent(game.id)}`;
   
   return (
-    <Link href={`/match/${game.id}`}>
+    <Link href={matchHref}>
       <div className="group relative overflow-hidden rounded-xl bg-card border border-border/50 hover:border-primary/50 transition-all duration-300 hover:shadow-lg hover:shadow-primary/10 cursor-pointer">
         {/* Status Bar */}
         <div className="flex items-center justify-between px-4 py-2 bg-muted/30 text-xs font-medium uppercase tracking-wider border-b border-border/50">

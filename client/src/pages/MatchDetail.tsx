@@ -35,13 +35,23 @@ interface ApiResponse<T> {
 
 export default function MatchDetail() {
   const [match, params] = useRoute("/match/:id");
-
-  const matchId = params?.id;
+  const matchId = (() => {
+    if (!params?.id) return undefined;
+    try {
+      return decodeURIComponent(params.id);
+    } catch {
+      return params.id;
+    }
+  })();
 
   const { data: matchData, isLoading, error } = useQuery<ApiResponse<MatchEvent[]>>({
     queryKey: ["match", matchId],
     queryFn: async () => {
-      const res = await fetch(`/api/rugby/game/${matchId}`);
+      if (!matchId) {
+        throw new Error("Missing match id");
+      }
+      const encodedId = encodeURIComponent(matchId);
+      const res = await fetch(`/api/rugby/game/${encodedId}`);
       if (!res.ok) throw new Error("Failed to fetch match");
       return res.json();
     },
