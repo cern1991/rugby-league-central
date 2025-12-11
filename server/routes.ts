@@ -336,6 +336,11 @@ export async function registerRoutes(
     });
   }
 
+  const getFallbackPlayerImage = (name: string) => {
+    const encoded = encodeURIComponent(name || "Player");
+    return `https://ui-avatars.com/api/?name=${encoded}&background=random&color=ffffff`;
+  };
+
   function mapLocalFixtureToGame(fixture: LocalFixture, leagueName: string, leagueId: string) {
     const dateObj = new Date(fixture.dateUtc);
     const isoDate = dateObj.toISOString();
@@ -713,8 +718,8 @@ export async function registerRoutes(
           birthDate: null,
           height: null,
           weight: null,
-          photo: null,
-          thumbnail: null,
+          photo: getFallbackPlayerImage(player.name),
+          thumbnail: getFallbackPlayerImage(player.name),
           number: null,
           description: `${player.name} plays ${player.position} for ${teamInfo?.name || "the club"}.`,
         }));
@@ -726,7 +731,9 @@ export async function registerRoutes(
           superLeagueSquads.find((entry) => entry.season === seasonFilter) ||
           superLeagueSquads[0];
         if (!squad || !squad.players || squad.players.length === 0) return null;
-        return squad.players.map((player, index) => ({
+        return squad.players.map((player, index) => {
+          const avatar = getFallbackPlayerImage(player.name);
+          return {
           id: `SL-${id}-${player.squad_number ?? index + 1}`,
           name: player.name,
           position: player.position,
@@ -734,14 +741,14 @@ export async function registerRoutes(
           birthDate: player.dob || null,
           height: player.height_cm ? `${player.height_cm} cm` : null,
           weight: player.weight_kg ? `${player.weight_kg} kg` : null,
-          photo: null,
-          thumbnail: null,
+          photo: avatar,
+          thumbnail: avatar,
           number: player.squad_number ? String(player.squad_number) : null,
           description:
             player.position && squad.source_note
               ? `${player.name} (${player.position}) - ${squad.source_note}`
               : squad.source_note || `${player.name} is part of ${squad.team_name}'s ${squad.season} squad.`,
-        }));
+        }});
       };
 
       const localPlayers = buildLocalRosterPlayers();
