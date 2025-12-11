@@ -21,6 +21,7 @@ import {
 import { format, parseISO } from "date-fns";
 import LeagueFilter from "@/components/LeagueFilter";
 import { FEATURED_LEAGUES } from "@shared/schema";
+import { LOCAL_TEAMS } from "@shared/localTeams";
 
 const DEFAULT_FIXTURE_SEASON = "2026";
 
@@ -85,6 +86,8 @@ export default function Home() {
   });
 
   const teams = teamsData?.response || [];
+  const fallbackTeams = LOCAL_TEAMS.filter(team => team.league === selectedLeague);
+  const resolvedTeams = teams.length > 0 ? teams : fallbackTeams;
   const games = gamesData?.response || [];
   const news = newsData?.response || [];
   
@@ -169,7 +172,7 @@ export default function Home() {
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Teams</span>
-                  <span className="font-medium" data-testid="stat-teams-count">{teams.length}</span>
+                  <span className="font-medium" data-testid="stat-teams-count">{resolvedTeams.length}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Upcoming</span>
@@ -264,9 +267,9 @@ export default function Home() {
                       </div>
                     ))}
                   </div>
-                ) : teams.length > 0 ? (
+                ) : resolvedTeams.length > 0 ? (
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {teams.map((team) => (
+                    {resolvedTeams.map((team) => (
                       <Link key={team.id} href={`/team/${team.id}`} data-testid={`link-team-${team.id}`}>
                         <div 
                           className="bg-card border border-border rounded-xl p-4 hover:border-primary/50 hover:shadow-lg transition-all cursor-pointer group text-center"
