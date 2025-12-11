@@ -1167,68 +1167,62 @@ export async function registerRoutes(
 
   // Get rugby news - using Google News RSS
   app.get("/api/rugby/news", async (req, res) => {
+    const { league } = req.query as { league?: string };
+    const fallbackNews = getLocalNewsFallback(league);
+
     try {
-      const { league } = req.query as { league?: string };
-      
       // Build search query based on league
       let searchQuery = "rugby league";
       if (league) {
-        if (league.toLowerCase().includes("super")) {
+        const leagueLower = league.toLowerCase();
+        if (leagueLower.includes("super")) {
           searchQuery = "Super League rugby";
-        } else if (league.toLowerCase().includes("championship")) {
+        } else if (leagueLower.includes("championship")) {
           searchQuery = "RFL Championship rugby";
-        } else if (league.toLowerCase().includes("nrl") || league.toLowerCase().includes("national")) {
+        } else if (leagueLower.includes("nrl") || leagueLower.includes("national")) {
           searchQuery = "NRL rugby league";
         }
       }
 
-      const fallbackNews = getLocalNewsFallback(league);
       const encodedQuery = encodeURIComponent(searchQuery);
       const rssUrl = `https://news.google.com/rss/search?q=${encodedQuery}&hl=en-AU&gl=AU&ceid=AU:en`;
-      
-      try {
-        const response = await fetch(rssUrl);
-        if (!response.ok) {
-            console.error("RSS fetch failed:", response.status, response.statusText);
-            return res.json({ response: fallbackNews });
-        }
-        
-        const rssText = await response.text();
-        
-        // Parse RSS XML
-        const items: any[] = [];
-        const itemMatches = rssText.match(/<item>([\s\S]*?)<\/item>/g) || [];
-        
-        for (const itemXml of itemMatches.slice(0, 10)) {
-          const rawTitle = itemXml.match(/<title>([\s\S]*?)<\/title>/)?.[1]?.replace(/<!\[CDATA\[|\]\]>/g, '').trim() || "";
-          const link = itemXml.match(/<link>([\s\S]*?)<\/link>/)?.[1]?.trim() || "";
-          const pubDate = itemXml.match(/<pubDate>([\s\S]*?)<\/pubDate>/)?.[1]?.trim() || "";
-          const rawSource = itemXml.match(/<source[^>]*>([\s\S]*?)<\/source>/)?.[1]?.replace(/<!\[CDATA\[|\]\]>/g, '').trim() || "Unknown";
-          
-          if (rawTitle && link) {
-            items.push({
-              id: Buffer.from(link).toString('base64').slice(0, 20),
-              title: decodeHtmlEntities(rawTitle),
-              link,
-              pubDate,
-              source: decodeHtmlEntities(rawSource),
-              league: searchQuery
-            });
-          }
-        }
+      const response = await fetch(rssUrl);
 
-        if (items.length === 0 && fallbackNews.length > 0) {
-          return res.json({ response: fallbackNews });
-        }
-        
-        return res.json({ response: items });
-      } catch (err) {
-        console.error("RSS fetch error:", err);
+      if (!response.ok) {
+        console.error("RSS fetch failed:", response.status, response.statusText);
         return res.json({ response: fallbackNews });
       }
-    } catch (error: any) {
+
+      const rssText = await response.text();
+      const items: any[] = [];
+      const itemMatches = rssText.match(/<item>([\s\S]*?)<\/item>/g) || [];
+
+      for (const itemXml of itemMatches.slice(0, 10)) {
+        const rawTitle = itemXml.match(/<title>([\s\S]*?)<\/title>/)?.[1]?.replace(/<!\[CDATA\[|\]\]>/g, '').trim() || "";
+        const link = itemXml.match(/<link>([\s\S]*?)<\/link>/)?.[1]?.trim() || "";
+        const pubDate = itemXml.match(/<pubDate>([\s\S]*?)<\/pubDate>/)?.[1]?.trim() || "";
+        const rawSource = itemXml.match(/<source[^>]*>([\s\S]*?)<\/source>/)?.[1]?.replace(/<!\[CDATA\[|\]\]>/g, '').trim() || "Unknown";
+
+        if (rawTitle && link) {
+          items.push({
+            id: Buffer.from(link).toString('base64').slice(0, 20),
+            title: decodeHtmlEntities(rawTitle),
+            link,
+            pubDate,
+            source: decodeHtmlEntities(rawSource),
+            league: searchQuery,
+          });
+        }
+      }
+
+      if (items.length === 0) {
+        return res.json({ response: fallbackNews });
+      }
+
+      return res.json({ response: items });
+    } catch (error) {
       console.error("News fetch error:", error);
-      res.status(500).json({ message: error.message || "Failed to fetch news" });
+      return res.json({ response: fallbackNews });
     }
   });
 
