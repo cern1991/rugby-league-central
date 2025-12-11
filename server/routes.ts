@@ -527,7 +527,7 @@ export async function registerRoutes(
       ...buildSuperLeagueFixturesFromLocalData(),
     ];
 
-    const directMatch = combinedFixtures.find((fixture: any) => fixture.id === eventId);
+    const directMatch = combinedFixtures.find((fixture: any) => fixture.id === eventId || fixture.legacyId === eventId);
     if (directMatch) {
       return transformLocalGameForMatchDetail(directMatch);
     }
