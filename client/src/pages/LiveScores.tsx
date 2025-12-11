@@ -33,22 +33,33 @@ export default function LiveScores() {
   const upcomingGames = games.filter(g => g.status.short === "NS" || g.status.short === "TBD");
   const completedGames = games.filter(g => g.status.short === "FT" || g.status.short === "AET");
 
+  const hasLiveGames = liveGames.length > 0;
   const displayLeagueName = FEATURED_LEAGUES.find(l => l.id === selectedLeague)?.name || selectedLeague;
+  const pageTitle = hasLiveGames ? "Live Scores & Fixtures" : "Fixtures";
+  const pageSubtitle = hasLiveGames
+    ? "Real-time scores and upcoming matches"
+    : "Full fixture list — live updates appear on match day";
+  const seoTitle = hasLiveGames
+    ? `Live ${displayLeagueName} Scores & Fixtures`
+    : `${displayLeagueName} Fixtures`;
+  const seoDescription = hasLiveGames
+    ? `Live ${displayLeagueName} rugby league scores, upcoming fixtures, and recent results. Follow all matches in real-time.`
+    : `Upcoming ${displayLeagueName} rugby league fixtures, venues, and kickoff times. Check back on match day for live scores.`;
 
   return (
     <Layout>
       <SEO 
-        title={`Live ${displayLeagueName} Scores & Fixtures`}
-        description={`Live ${displayLeagueName} rugby league scores, upcoming fixtures, and recent results. Follow all matches in real-time.`}
-        keywords={`${displayLeagueName} live scores, rugby league scores, ${displayLeagueName} fixtures, ${displayLeagueName} results, live rugby`}
+        title={seoTitle}
+        description={seoDescription}
+        keywords={`${displayLeagueName} fixtures, ${displayLeagueName} live scores, rugby league schedule`}
       />
       <div className="space-y-6">
         <div>
           <h1 className="font-display text-3xl font-bold flex items-center gap-3" data-testid="text-page-title">
             <Zap className="w-8 h-8 text-primary" />
-            Live Scores & Fixtures
+            {pageTitle}
           </h1>
-          <p className="text-muted-foreground mt-1">Real-time scores and upcoming matches</p>
+          <p className="text-muted-foreground mt-1">{pageSubtitle}</p>
         </div>
 
         {/* League Filter Buttons - Always Visible */}
@@ -94,7 +105,7 @@ export default function LiveScores() {
             </div>
           ) : (
             <>
-              {liveGames.length > 0 && (
+              {hasLiveGames && (
                 <section className="mb-8">
                   <h2 className="font-bold text-xl mb-4 flex items-center gap-2" data-testid="section-live">
                     <span className="relative flex h-3 w-3">
@@ -108,6 +119,12 @@ export default function LiveScores() {
                       <GameCard key={game.id} game={game} isLive />
                     ))}
                   </div>
+                </section>
+              )}
+
+              {!hasLiveGames && (
+                <section className="mb-8 border border-dashed border-border rounded-xl p-6 bg-muted/20 text-sm text-muted-foreground">
+                  Live scores appear automatically on match day. In the meantime, browse the full fixture list below.
                 </section>
               )}
 
