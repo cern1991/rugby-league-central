@@ -92,6 +92,7 @@ export interface NewsItem {
   category: string;
   timestamp: string;
   imageUrl: string;
+  league?: string;
 }
 
 export const MOCK_GAMES: Game[] = [

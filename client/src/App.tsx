@@ -9,8 +9,10 @@ import { TeamSelection } from "@/components/TeamSelection";
 import Home from "@/pages/Home";
 import LiveScores from "@/pages/LiveScores";
 import News from "@/pages/News";
+import NewsArticle from "@/pages/NewsArticle";
 import LeagueTables from "@/pages/LeagueTables";
 import Teams from "@/pages/Teams";
+import PlayerPage from "@/pages/Player";
 import MatchDetail from "@/pages/MatchDetail";
 import TeamPage from "@/pages/Team";
 import Login from "@/pages/Login";
@@ -26,10 +28,12 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/live" component={LiveScores} />
       <Route path="/news" component={News} />
+      <Route path="/news/article/:encoded" component={NewsArticle} />
       <Route path="/tables" component={LeagueTables} />
       <Route path="/teams" component={Teams} />
       <Route path="/match/:id" component={MatchDetail} />
       <Route path="/team/:id" component={TeamPage} />
+      <Route path="/player/:id" component={PlayerPage} />
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
       <Route path="/verify-2fa" component={TwoFactorVerify} />

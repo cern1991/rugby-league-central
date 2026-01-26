@@ -4,6 +4,7 @@ import { Trophy, Settings, Menu, User, LogOut, Shield, Home, X, Zap, Newspaper, 
 import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
+import { ThemeCustomizer } from "@/components/ThemeCustomizer";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,15 +41,10 @@ export function Layout({ children }: LayoutProps) {
             {/* Logo */}
             <Link href="/">
               <div className="flex items-center gap-3 cursor-pointer" data-testid="link-logo">
-                <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center shadow-lg shadow-primary/20 overflow-hidden">
-                  <img src="/logo.svg" alt="Rugby League Central" className="w-7 h-7 object-contain" />
-                </div>
-                <span className="font-display font-bold text-xl tracking-tight hidden sm:inline">
-                  Rugby League Central
-                </span>
-                <span className="font-display font-bold text-xl tracking-tight sm:hidden">
+                <div className="w-10 h-10 rounded-lg bg-card border border-border flex items-center justify-center font-semibold text-lg tracking-wider">
                   RLC
-                </span>
+                </div>
+                <span className="sr-only">Rugby League Central</span>
               </div>
             </Link>
 
@@ -71,6 +67,7 @@ export function Layout({ children }: LayoutProps) {
 
             {/* Right Side */}
             <div className="flex items-center gap-3">
+              <ThemeCustomizer />
               {!loading && (
                 <>
                   {user ? (

@@ -18,12 +18,10 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { Palette, Sun, Moon } from "lucide-react";
+import { Palette, Moon } from "lucide-react";
 
 const SYSTEM_THEMES = [
-  { id: "light", label: "Light Mode", icon: Sun, description: "Bright interface with crisp contrast" },
-  { id: "dark", label: "Dark Mode", icon: Moon, description: "Deep charcoal look" },
-  { id: "navy", label: "Navy Classic", icon: Moon, description: "Heritage navy + electric cyan" },
+  { id: "dark", label: "Default Dark", icon: Moon, description: "Charcoal base with electric blue accents" },
 ];
 
 const TEAM_COLOR_THEMES = TEAM_THEMES.filter(
@@ -35,8 +33,7 @@ export function ThemeCustomizer() {
   const [teamDialogOpen, setTeamDialogOpen] = useState(false);
 
   const currentLabel = useMemo(() => {
-    if (currentTheme === "light") return "Light Mode";
-    if (currentTheme === "dark") return "Dark Mode";
+    if (currentTheme === "dark") return "Default Dark";
     const match = TEAM_THEMES.find((theme) => theme.id === currentTheme);
     return match ? match.name : "Custom Theme";
   }, [currentTheme]);
@@ -120,7 +117,28 @@ export function ThemeCustomizer() {
                       Active
                     </span>
                   )}
-                  <div className={cn("w-8 h-8 rounded-lg mb-3", theme.previewColor)} />
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-12 h-12 rounded-lg border border-border bg-card flex items-center justify-center overflow-hidden">
+                      {theme.logo ? (
+                        <img
+                          src={theme.logo}
+                          alt={`${theme.name} logo`}
+                          className="w-10 h-10 object-contain"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <span className="text-sm font-semibold text-muted-foreground">
+                          {theme.name
+                            .split(" ")
+                            .slice(0, 2)
+                            .map((word) => word[0])
+                            .join("")
+                            .toUpperCase()}
+                        </span>
+                      )}
+                    </div>
+                    <div className={cn("flex-1 h-10 rounded-lg border border-border", theme.previewColor)} />
+                  </div>
                   <p className="font-medium text-sm truncate">{theme.name}</p>
                   <p className="text-xs text-muted-foreground">{theme.league}</p>
                 </button>

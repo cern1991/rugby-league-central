@@ -1,15 +1,15 @@
 import { Layout } from "@/components/Layout";
-import { TeamSearch } from "@/components/TeamSearch";
+import { GlobalSearch } from "@/components/GlobalSearch";
 import LeagueFilter from "@/components/LeagueFilter";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Link } from "wouter";
 import { Users, ChevronRight } from "lucide-react";
 import { Team, FEATURED_LEAGUES } from "@shared/schema";
+import { usePreferredLeague } from "@/hooks/usePreferredLeague";
 
 export default function Teams() {
-  const [selectedLeague, setSelectedLeague] = useState<string>("NRL");
+  const { selectedLeague, setSelectedLeague } = usePreferredLeague();
 
   const { data: teamsData, isLoading } = useQuery<{ response: Team[] }>({
     queryKey: ["teams", selectedLeague],
@@ -36,7 +36,7 @@ export default function Teams() {
           </div>
 
           <div className="w-full max-w-md">
-            <TeamSearch />
+            <GlobalSearch />
           </div>
         </div>
 

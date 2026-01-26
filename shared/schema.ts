@@ -102,6 +102,8 @@ export interface NewsItem {
   link: string;
   pubDate: string;
   source: string;
+  league?: string;
+  image?: string;
 }
 
 export interface Player {
@@ -119,7 +121,31 @@ export interface Squad {
 }
 
 export const FEATURED_LEAGUES = [
-  { id: "NRL", name: "NRL", shortName: "NRL", country: "Australia", color: "from-green-600 to-green-800", icon: "🦘" },
-  { id: "Super League", name: "Super League", shortName: "Super League", country: "England", color: "from-red-600 to-red-800", icon: "🏴󠁧󠁢󠁥󠁮󠁧󠁿" },
-  { id: "Championship", name: "Championship", shortName: "Championship", country: "England", color: "from-orange-600 to-orange-800", icon: "🏆" },
+  {
+    id: "NRL",
+    name: "NRL",
+    shortName: "NRL",
+    country: "Australia",
+    color: "from-green-600 to-green-800",
+    icon: "🦘",
+    logo: "https://upload.wikimedia.org/wikipedia/en/5/50/National_Rugby_League.svg",
+  },
+  {
+    id: "Super League",
+    name: "Super League",
+    shortName: "Super League",
+    country: "England",
+    color: "from-red-600 to-red-800",
+    icon: "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
+    logo: "https://upload.wikimedia.org/wikipedia/en/f/fb/Super_League_Logo_2020.png",
+  },
+  {
+    id: "Championship",
+    name: "Championship",
+    shortName: "Championship",
+    country: "England",
+    color: "from-orange-600 to-orange-800",
+    icon: "🏆",
+    logo: "https://upload.wikimedia.org/wikipedia/en/1/17/Betfred_Championship_logo.jpg",
+  },
 ];

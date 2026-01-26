@@ -1,14 +1,15 @@
 import { Layout } from "@/components/Layout";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Link } from "wouter";
 import { Trophy, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import LeagueFilter from "@/components/LeagueFilter";
 import { StandingsTeam, FEATURED_LEAGUES } from "@shared/schema";
+import { usePreferredLeague } from "@/hooks/usePreferredLeague";
+import { LOCAL_TEAMS } from "@shared/localTeams";
 
 export default function LeagueTables() {
-  const [selectedLeague, setSelectedLeague] = useState<string>("NRL");
+  const { selectedLeague, setSelectedLeague } = usePreferredLeague();
 
   const { data: standingsData, isLoading } = useQuery<{ response: StandingsTeam[][] }>({
     queryKey: ["standings", selectedLeague],
@@ -20,6 +21,9 @@ export default function LeagueTables() {
   });
 
   const standings = standingsData?.response?.[0] || [];
+  const shouldShowPlaceholder = !isLoading && standings.length === 0;
+  const placeholderStandings = shouldShowPlaceholder ? buildPlaceholderStandings(selectedLeague) : [];
+  const resolvedStandings = shouldShowPlaceholder ? placeholderStandings : standings;
   const displayLeagueName = FEATURED_LEAGUES.find(l => l.id === selectedLeague)?.name || selectedLeague;
 
   return (
@@ -60,9 +64,14 @@ export default function LeagueTables() {
                 ))}
               </div>
             </div>
-          ) : standings.length > 0 ? (
+          ) : resolvedStandings.length > 0 ? (
             <div className="bg-card border border-border rounded-xl overflow-hidden">
               <div className="overflow-x-auto">
+                {shouldShowPlaceholder && (
+                  <div className="bg-amber-50 text-amber-900 text-sm px-4 py-3 border-b border-border">
+                    Showing 2026 team lineup while live standings are unavailable.
+                  </div>
+                )}
                 <table className="w-full" data-testid="table-standings">
                   <thead>
                     <tr className="bg-muted/50">
@@ -80,7 +89,7 @@ export default function LeagueTables() {
                     </tr>
                   </thead>
                   <tbody>
-                    {standings.map((row, index) => (
+                    {resolvedStandings.map((row, index) => (
                       <tr 
                         key={row.team?.id || index} 
                         className={cn(
@@ -160,4 +169,29 @@ export default function LeagueTables() {
       </div>
     </Layout>
   );
+}
+
+function buildPlaceholderStandings(leagueId: string): StandingsTeam[] {
+  const teams = LOCAL_TEAMS.filter(team => team.league === leagueId);
+  return teams.map((team, index) => ({
+    position: index + 1,
+    team: {
+      id: Number(team.id) || index + 1,
+      name: team.name,
+      logo: team.logo,
+    },
+    games: {
+      played: 0,
+      win: 0,
+      draw: 0,
+      lose: 0,
+    },
+    points: {
+      for: 0,
+      against: 0,
+      difference: 0,
+    },
+    pts: 0,
+    form: "-----",
+  }));
 }

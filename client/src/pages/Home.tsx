@@ -1,5 +1,5 @@
 import { Layout } from "@/components/Layout";
-import { TeamSearch } from "@/components/TeamSearch";
+import { GlobalSearch } from "@/components/GlobalSearch";
 import { SEO } from "@/components/SEO";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
@@ -8,11 +8,9 @@ import { Link } from "wouter";
 import { 
   Trophy, 
   ChevronRight, 
-  Filter, 
   Zap,
   Calendar,
   TrendingUp,
-  X,
   Clock,
   CheckCircle,
   Newspaper
@@ -21,6 +19,8 @@ import { format, parseISO } from "date-fns";
 import LeagueFilter from "@/components/LeagueFilter";
 import { FEATURED_LEAGUES } from "@shared/schema";
 import { LOCAL_TEAMS } from "@shared/localTeams";
+import { usePreferredLeague } from "@/hooks/usePreferredLeague";
+import { encodeNewsLink, cacheNewsArticle } from "@/lib/news";
 
 const DEFAULT_FIXTURE_SEASON = "2026";
 
@@ -50,13 +50,13 @@ interface NewsItem {
   link: string;
   pubDate: string;
   source: string;
+  league?: string;
+  image?: string;
 }
 
 export default function Home() {
-  const [selectedLeague, setSelectedLeague] = useState<string>("NRL");
-  const [showFilters, setShowFilters] = useState(false);
+  const { selectedLeague, setSelectedLeague } = usePreferredLeague();
   const [activeTab, setActiveTab] = useState<"teams" | "fixtures" | "news">("teams");
-
   const { data: teamsData, isLoading: teamsLoading } = useQuery<{ response: Team[] }>({
     queryKey: ["teams", selectedLeague],
     queryFn: async () => {
@@ -136,37 +136,24 @@ export default function Home() {
               Track scores, explore teams, and never miss a match.
             </p>
 
-            <div className="max-w-md">
-              <TeamSearch />
+            <div className="max-w-2xl">
+              <GlobalSearch />
             </div>
           </div>
 
-          <div className="absolute bottom-4 right-4 md:bottom-8 md:right-8 opacity-10 pointer-events-none">
-            <Trophy className="w-32 h-32 md:w-48 md:h-48" />
-          </div>
         </section>
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           
           {/* Filter Sidebar */}
-          <aside className={cn(
-            "lg:col-span-1 space-y-4",
-            showFilters ? "block" : "hidden lg:block"
-          )}>
+          <aside className="lg:col-span-1 space-y-4">
             <div className="bg-card border border-border rounded-xl p-4">
               <div className="flex items-center justify-between mb-4">
                   <h3 className="font-bold flex items-center gap-2">
                     <Trophy className="w-4 h-4 text-primary" />
                     Leagues
                   </h3>
-                  <button 
-                    onClick={() => setShowFilters(false)}
-                    className="lg:hidden p-1 hover:bg-muted rounded"
-                    data-testid="button-close-leagues"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
                 </div>
 
                 <div className="space-y-3">
@@ -197,17 +184,11 @@ export default function Home() {
           {/* Main Content */}
           <div className="lg:col-span-3 space-y-6">
             
-            {/* Mobile Filter Toggle */}
-            <div className="flex items-center justify-between lg:hidden">
-              <h2 className="font-display text-xl font-bold">{displayLeagueName}</h2>
-              <button 
-                onClick={() => setShowFilters(!showFilters)}
-                className="flex items-center gap-2 text-sm bg-muted px-3 py-2 rounded-lg"
-                data-testid="button-toggle-leagues"
-              >
-                <Trophy className="w-4 h-4" />
-                Leagues
-              </button>
+            <div className="lg:hidden">
+              <h2 className="font-display text-xl font-bold mb-2">{displayLeagueName}</h2>
+              <p className="text-sm text-muted-foreground mb-4">
+                Choose a league above to explore teams, fixtures, and news.
+              </p>
             </div>
 
             {/* Tab Navigation */}
@@ -411,30 +392,65 @@ export default function Home() {
                   </div>
                 ) : news.length > 0 ? (
                   <div className="space-y-3">
-                    {news.map((item, index) => (
-                      <div 
-                        key={index}
-                        className="bg-card border border-border rounded-xl p-4 hover:border-primary/50 hover:shadow-lg transition-all"
-                        data-testid={`card-news-${index}`}
-                      >
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-sm line-clamp-2 mb-2">
-                              {item.title}
-                            </h3>
-                            <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                              <span className="font-medium">{item.source}</span>
-                              {item.pubDate && (
-                                <>
-                                  <span>•</span>
-                                  <span>{item.pubDate}</span>
-                                </>
-                              )}
+                    {news.map((item, index) => {
+                      const encodedLink = item.link ? encodeNewsLink(item.link) : "";
+                      const card = (
+                        <div 
+                          className={cn(
+                            "group bg-card border border-border rounded-xl p-4 transition-all",
+                            item.link && "hover:border-primary/50 hover:shadow-lg cursor-pointer"
+                          )}
+                          data-testid={`card-news-${index}`}
+                        >
+                          <div className="flex gap-3">
+                            {item.image && (
+                              <div className="w-20 h-20 flex-shrink-0 overflow-hidden rounded-lg bg-muted">
+                                <img
+                                  src={item.image}
+                                  alt={item.title}
+                                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                  loading="lazy"
+                                />
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-semibold text-sm line-clamp-2 mb-2">
+                                {item.title}
+                              </h3>
+                              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                                <span className="font-medium">{item.source}</span>
+                                {item.pubDate && (
+                                  <>
+                                    <span>•</span>
+                                    <span>{item.pubDate}</span>
+                                  </>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+
+                      if (!item.link) {
+                        return (
+                          <div key={index} className="contents">
+                            {card}
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <Link
+                          key={index}
+                          href={`/news/article/${encodedLink}`}
+                          className="block"
+                          onClick={() => cacheNewsArticle(item.link, item)}
+                          aria-label={`Read article: ${item.title}`}
+                        >
+                          {card}
+                        </Link>
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className="text-center py-12 text-muted-foreground border border-dashed border-border rounded-xl">

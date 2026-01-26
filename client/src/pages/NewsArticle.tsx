@@ -31,6 +31,7 @@ export default function NewsArticle() {
   });
 
   const cached = useMemo(() => getCachedNewsArticle(articleUrl), [articleUrl]);
+  const encodedArticleUrl = useMemo(() => encodeNewsLink(articleUrl || ""), [articleUrl]);
 
   const article = useMemo(() => {
     if (!articleUrl) return null;
@@ -44,6 +45,13 @@ export default function NewsArticle() {
       cacheNewsArticle(articleUrl, article);
     }
   }, [article, articleUrl]);
+
+  const relatedArticles = useMemo(() => {
+    const list = newsData?.response || [];
+    return list
+      .filter((item) => item.link && encodeNewsLink(item.link) !== encodedArticleUrl)
+      .slice(0, 5);
+  }, [newsData, encodedArticleUrl]);
 
   const displayTitle = article?.title || "News Article";
   const displaySource = article?.source || extractDomain(articleUrl) || "Source";
@@ -105,29 +113,96 @@ export default function NewsArticle() {
           )}
         </div>
 
-        {!articleUrl ? (
-          <div className="border border-dashed border-border rounded-xl p-6 text-center text-muted-foreground">
-            <AlertTriangle className="w-10 h-10 mx-auto mb-3 text-amber-500" />
-            <p>We couldn't determine the article link. Please return to the news list and try again.</p>
+        {article?.image && (
+          <div className="rounded-2xl border border-border overflow-hidden">
+            <img
+              src={article.image}
+              alt={article.title}
+              className="w-full h-64 md:h-80 object-cover"
+            />
           </div>
-        ) : articleLoading ? (
-          <div className="border border-border rounded-xl p-6 space-y-4">
-            <div className="h-4 w-1/3 bg-muted animate-pulse rounded" />
-            <div className="h-80 bg-muted animate-pulse rounded-xl" />
-            <div className="h-3 w-1/2 bg-muted animate-pulse rounded" />
-          </div>
-        ) : articleError ? (
-          <div className="border border-dashed border-border rounded-xl p-6 text-center text-muted-foreground">
-            <AlertTriangle className="w-10 h-10 mx-auto mb-3 text-amber-500" />
-            <p>We couldn't load the article preview. Please use the source link above.</p>
-          </div>
-        ) : (
-          <ArticleFrame
-            html={articleContent?.html}
-            finalUrl={articleContent?.finalUrl || articleUrl}
-            fallbackUrl={articleUrl}
-          />
         )}
+
+        <div className={relatedArticles.length > 0 ? "grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]" : ""}>
+          <div>
+            {!articleUrl ? (
+              <div className="border border-dashed border-border rounded-xl p-6 text-center text-muted-foreground">
+                <AlertTriangle className="w-10 h-10 mx-auto mb-3 text-amber-500" />
+                <p>We couldn't determine the article link. Please return to the news list and try again.</p>
+              </div>
+            ) : articleLoading ? (
+              <div className="border border-border rounded-xl p-6 space-y-4">
+                <div className="h-4 w-1/3 bg-muted animate-pulse rounded" />
+                <div className="h-80 bg-muted animate-pulse rounded-xl" />
+                <div className="h-3 w-1/2 bg-muted animate-pulse rounded" />
+              </div>
+            ) : articleError ? (
+              <div className="border border-dashed border-border rounded-xl p-6 text-center text-muted-foreground">
+                <AlertTriangle className="w-10 h-10 mx-auto mb-3 text-amber-500" />
+                <p>We couldn't load the article preview. Please use the source link above.</p>
+              </div>
+            ) : (
+              <ArticleFrame
+                html={articleContent?.html}
+                finalUrl={articleContent?.finalUrl || articleUrl}
+                fallbackUrl={articleUrl}
+              />
+            )}
+          </div>
+
+          {relatedArticles.length > 0 && (
+            <aside className="bg-card border border-border rounded-xl p-4 h-fit lg:sticky lg:top-28">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="text-sm text-muted-foreground uppercase tracking-wide">More articles</p>
+                  <h3 className="font-semibold text-lg">Keep reading</h3>
+                </div>
+              </div>
+              <div className="space-y-4">
+                {relatedArticles.map((item, index) => {
+                  const encodedLink = encodeNewsLink(item.link);
+                  return (
+                    <Link
+                      key={`${encodedLink}-${index}`}
+                      href={`/news/article/${encodedLink}`}
+                      className="block group"
+                      onClick={() => cacheNewsArticle(item.link, item)}
+                      aria-label={`Read article: ${item.title}`}
+                    >
+                      <div className="p-3 rounded-lg border border-border/60 hover:border-primary/50 transition-all bg-background/40 group-hover:bg-background/80">
+                        <div className="flex gap-3">
+                          {item.image && (
+                            <div className="w-16 h-16 flex-shrink-0 overflow-hidden rounded-md bg-muted">
+                              <img
+                                src={item.image}
+                                alt={item.title}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm leading-snug line-clamp-3 group-hover:text-primary transition-colors">
+                              {item.title}
+                            </p>
+                            <div className="mt-2 text-xs text-muted-foreground flex flex-wrap items-center gap-2">
+                              <span>{item.source || extractDomain(item.link)}</span>
+                              {item.pubDate && (
+                                <>
+                                  <span className="w-1 h-1 rounded-full bg-muted-foreground/40" />
+                                  <span>{item.pubDate}</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </aside>
+          )}
+        </div>
       </div>
     </Layout>
   );

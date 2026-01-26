@@ -3,7 +3,7 @@ import { Layout } from "@/components/Layout";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { ArrowLeft, Calendar, Users, Trophy, MapPin, Clock, ChevronRight } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { format, parseISO, isPast, isFuture, isToday } from "date-fns";
 
 const DEFAULT_TEAM_SEASON = "2026";
@@ -60,6 +60,15 @@ interface Game {
   };
 }
 
+interface PlayerStats {
+  appearances: number;
+  tries: number;
+  goals: number;
+  tackleBusts: number;
+  runMeters: number;
+  tackles: number;
+}
+
 interface Player {
   id: string;
   name: string;
@@ -71,6 +80,7 @@ interface Player {
   weight: string;
   thumbnail: string | null;
   description: string;
+  stats?: PlayerStats;
 }
 
 interface ApiResponse<T> {
@@ -82,6 +92,7 @@ export default function TeamPage() {
   const [activeTab, setActiveTab] = useState<"fixtures" | "players">("fixtures");
 
   const teamId = params?.id;
+  const numericTeamId = useMemo(() => (teamId ? Number(teamId) : null), [teamId]);
 
   const { data: teamData, isLoading: teamLoading, error: teamError } = useQuery<ApiResponse<Team[]>>({
     queryKey: ["team", teamId],
@@ -128,6 +139,50 @@ export default function TeamPage() {
     g.status?.short !== "NS" && 
     g.status?.short !== "TBD"
   );
+
+  const teamStats = useMemo(() => {
+    if (!numericTeamId) {
+      return { wins: 0, losses: 0, draws: 0, avgFor: 0, avgAgainst: 0 };
+    }
+
+    const completed = pastGames.filter(game => {
+      const isHome = game.teams.home?.id === numericTeamId;
+      const isAway = game.teams.away?.id === numericTeamId;
+      if (!isHome && !isAway) return false;
+      const teamScore = isHome ? game.scores.home : game.scores.away;
+      const oppScore = isHome ? game.scores.away : game.scores.home;
+      return typeof teamScore === "number" && typeof oppScore === "number";
+    });
+
+    if (!completed.length) {
+      return { wins: 0, losses: 0, draws: 0, avgFor: 0, avgAgainst: 0 };
+    }
+
+    const totals = completed.reduce(
+      (acc, game) => {
+        const isHome = game.teams.home?.id === numericTeamId;
+        const teamScore = isHome ? game.scores.home! : game.scores.away!;
+        const oppScore = isHome ? game.scores.away! : game.scores.home!;
+
+        if (teamScore > oppScore) acc.wins += 1;
+        else if (teamScore < oppScore) acc.losses += 1;
+        else acc.draws += 1;
+
+        acc.pointsFor += teamScore;
+        acc.pointsAgainst += oppScore;
+        return acc;
+      },
+      { wins: 0, losses: 0, draws: 0, pointsFor: 0, pointsAgainst: 0 }
+    );
+
+    return {
+      wins: totals.wins,
+      losses: totals.losses,
+      draws: totals.draws,
+      avgFor: totals.pointsFor / completed.length,
+      avgAgainst: totals.pointsAgainst / completed.length,
+    };
+  }, [pastGames, numericTeamId]);
 
   if (teamLoading) {
     return (
@@ -206,6 +261,14 @@ export default function TeamPage() {
           </div>
         </div>
 
+        <section className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <StatCard label="Wins" value={teamStats.wins} accent="text-green-400" />
+          <StatCard label="Losses" value={teamStats.losses} accent="text-red-400" />
+          <StatCard label="Draws" value={teamStats.draws} accent="text-yellow-300" />
+          <StatCard label="Avg Points For" value={teamStats.avgFor} isAverage />
+          <StatCard label="Avg Points Against" value={teamStats.avgAgainst} isAverage />
+        </section>
+
         <div className="flex items-center gap-1 border-b border-border">
           <button 
             onClick={() => setActiveTab("fixtures")}
@@ -245,7 +308,7 @@ export default function TeamPage() {
                 </h3>
                 <div className="space-y-3">
                   {liveGames.map(game => (
-                    <GameCard key={game.id} game={game} teamId={parseInt(teamId)} />
+                    <GameCard key={game.id} game={game} teamId={numericTeamId ?? 0} />
                   ))}
                 </div>
               </div>
@@ -259,7 +322,7 @@ export default function TeamPage() {
                 </h3>
                 <div className="space-y-3">
                   {upcomingGames.map(game => (
-                    <GameCard key={game.id} game={game} teamId={parseInt(teamId)} />
+                    <GameCard key={game.id} game={game} teamId={numericTeamId ?? 0} />
                   ))}
                 </div>
               </div>
@@ -273,7 +336,7 @@ export default function TeamPage() {
                 </h3>
                 <div className="space-y-3">
                   {pastGames.slice().reverse().map(game => (
-                    <GameCard key={game.id} game={game} teamId={parseInt(teamId)} />
+                    <GameCard key={game.id} game={game} teamId={numericTeamId ?? 0} />
                   ))}
                 </div>
               </div>
@@ -303,41 +366,65 @@ export default function TeamPage() {
 
             {!playersLoading && playersData?.response && playersData.response.length > 0 && (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {playersData.response.map((player) => (
-                  <div 
-                    key={player.id} 
-                    className="p-4 rounded-xl bg-card border border-border hover:border-primary/50 transition-colors"
-                    data-testid={`card-player-${player.id}`}
-                  >
-                    <div className="flex items-center gap-4">
-                      {player.thumbnail ? (
-                        <img 
-                          src={player.thumbnail} 
-                          alt={player.name} 
-                          className="w-16 h-16 rounded-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center text-lg font-bold">
-                          {player.name.slice(0, 2).toUpperCase()}
+                {playersData.response.map((player) => {
+                  const stats = player.stats;
+                  return (
+                    <Link key={player.id} href={`/player/${encodeURIComponent(player.id)}`}>
+                      <div 
+                        className="p-4 rounded-xl bg-card border border-border hover:border-primary/50 transition-colors cursor-pointer group"
+                        data-testid={`card-player-${player.id}`}
+                      >
+                        <div className="flex items-center gap-4">
+                          {player.thumbnail ? (
+                            <img 
+                              src={player.thumbnail} 
+                              alt={player.name} 
+                              className="w-16 h-16 rounded-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center text-lg font-bold">
+                              {player.name.slice(0, 2).toUpperCase()}
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold truncate group-hover:text-primary transition-colors">{player.name}</div>
+                            {player.position && (
+                              <div className="text-sm text-primary">{player.position}</div>
+                            )}
+                            {player.nationality && (
+                              <div className="text-xs text-muted-foreground">{player.nationality}</div>
+                            )}
+                          </div>
+                          {player.number && (
+                            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary">
+                              {player.number}
+                            </div>
+                          )}
                         </div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <div className="font-semibold truncate">{player.name}</div>
-                        {player.position && (
-                          <div className="text-sm text-primary">{player.position}</div>
-                        )}
-                        {player.nationality && (
-                          <div className="text-xs text-muted-foreground">{player.nationality}</div>
-                        )}
+                        <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs text-muted-foreground">
+                          <div className="rounded-lg bg-muted/30 p-2">
+                            <p className="text-[11px] uppercase tracking-wide">Apps</p>
+                            <p className="text-base font-semibold text-foreground">
+                              {stats?.appearances ?? "—"}
+                            </p>
+                          </div>
+                          <div className="rounded-lg bg-muted/30 p-2">
+                            <p className="text-[11px] uppercase tracking-wide">Tries</p>
+                            <p className="text-base font-semibold text-foreground">
+                              {stats?.tries ?? "—"}
+                            </p>
+                          </div>
+                          <div className="rounded-lg bg-muted/30 p-2">
+                            <p className="text-[11px] uppercase tracking-wide">Meters</p>
+                            <p className="text-base font-semibold text-foreground">
+                              {stats?.runMeters ? `${stats.runMeters.toLocaleString()}m` : "—"}
+                            </p>
+                          </div>
+                        </div>
                       </div>
-                      {player.number && (
-                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary">
-                          {player.number}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
+                    </Link>
+                  );
+                })}
               </div>
             )}
 
@@ -352,6 +439,34 @@ export default function TeamPage() {
         )}
       </div>
     </Layout>
+  );
+}
+
+function StatCard({
+  label,
+  value,
+  accent,
+  isAverage = false,
+}: {
+  label: string;
+  value: number;
+  accent?: string;
+  isAverage?: boolean;
+}) {
+  const formatted = useMemo(() => {
+    if (isAverage) {
+      if (!Number.isFinite(value)) return "—";
+      const rounded = Number(value.toFixed(1));
+      return Number.isInteger(rounded) ? rounded.toString() : rounded.toFixed(1);
+    }
+    return value.toString();
+  }, [value, isAverage]);
+
+  return (
+    <div className="rounded-xl border border-border bg-card p-4 text-center">
+      <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className={cn("mt-2 text-2xl font-bold", accent)}>{formatted}</p>
+    </div>
   );
 }
 

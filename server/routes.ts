@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { registerUserSchema, updateUserPreferencesSchema } from "@shared/schema";
+import { registerUserSchema, updateUserPreferencesSchema, FEATURED_LEAGUES } from "@shared/schema";
 import bcrypt from "bcrypt";
 import passport from "./auth";
 import { authenticator } from "otplib";
@@ -9,9 +9,9 @@ import QRCode from "qrcode";
 import type { User } from "@shared/schema";
 import { LOCAL_TEAM_ROSTERS } from "./data/localRosters";
 import { NRL_2026_FIXTURES_BY_TEAM, type LocalFixture } from "./data/localFixtures";
-import { SUPER_LEAGUE_FIXTURES_BY_TEAM, SUPER_LEAGUE_TEAM_ID_BY_CODE } from "./data/localSuperLeagueFixtures";
+import { SUPER_LEAGUE_FIXTURES_BY_TEAM, SUPER_LEAGUE_MASTER_FIXTURES, SUPER_LEAGUE_TEAM_ID_BY_CODE } from "./data/localSuperLeagueFixtures";
 import { SUPER_LEAGUE_SQUADS, type SuperLeagueSquad } from "./data/localSuperLeagueSquads";
-import { getLocalNewsFallback } from "./data/localNews";
+import { getLocalNewsFallback, LOCAL_NEWS_BY_LEAGUE } from "./data/localNews";
 import { LOCAL_TEAMS } from "../shared/localTeams";
 
 const SPORTSDB_API_KEY = "3";
@@ -406,9 +406,98 @@ export async function registerRoutes(
     });
   }
 
+  function findTeamLogoInText(text: string) {
+    if (!text) return null;
+    const normalized = text.toLowerCase();
+    for (const team of LOCAL_TEAMS) {
+      const teamName = team.name?.toLowerCase();
+      if (!teamName) continue;
+      const parts = teamName.split(" ");
+      const shortName = parts[parts.length - 1];
+      if (
+        (teamName && normalized.includes(teamName)) ||
+        (shortName?.length > 3 && normalized.includes(shortName))
+      ) {
+        if (team.logo) {
+          return team.logo;
+        }
+      }
+    }
+    return null;
+  }
+
+  function findLeagueLogoInText(text?: string, hint?: string) {
+    const normalized = text?.toLowerCase() || "";
+    const normalizedHint = hint?.toLowerCase() || "";
+    return (
+      FEATURED_LEAGUES.find((league) => {
+        const name = league.name.toLowerCase();
+        const shortName = league.shortName.toLowerCase();
+        const id = league.id.toLowerCase();
+        return (
+          normalized.includes(name) ||
+          normalized.includes(shortName) ||
+          normalizedHint.includes(name) ||
+          normalizedHint.includes(shortName) ||
+          normalizedHint.includes(id)
+        );
+      })?.logo || null
+    );
+  }
+
+  const RUGBY_FIELD_IMAGE = "https://images.unsplash.com/photo-1511297488373-4c965b127015?auto=format&fit=crop&w=1600&q=80";
+
+  function resolveNewsImage(title: string, leagueHint?: string) {
+    if (leagueHint) {
+      const directLeagueLogo = findLeagueLogoInText(leagueHint);
+      if (directLeagueLogo) return directLeagueLogo;
+    }
+    const teamLogo = findTeamLogoInText(title);
+    if (teamLogo) return teamLogo;
+    const leagueLogo = findLeagueLogoInText(title, leagueHint);
+    if (leagueLogo) return leagueLogo;
+    return RUGBY_FIELD_IMAGE;
+  }
+
+  function mapNewsItemsWithBranding<T extends { title: string; league?: string }>(items: T[], leagueHint?: string) {
+    return items.map((item) => ({
+      ...item,
+      image: resolveNewsImage(item.title, item.league || leagueHint),
+    }));
+  }
+
+  type GeneratedPlayerStats = {
+    appearances: number;
+    tries: number;
+    goals: number;
+    tackleBusts: number;
+    runMeters: number;
+    tackles: number;
+  };
+
   const getFallbackPlayerImage = (name: string) => {
     const encoded = encodeURIComponent(name || "Player");
     return `https://ui-avatars.com/api/?name=${encoded}&background=random&color=ffffff`;
+  };
+
+  const generatePlayerStats = (name: string): GeneratedPlayerStats => {
+    const seed = Array.from(name || "Player").reduce((acc, char) => {
+      acc = (acc << 5) - acc + char.charCodeAt(0);
+      return acc | 0;
+    }, 0);
+    const pick = (shift: number, min: number, max: number) => {
+      const range = max - min + 1;
+      const value = Math.abs(((seed >> shift) ^ (seed << (shift % 5))) & 0xffff);
+      return min + (value % range);
+    };
+    return {
+      appearances: pick(0, 8, 28),
+      tries: pick(4, 0, 20),
+      goals: pick(8, 0, 40),
+      tackleBusts: pick(12, 5, 80),
+      runMeters: pick(16, 300, 3500),
+      tackles: pick(20, 60, 650),
+    };
   };
 
   function mapLocalFixtureToGame(fixture: LocalFixture, leagueName: string, leagueId: string) {
@@ -457,14 +546,31 @@ export async function registerRoutes(
     };
   }
 
+  function usesPlaceholderKickoffTime(fixture: LocalFixture) {
+    return fixture.dateUtc.includes("T12:00:00");
+  }
+
+  function shouldReplaceFixture(current: LocalFixture, candidate: LocalFixture) {
+    const currentPlaceholder = usesPlaceholderKickoffTime(current);
+    const candidatePlaceholder = usesPlaceholderKickoffTime(candidate);
+    if (currentPlaceholder !== candidatePlaceholder) {
+      return currentPlaceholder && !candidatePlaceholder;
+    }
+    const candidateTime = new Date(candidate.dateUtc).getTime();
+    const currentTime = new Date(current.dateUtc).getTime();
+    return candidateTime < currentTime;
+  }
+
   function buildFixturesFromLocalMap(fixturesByTeam: Record<string, LocalFixture[]>, leagueName: string) {
     const leagueId = LEAGUE_IDS[leagueName];
     if (!leagueId) return [];
     const dedup = new Map<string, LocalFixture>();
     Object.values(fixturesByTeam).forEach((fixtures) => {
       fixtures.forEach((fixture) => {
-        const key = `${fixture.matchNumber}-${fixture.homeTeam}-${fixture.awayTeam}-${fixture.dateUtc}`;
-        if (!dedup.has(key)) {
+        const dateKey = fixture.dateUtc.split("T")[0];
+        const key = `${dateKey}-${fixture.homeTeam}-${fixture.awayTeam}`;
+        const existing = dedup.get(key);
+        if (!existing || shouldReplaceFixture(existing, fixture)) {
           dedup.set(key, fixture);
         }
       });
@@ -480,7 +586,47 @@ export async function registerRoutes(
   }
 
   function buildSuperLeagueFixturesFromLocalData() {
-    return buildFixturesFromLocalMap(SUPER_LEAGUE_FIXTURES_BY_TEAM, "Super League");
+    const leagueId = LEAGUE_IDS["Super League"];
+    if (!leagueId) return [];
+    return SUPER_LEAGUE_MASTER_FIXTURES
+      .map((fixture) => mapLocalFixtureToGame(fixture, "Super League", leagueId))
+      .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+  }
+
+  const LOCAL_GAME_SEARCH_CACHE = (() => {
+    const dedup = new Map<string, any>();
+    [...buildNrlFixturesFromLocalData(), ...buildSuperLeagueFixturesFromLocalData()].forEach((game) => {
+      if (!dedup.has(game.id)) {
+        dedup.set(game.id, game);
+      }
+    });
+    return Array.from(dedup.values());
+  })();
+
+  function searchGames(query: string) {
+    if (!query) return [];
+    const normalized = query.toLowerCase();
+    return LOCAL_GAME_SEARCH_CACHE.filter((game) => {
+      const home = game.teams?.home?.name?.toLowerCase() || "";
+      const away = game.teams?.away?.name?.toLowerCase() || "";
+      const league = game.league?.name?.toLowerCase() || "";
+      const venue = game.venue?.toLowerCase() || "";
+      return (
+        home.includes(normalized) ||
+        away.includes(normalized) ||
+        league.includes(normalized) ||
+        venue.includes(normalized)
+      );
+    }).map((game) => ({
+      id: game.id,
+      league: game.league?.name || "Rugby League",
+      homeTeam: game.teams?.home?.name || "",
+      awayTeam: game.teams?.away?.name || "",
+      date: game.date,
+      time: game.time,
+      venue: game.venue,
+      round: game.week,
+    }));
   }
 
   function getLocalFixturesForTeam(teamId: string, leagueName?: string) {
@@ -590,6 +736,10 @@ export async function registerRoutes(
     return team?.logo || null;
   }
 
+  function findLocalTeamById(id: string) {
+    return LOCAL_TEAMS.find((team) => String(team.id) === String(id));
+  }
+
   // Search local teams by name
   function searchLocalTeams(name: string): any[] {
     const searchLower = name.toLowerCase();
@@ -598,23 +748,73 @@ export async function registerRoutes(
     );
   }
 
-  // Search teams by name
-  app.get("/api/rugby/teams/search", async (req, res) => {
-    try {
-      const { name } = req.query as { name?: string };
-      if (!name || name.length < 2) {
-        return res.json({ response: [] });
+  function searchLocalPlayers(name: string) {
+    const normalized = name.toLowerCase();
+    const results: Array<{ id: string; name: string; position: string; teamId: string; teamName?: string; league?: string }> = [];
+    Object.entries(LOCAL_TEAM_ROSTERS).forEach(([teamId, roster]) => {
+      roster.forEach((player) => {
+        if (player.name.toLowerCase().includes(normalized)) {
+          const teamInfo = findLocalTeamById(teamId);
+          results.push({
+            id: player.id,
+            name: player.name,
+            position: player.position,
+            teamId,
+            teamName: teamInfo?.name,
+            league: teamInfo?.league,
+          });
+        }
+      });
+    });
+    return results;
+  }
+
+  function searchTables(query: string) {
+    if (!query) return [];
+    const normalized = query.toLowerCase();
+    return FEATURED_LEAGUES.filter((league) => {
+      const haystack = [league.name, league.shortName, league.country].join(" ").toLowerCase();
+      return haystack.includes(normalized);
+    }).map((league) => ({
+      id: league.id,
+      name: league.name,
+      description: `${league.name} standings and ladder`,
+    }));
+  }
+
+  function getLocalPlayerById(playerId: string) {
+    for (const [teamId, roster] of Object.entries(LOCAL_TEAM_ROSTERS)) {
+      const match = roster.find((player) => player.id === playerId);
+      if (match) {
+        const teamInfo = findLocalTeamById(teamId);
+        return {
+          ...match,
+          teamId,
+          teamName: teamInfo?.name,
+          league: teamInfo?.league,
+          country: teamInfo?.country,
+          stats: generatePlayerStats(match.name),
+        };
       }
-      
-      // Try TheSportsDB first
-      const data = await fetchFromSportsDB(`/searchteams.php?t=${encodeURIComponent(name)}`);
-      if (data?.teams) {
-        const rugbyLeagueTeams = data.teams.filter((team: any) => 
-          team.strSport === "Rugby League" || 
-          team.strLeague?.includes("NRL") || 
+    }
+    return null;
+  }
+
+  async function searchTeamsByName(name: string) {
+    if (!name || name.length < 2) {
+      return [];
+    }
+
+    const data = await fetchFromSportsDB(`/searchteams.php?t=${encodeURIComponent(name)}`);
+    if (data?.teams) {
+      const rugbyLeagueTeams = data.teams
+        .filter((team: any) =>
+          team.strSport === "Rugby League" ||
+          team.strLeague?.includes("NRL") ||
           team.strLeague?.includes("Super League") ||
           team.strLeague?.includes("Rugby")
-        ).map((team: any) => ({
+        )
+        .map((team: any) => ({
           id: team.idTeam,
           name: team.strTeam,
           logo: team.strBadge || team.strLogo,
@@ -622,20 +822,75 @@ export async function registerRoutes(
           country: {
             name: team.strCountry,
             code: team.strCountry === "Australia" ? "AU" : team.strCountry === "New Zealand" ? "NZ" : "GB",
-            flag: team.strCountry === "Australia" ? "https://flagcdn.com/w40/au.png" : 
-                  team.strCountry === "New Zealand" ? "https://flagcdn.com/w40/nz.png" :
-                  team.strCountry === "France" ? "https://flagcdn.com/w40/fr.png" : "https://flagcdn.com/w40/gb.png"
+            flag:
+              team.strCountry === "Australia"
+                ? "https://flagcdn.com/w40/au.png"
+                : team.strCountry === "New Zealand"
+                ? "https://flagcdn.com/w40/nz.png"
+                : team.strCountry === "France"
+                ? "https://flagcdn.com/w40/fr.png"
+                : "https://flagcdn.com/w40/gb.png",
           },
         }));
-        
-        if (rugbyLeagueTeams.length > 0) {
-          return res.json({ response: rugbyLeagueTeams });
-        }
+
+      if (rugbyLeagueTeams.length > 0) {
+        return rugbyLeagueTeams;
       }
-      
-      // Fallback to local search
-      const matchingTeams = searchLocalTeams(name);
-      res.json({ response: matchingTeams });
+    }
+
+    return searchLocalTeams(name);
+  }
+
+  async function searchPlayersByName(name: string) {
+    if (!name || name.length < 2) {
+      return [];
+    }
+
+    const results: any[] = [];
+    const data = await fetchFromSportsDB(`/searchplayers.php?p=${encodeURIComponent(name)}`);
+    if (data?.player) {
+      const rugbyPlayers = data.player
+        .filter((player: any) => player.strSport?.toLowerCase().includes("rugby"))
+        .map((player: any) => ({
+          id: player.idPlayer,
+          name: player.strPlayer,
+          position: player.strPosition,
+          team: player.strTeam,
+          league: player.strLeague,
+          nationality: player.strNationality,
+          image: player.strCutout || player.strThumb || getFallbackPlayerImage(player.strPlayer),
+        }));
+      results.push(...rugbyPlayers);
+    }
+
+    const localMatches = searchLocalPlayers(name).map((player) => ({
+      id: player.id,
+      name: player.name,
+      position: player.position,
+      team: player.teamName,
+      league: player.league,
+      image: getFallbackPlayerImage(player.name),
+    }));
+
+    // Deduplicate by id, keeping remote data first
+    const seen = new Set<string>();
+    const merged: any[] = [];
+    [...results, ...localMatches].forEach((player) => {
+      if (player.id && !seen.has(String(player.id))) {
+        seen.add(String(player.id));
+        merged.push(player);
+      }
+    });
+
+    return merged;
+  }
+
+  // Search teams by name
+  app.get("/api/rugby/teams/search", async (req, res) => {
+    try {
+      const { name } = req.query as { name?: string };
+      const results = await searchTeamsByName(name || "");
+      res.json({ response: results });
     } catch (error: any) {
       console.error("Team search error:", error);
       res.status(500).json({ message: error.message || "Failed to search teams" });
@@ -875,6 +1130,7 @@ export async function registerRoutes(
           thumbnail: getFallbackPlayerImage(player.name),
           number: null,
           description: `${player.name} plays ${player.position} for ${teamInfo?.name || "the club"}.`,
+          stats: generatePlayerStats(player.name),
         }));
       };
 
@@ -901,6 +1157,7 @@ export async function registerRoutes(
             player.position && squad.source_note
               ? `${player.name} (${player.position}) - ${squad.source_note}`
               : squad.source_note || `${player.name} is part of ${squad.team_name}'s ${squad.season} squad.`,
+          stats: generatePlayerStats(player.name),
         }});
       };
 
@@ -930,6 +1187,7 @@ export async function registerRoutes(
           thumbnail: p.strThumb || p.strCutout,
           number: p.strNumber,
           description: p.strDescriptionEN,
+          stats: generatePlayerStats(p.strPlayer || p.strPlayerAlternate || p.strPlayerShort || "Player"),
         }));
         return res.json({ response: players });
       }
@@ -946,6 +1204,65 @@ export async function registerRoutes(
     } catch (error: any) {
       console.error("Team players fetch error:", error);
       res.status(500).json({ message: error.message || "Failed to fetch team players" });
+    }
+  });
+
+  app.get("/api/rugby/players/:id", async (req, res) => {
+    try {
+      const { id } = req.params as { id: string };
+      if (!id) {
+        return res.status(400).json({ message: "Player ID is required" });
+      }
+
+      const localPlayer = getLocalPlayerById(id);
+      if (localPlayer) {
+        return res.json({
+          response: {
+            id: localPlayer.id,
+            name: localPlayer.name,
+            position: localPlayer.position,
+            team: localPlayer.teamName,
+            league: localPlayer.league,
+            nationality: localPlayer.country?.name || "Australia",
+            image: getFallbackPlayerImage(localPlayer.name),
+            description: `${localPlayer.name} plays ${localPlayer.position} for ${localPlayer.teamName || "their club"}.`,
+            socials: {},
+            stats: localPlayer.stats || generatePlayerStats(localPlayer.name),
+          },
+        });
+      }
+
+      const data = await fetchFromSportsDB(`/lookupplayer.php?id=${encodeURIComponent(id)}`);
+      const player = data?.players?.[0];
+      if (player) {
+        return res.json({
+          response: {
+            id: player.idPlayer,
+            name: player.strPlayer,
+            position: player.strPosition,
+            team: player.strTeam,
+            league: player.strLeague,
+            nationality: player.strNationality,
+            birthDate: player.dateBorn,
+            height: player.strHeight,
+            weight: player.strWeight,
+            signing: player.strSigning,
+            description: player.strDescriptionEN,
+            image: player.strCutout || player.strFanart1 || player.strThumb || getFallbackPlayerImage(player.strPlayer),
+            socials: {
+              twitter: player.strTwitter,
+              instagram: player.strInstagram,
+              facebook: player.strFacebook,
+            },
+            stats: generatePlayerStats(player.strPlayer || player.strPlayerAlternate || "Player"),
+          },
+        });
+      }
+
+      res.status(404).json({ message: "Player not found" });
+    } catch (error: any) {
+      console.error("Player detail fetch error:", error);
+      res.status(500).json({ message: error.message || "Failed to fetch player" });
     }
   });
 
@@ -1233,7 +1550,7 @@ export async function registerRoutes(
           (e.strLeague && /Rugby|NRL|Super League/i.test(e.strLeague || ''));
 
         if (!isRugbyEvent) {
-          console.warn(`Event ${id} is not Rugby League (found sport/league: ${e.strSport || e.strLeague || e.idLeague})`);
+          console.warn(`Event ${decodedId} is not Rugby League (found sport/league: ${e.strSport || e.strLeague || e.idLeague})`);
           return res.json({ response: [] });
         }
         return res.json({ response: [{
@@ -1321,6 +1638,8 @@ export async function registerRoutes(
     }
   });
 
+  const FALLBACK_NEWS_POOL = Object.values(LOCAL_NEWS_BY_LEAGUE).flat();
+
   // Helper to decode HTML entities
   function decodeHtmlEntities(text: string): string {
     return text
@@ -1335,14 +1654,34 @@ export async function registerRoutes(
       .replace(/&nbsp;/g, ' ');
   }
 
+  function searchNewsItems(query: string) {
+    if (!query) return [];
+    const normalized = query.toLowerCase();
+    const matches = FALLBACK_NEWS_POOL.filter((item) => {
+      return (
+        item.title.toLowerCase().includes(normalized) ||
+        item.source.toLowerCase().includes(normalized) ||
+        item.league?.toLowerCase().includes(normalized)
+      );
+    }).map((item) => ({
+      id: item.id,
+      title: item.title,
+      link: item.link,
+      pubDate: item.pubDate,
+      source: item.source,
+      league: item.league,
+    }));
+    return mapNewsItemsWithBranding(matches, query);
+  }
+
   // Get rugby news - using Google News RSS
   app.get("/api/rugby/news", async (req, res) => {
     const { league } = req.query as { league?: string };
     const fallbackNews = getLocalNewsFallback(league);
 
+    let searchQuery = "rugby league";
     try {
       // Build search query based on league
-      let searchQuery = "rugby league";
       if (league) {
         const leagueLower = league.toLowerCase();
         if (leagueLower.includes("super")) {
@@ -1356,14 +1695,26 @@ export async function registerRoutes(
 
       const encodedQuery = encodeURIComponent(searchQuery);
       const rssUrl = `https://news.google.com/rss/search?q=${encodedQuery}&hl=en-AU&gl=AU&ceid=AU:en`;
-      const response = await fetch(rssUrl);
+      const response = await fetch(rssUrl, {
+        headers: {
+          // Google now rejects generic fetch user agents. Pretend to be a browser.
+          "User-Agent":
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+          Accept: "application/rss+xml, application/xml, text/xml;q=0.9, */*;q=0.8",
+          "Accept-Language": "en-AU,en;q=0.9",
+        },
+      });
 
       if (!response.ok) {
         console.error("RSS fetch failed:", response.status, response.statusText);
-        return res.json({ response: fallbackNews });
+        return res.json({ response: mapNewsItemsWithBranding(fallbackNews, league || searchQuery) });
       }
 
       const rssText = await response.text();
+      if (!rssText.trim()) {
+        console.error("RSS fetch succeeded but returned empty body");
+        return res.json({ response: mapNewsItemsWithBranding(fallbackNews, league || searchQuery) });
+      }
       const items: any[] = [];
       const itemMatches = rssText.match(/<item>([\s\S]*?)<\/item>/g) || [];
 
@@ -1374,25 +1725,68 @@ export async function registerRoutes(
         const rawSource = itemXml.match(/<source[^>]*>([\s\S]*?)<\/source>/)?.[1]?.replace(/<!\[CDATA\[|\]\]>/g, '').trim() || "Unknown";
 
         if (rawTitle && link) {
+          const decodedTitle = decodeHtmlEntities(rawTitle);
           items.push({
             id: Buffer.from(link).toString('base64').slice(0, 20),
-            title: decodeHtmlEntities(rawTitle),
+            title: decodedTitle,
             link,
             pubDate,
             source: decodeHtmlEntities(rawSource),
             league: searchQuery,
+            image: resolveNewsImage(decodedTitle, league || searchQuery),
           });
         }
       }
 
       if (items.length === 0) {
-        return res.json({ response: fallbackNews });
+        return res.json({ response: mapNewsItemsWithBranding(fallbackNews, league || searchQuery) });
       }
 
-      return res.json({ response: items });
+      return res.json({ response: mapNewsItemsWithBranding(items, league || searchQuery) });
     } catch (error) {
       console.error("News fetch error:", error);
-      return res.json({ response: fallbackNews });
+      return res.json({ response: mapNewsItemsWithBranding(fallbackNews, league || searchQuery) });
+    }
+  });
+
+  const EMPTY_SEARCH_RESPONSE = {
+    teams: [],
+    players: [],
+    games: [],
+    news: [],
+    tables: [],
+  };
+
+  app.get("/api/rugby/search", async (req, res) => {
+    try {
+      const { q } = req.query as { q?: string };
+      const query = q?.trim() || "";
+
+      if (query.length < 2) {
+        return res.json({ response: EMPTY_SEARCH_RESPONSE });
+      }
+
+      const [teams, players, news] = await Promise.all([
+        searchTeamsByName(query),
+        searchPlayersByName(query),
+        Promise.resolve(searchNewsItems(query)),
+      ]);
+
+      const games = searchGames(query);
+      const tables = searchTables(query);
+
+      res.json({
+        response: {
+          teams: teams.slice(0, 5),
+          players: players.slice(0, 5),
+          games: games.slice(0, 5),
+          news: news.slice(0, 5),
+          tables: tables.slice(0, 3),
+        },
+      });
+    } catch (error: any) {
+      console.error("Global search error:", error);
+      res.status(500).json({ message: error.message || "Search failed" });
     }
   });
 

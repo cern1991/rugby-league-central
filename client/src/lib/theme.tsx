@@ -1,15 +1,31 @@
-import { createContext, useContext, useEffect, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { useAuth } from "./auth";
+import { LOCAL_TEAMS } from "@shared/localTeams";
 
 export interface TeamTheme {
   id: string;
   name: string;
   league: string;
   previewColor: string;
+  logo?: string | null;
 }
 
-export const TEAM_THEMES: TeamTheme[] = [
-  { id: "default", name: "Default Blue", league: "System", previewColor: "bg-blue-500" },
+const slugify = (value: string) =>
+  value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+const LOCAL_TEAM_LOGOS = LOCAL_TEAMS.reduce<Record<string, string | null>>((acc, team) => {
+  const slug = slugify(team.name);
+  if (!acc[slug]) {
+    acc[slug] = team.logo;
+  }
+  return acc;
+}, {});
+
+const BASE_TEAM_THEMES: (Omit<TeamTheme, "logo"> & { logo?: string | null })[] = [
+  { id: "default", name: "Default Dark", league: "System", previewColor: "bg-slate-900" },
   // NRL Teams (17 teams)
   { id: "brisbane-broncos", name: "Brisbane Broncos", league: "NRL", previewColor: "bg-yellow-500" },
   { id: "canberra-raiders", name: "Canberra Raiders", league: "NRL", previewColor: "bg-lime-500" },
@@ -66,6 +82,11 @@ export const TEAM_THEMES: TeamTheme[] = [
   { id: "tonga", name: "Tonga", league: "International", previewColor: "bg-red-700" },
   { id: "papua-new-guinea", name: "Papua New Guinea", league: "International", previewColor: "bg-red-600" },
 ];
+
+export const TEAM_THEMES: TeamTheme[] = BASE_TEAM_THEMES.map((theme) => ({
+  ...theme,
+  logo: theme.logo ?? LOCAL_TEAM_LOGOS[theme.id] ?? null,
+}));
 
 export const AVAILABLE_TEAMS = [
   // NRL - All 17 teams
@@ -133,15 +154,32 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
-  const currentTheme = user?.themePreference || "default";
+  const { user, updatePreferences } = useAuth();
+
+  const resolveThemePreference = (theme?: string | null) => {
+    if (!theme || theme === "default" || theme === "light") {
+      return "dark";
+    }
+    return theme;
+  };
+
+  const [currentTheme, setCurrentTheme] = useState(() => resolveThemePreference(user?.themePreference));
+
+  useEffect(() => {
+    setCurrentTheme(resolveThemePreference(user?.themePreference));
+  }, [user?.themePreference]);
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", currentTheme);
   }, [currentTheme]);
 
   const setTheme = (theme: string) => {
-    document.documentElement.setAttribute("data-theme", theme);
+    setCurrentTheme(theme);
+    if (user) {
+      updatePreferences(user.favoriteTeams ?? [], theme).catch((error) => {
+        console.error("Failed to save theme preference", error);
+      });
+    }
   };
 
   return (
