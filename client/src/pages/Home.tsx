@@ -3,7 +3,7 @@ import { GlobalSearch } from "@/components/GlobalSearch";
 import { SEO } from "@/components/SEO";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { cn } from "@/lib/utils";
+import { cn, dedupeGames } from "@/lib/utils";
 import { Link } from "wouter";
 import { 
   Trophy, 
@@ -23,6 +23,7 @@ import { usePreferredLeague } from "@/hooks/usePreferredLeague";
 import { encodeNewsLink, cacheNewsArticle } from "@/lib/news";
 
 const DEFAULT_FIXTURE_SEASON = "2026";
+const FEATURED_NEWS_LIMIT = 3;
 
 interface Team {
   id: string;
@@ -96,8 +97,9 @@ export default function Home() {
     });
     return Array.from(unique.values());
   }, [teamsData, fallbackTeams]);
-  const games = gamesData?.response || [];
+  const games = useMemo(() => dedupeGames(gamesData?.response || []), [gamesData]);
   const news = newsData?.response || [];
+  const featuredNews = useMemo(() => news.slice(0, FEATURED_NEWS_LIMIT), [news]);
   
   const upcomingGames = games.filter(g => g.status.short === "NS" || g.status.short === "TBD");
   const completedGames = games.filter(g => g.status.short === "FT" || g.status.short === "AET");
@@ -115,32 +117,101 @@ export default function Home() {
       <div className="space-y-8">
         
         {/* Hero Section */}
-        <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-background to-purple-500/10 border border-border/50 p-8 md:p-12">
+        <section className="relative rounded-2xl bg-gradient-to-br from-primary/10 via-background to-purple-500/10 border border-border/50 p-6 md:p-8">
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/5 via-transparent to-transparent" />
           
-          <div className="relative max-w-3xl">
-            <div className="flex items-center gap-2 mb-4">
-              <span className="flex items-center gap-1.5 text-xs font-medium bg-primary/10 text-primary px-3 py-1 rounded-full">
-                <Zap className="w-3 h-3" />
-                Live Scores
-              </span>
-              <span className="text-xs text-muted-foreground">Updated in real-time</span>
-            </div>
-            
-            <h1 className="font-display text-4xl md:text-5xl font-bold tracking-tight mb-4" data-testid="text-main-title">
+          <div className="relative max-w-3xl space-y-5">
+            <h1 className="font-display text-3xl md:text-4xl font-bold tracking-tight" data-testid="text-main-title">
               Rugby League Central
             </h1>
-            
-            <p className="text-lg text-muted-foreground mb-6 max-w-xl">
-              Your complete hub for NRL, Super League, and rugby league competitions worldwide. 
-              Track scores, explore teams, and never miss a match.
-            </p>
-
-            <div className="max-w-2xl">
+            <div id="hero-global-search" className="max-w-2xl">
               <GlobalSearch />
             </div>
           </div>
 
+        </section>
+
+        {/* League Selector */}
+        <section className="bg-card border border-border rounded-2xl p-5 md:p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">Choose your league</p>
+              <h2 className="font-display text-2xl font-bold">Follow a competition</h2>
+            </div>
+          </div>
+          <LeagueFilter selectedLeague={selectedLeague} setSelectedLeague={setSelectedLeague} />
+        </section>
+
+        {/* Featured News */}
+        <section className="bg-card border border-border rounded-2xl p-5 md:p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">Top stories</p>
+              <h2 className="font-display text-2xl font-bold">Headline Spotlight</h2>
+            </div>
+            <Link href="/news" className="text-sm font-medium text-primary hover:underline">
+              View all
+            </Link>
+          </div>
+
+            {newsLoading ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {Array.from({ length: FEATURED_NEWS_LIMIT }).map((_, index) => (
+                  <div key={index} className="animate-pulse bg-muted/40 rounded-xl h-32" />
+                ))}
+              </div>
+            ) : featuredNews.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {featuredNews.map((item, index) => {
+                  const encodedLink = item.link ? encodeNewsLink(item.link) : "";
+                  const cardContent = (
+                    <article
+                      className="group relative rounded-xl border border-border bg-gradient-to-b from-background to-card shadow-sm hover:shadow-lg transition-shadow p-4 space-y-3"
+                      data-testid={`card-featured-news-${index}`}
+                    >
+                      <span className="inline-flex items-center text-[11px] px-2 py-1 rounded-full bg-primary/10 text-primary font-semibold uppercase tracking-wide">
+                        {item.league || "Rugby League"}
+                      </span>
+                      <h3 className="font-semibold text-base leading-snug line-clamp-4">
+                        {item.title}
+                      </h3>
+                      <p className="text-xs text-muted-foreground flex items-center gap-2">
+                        <span className="font-medium">{item.source || "Latest"}</span>
+                        {item.pubDate && (
+                          <>
+                            <span>•</span>
+                            <span>{item.pubDate}</span>
+                          </>
+                        )}
+                      </p>
+                    </article>
+                  );
+
+                  if (!item.link) {
+                    return (
+                      <div key={index} className="contents">
+                        {cardContent}
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <Link
+                      key={index}
+                      href={`/news/article/${encodedLink}`}
+                      onClick={() => cacheNewsArticle(item.link, item)}
+                      aria-label={`Read article: ${item.title}`}
+                    >
+                      {cardContent}
+                    </Link>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-10 text-muted-foreground">
+                <p>No featured news available right now. Check back later.</p>
+              </div>
+            )}
         </section>
 
         {/* Main Content Grid */}
@@ -148,19 +219,6 @@ export default function Home() {
           
           {/* Filter Sidebar */}
           <aside className="lg:col-span-1 space-y-4">
-            <div className="bg-card border border-border rounded-xl p-4">
-              <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-bold flex items-center gap-2">
-                    <Trophy className="w-4 h-4 text-primary" />
-                    Leagues
-                  </h3>
-                </div>
-
-                <div className="space-y-3">
-                  <LeagueFilter selectedLeague={selectedLeague} setSelectedLeague={setSelectedLeague} />
-                </div>
-            </div>
-
             {/* Quick Stats */}
             <div className="bg-card border border-border rounded-xl p-4">
               <h3 className="font-bold mb-3 text-sm">Quick Stats</h3>
@@ -184,12 +242,12 @@ export default function Home() {
           {/* Main Content */}
           <div className="lg:col-span-3 space-y-6">
             
-            <div className="lg:hidden">
-              <h2 className="font-display text-xl font-bold mb-2">{displayLeagueName}</h2>
-              <p className="text-sm text-muted-foreground mb-4">
-                Choose a league above to explore teams, fixtures, and news.
-              </p>
-            </div>
+              <div className="lg:hidden">
+                <h2 className="font-display text-xl font-bold mb-2">{displayLeagueName}</h2>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Use the league picker near the top to explore teams, fixtures, and news.
+                </p>
+              </div>
 
             {/* Tab Navigation */}
             <div className="flex items-center gap-1 border-b border-border">
@@ -404,11 +462,11 @@ export default function Home() {
                         >
                           <div className="flex gap-3">
                             {item.image && (
-                              <div className="w-20 h-20 flex-shrink-0 overflow-hidden rounded-lg bg-muted">
+                              <div className="w-20 h-20 flex-shrink-0 overflow-hidden rounded-lg bg-muted flex items-center justify-center">
                                 <img
                                   src={item.image}
                                   alt={item.title}
-                                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                  className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
                                   loading="lazy"
                                 />
                               </div>

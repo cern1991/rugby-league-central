@@ -1,12 +1,3 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Rugby League Central favicon">
-  <rect width="64" height="64" rx="12" fill="#050505" />
-  <path d="M8 6h48c4 0 7 3 7 7v27c0 25-18 36-31 42-13-6-31-17-31-42V13c0-4 3-7 7-7Z" fill="#ffffff" />
-  <ellipse cx="32" cy="28" rx="20" ry="14" fill="#050505" />
-  <path d="M15 22c12 8 22 8 34 0" stroke="#ffffff" stroke-width="3" stroke-linecap="round" />
-  <path d="M15 34c12-8 22-8 34 0" stroke="#ffffff" stroke-width="3" stroke-linecap="round" />
-  <rect x="27" y="26" width="10" height="6" rx="3" fill="#ffffff" />
-  <circle cx="24.5" cy="28" r="2" fill="#ffffff" />
-  <circle cx="39.5" cy="28" r="2" fill="#ffffff" />
-  <path d="M26 20c9-6 16-6 22 0" stroke="#ffffff" stroke-width="3" stroke-linecap="round" />
+<svg width="120" height="140" viewBox="0 0 120 140" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path fill-rule="evenodd" clip-rule="evenodd" d="M60 6L106 28V80C106 102 90 122 60 132C30 122 14 102 14 80V28L60 6ZM60 50C45 50 32 61 32 76C32 91 45 102 60 102C75 102 88 91 88 76C88 61 75 50 60 50Z" fill="white"/>
 </svg>

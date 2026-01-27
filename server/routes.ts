@@ -446,6 +446,59 @@ export async function registerRoutes(
   }
 
   const RUGBY_FIELD_IMAGE = "https://images.unsplash.com/photo-1511297488373-4c965b127015?auto=format&fit=crop&w=1600&q=80";
+  const ARTICLE_IMAGE_HEADERS = {
+    "User-Agent":
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+    Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+    "Accept-Language": "en-AU,en;q=0.9",
+  };
+
+  async function fetchArticlePreviewImage(url?: string | null) {
+    if (!url) return null;
+    try {
+      const response = await fetch(url, {
+        headers: ARTICLE_IMAGE_HEADERS,
+      });
+      if (!response.ok) {
+        return null;
+      }
+      const html = await response.text();
+      const metaTags = html.match(/<meta[^>]+>/gi) || [];
+      for (const tag of metaTags) {
+        if (/property=["']og:image["']/i.test(tag) || /name=["']og:image["']/i.test(tag)) {
+          const contentMatch = tag.match(/content=["']([^"']+)["']/i);
+          if (contentMatch?.[1]) {
+            return contentMatch[1];
+          }
+        }
+        if (/name=["']twitter:image["']/i.test(tag)) {
+          const contentMatch = tag.match(/content=["']([^"']+)["']/i);
+          if (contentMatch?.[1]) {
+            return contentMatch[1];
+          }
+        }
+      }
+      return null;
+    } catch (error) {
+      console.error("Article preview fetch failed:", error);
+      return null;
+    }
+  }
+
+  function getHostFromUrl(url?: string | null) {
+    if (!url) return null;
+    try {
+      return new URL(url).hostname;
+    } catch {
+      return null;
+    }
+  }
+
+  function getPublisherLogo(url?: string | null) {
+    const host = getHostFromUrl(url);
+    if (!host) return null;
+    return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=128`;
+  }
 
   function resolveNewsImage(title: string, leagueHint?: string) {
     if (leagueHint) {
@@ -459,11 +512,43 @@ export async function registerRoutes(
     return RUGBY_FIELD_IMAGE;
   }
 
-  function mapNewsItemsWithBranding<T extends { title: string; league?: string }>(items: T[], leagueHint?: string) {
-    return items.map((item) => ({
-      ...item,
-      image: resolveNewsImage(item.title, item.league || leagueHint),
-    }));
+  function buildHeadlineImageUrl(title: string, leagueHint?: string) {
+    const queryBase = `${leagueHint || ""} ${title}`.trim() || "rugby league";
+    const normalized = queryBase
+      .replace(/[^a-zA-Z0-9\s]/g, "")
+      .trim()
+      .split(/\s+/)
+      .slice(0, 5)
+      .join(",");
+    return `https://source.unsplash.com/featured/?rugby,${encodeURIComponent(normalized || "league")}`;
+  }
+
+  async function attachRemoteThumbnails<T extends { link?: string | null; image?: string | null }>(items: T[], limit?: number) {
+    const slice = typeof limit === "number" ? items.slice(0, limit) : items;
+    await Promise.all(
+      slice.map(async (item) => {
+        if (item.image) return;
+        const preview = await fetchArticlePreviewImage(item.link);
+        if (preview) {
+          item.image = preview;
+        }
+      })
+    );
+    return items;
+  }
+
+  function mapNewsItemsWithBranding<T extends { title: string; league?: string; image?: string | null; link?: string | null }>(items: T[], leagueHint?: string) {
+    return items.map((item) => {
+      const leagueContext = item.league || leagueHint;
+      return {
+        ...item,
+        image:
+          item.image ||
+          getPublisherLogo(item.link) ||
+          buildHeadlineImageUrl(item.title, leagueContext) ||
+          resolveNewsImage(item.title, leagueContext),
+      };
+    });
   }
 
   type GeneratedPlayerStats = {
@@ -1111,7 +1196,6 @@ export async function registerRoutes(
       const defaultSeason = parseInt(CURRENT_SEASON, 10);
       const requestedSeason = season ? parseInt(season, 10) : defaultSeason;
       const seasonFilter = Number.isNaN(requestedSeason) ? defaultSeason : requestedSeason;
-      const isCurrentSeasonRequest = seasonFilter === defaultSeason;
       const localRoster = LOCAL_TEAM_ROSTERS[id] || [];
       const teamInfo = LOCAL_TEAMS.find((team) => String(team.id) === String(id));
       const superLeagueSquads = SUPER_LEAGUE_SQUADS_BY_TEAM_ID[id] || [];
@@ -1162,40 +1246,11 @@ export async function registerRoutes(
       };
 
       const localPlayers = buildLocalRosterPlayers();
-      const superLeaguePlayers = buildSuperLeaguePlayers();
-
-      if (isCurrentSeasonRequest) {
-        if (localPlayers) {
-          return res.json({ response: localPlayers });
-        }
-        if (superLeaguePlayers) {
-          return res.json({ response: superLeaguePlayers });
-        }
-      }
-
-      const data = await fetchFromSportsDB(`/lookup_all_players.php?id=${id}`);
-      if (data?.player) {
-        const players = data.player.map((p: any) => ({
-          id: p.idPlayer,
-          name: p.strPlayer,
-          position: p.strPosition,
-          nationality: p.strNationality,
-          birthDate: p.dateBorn,
-          height: p.strHeight,
-          weight: p.strWeight,
-          photo: p.strThumb || p.strCutout,
-          thumbnail: p.strThumb || p.strCutout,
-          number: p.strNumber,
-          description: p.strDescriptionEN,
-          stats: generatePlayerStats(p.strPlayer || p.strPlayerAlternate || p.strPlayerShort || "Player"),
-        }));
-        return res.json({ response: players });
-      }
-
       if (localPlayers) {
         return res.json({ response: localPlayers });
       }
 
+      const superLeaguePlayers = buildSuperLeaguePlayers();
       if (superLeaguePlayers) {
         return res.json({ response: superLeaguePlayers });
       }
@@ -1228,33 +1283,6 @@ export async function registerRoutes(
             description: `${localPlayer.name} plays ${localPlayer.position} for ${localPlayer.teamName || "their club"}.`,
             socials: {},
             stats: localPlayer.stats || generatePlayerStats(localPlayer.name),
-          },
-        });
-      }
-
-      const data = await fetchFromSportsDB(`/lookupplayer.php?id=${encodeURIComponent(id)}`);
-      const player = data?.players?.[0];
-      if (player) {
-        return res.json({
-          response: {
-            id: player.idPlayer,
-            name: player.strPlayer,
-            position: player.strPosition,
-            team: player.strTeam,
-            league: player.strLeague,
-            nationality: player.strNationality,
-            birthDate: player.dateBorn,
-            height: player.strHeight,
-            weight: player.strWeight,
-            signing: player.strSigning,
-            description: player.strDescriptionEN,
-            image: player.strCutout || player.strFanart1 || player.strThumb || getFallbackPlayerImage(player.strPlayer),
-            socials: {
-              twitter: player.strTwitter,
-              instagram: player.strInstagram,
-              facebook: player.strFacebook,
-            },
-            stats: generatePlayerStats(player.strPlayer || player.strPlayerAlternate || "Player"),
           },
         });
       }
@@ -1733,7 +1761,7 @@ export async function registerRoutes(
             pubDate,
             source: decodeHtmlEntities(rawSource),
             league: searchQuery,
-            image: resolveNewsImage(decodedTitle, league || searchQuery),
+            image: null,
           });
         }
       }
@@ -1741,6 +1769,8 @@ export async function registerRoutes(
       if (items.length === 0) {
         return res.json({ response: mapNewsItemsWithBranding(fallbackNews, league || searchQuery) });
       }
+
+      await attachRemoteThumbnails(items, items.length);
 
       return res.json({ response: mapNewsItemsWithBranding(items, league || searchQuery) });
     } catch (error) {

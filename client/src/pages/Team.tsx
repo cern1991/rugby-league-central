@@ -379,7 +379,7 @@ export default function TeamPage() {
                             <img 
                               src={player.thumbnail} 
                               alt={player.name} 
-                              className="w-16 h-16 rounded-full object-cover"
+                              className="w-16 h-16 rounded-full object-cover object-center"
                             />
                           ) : (
                             <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center text-lg font-bold">

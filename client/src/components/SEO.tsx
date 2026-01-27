@@ -10,16 +10,19 @@ interface SEOProps {
 
 const BASE_TITLE = 'Rugby League Central';
 const BASE_DESCRIPTION = 'Your complete hub for rugby league. Get live NRL scores, Super League results, team news, fixtures, and standings.';
+const BASE_KEYWORDS = 'rugby league, NRL, Super League, rugby scores, live scores, rugby fixtures, rugby news, rugby teams, rugby standings, Australian rugby league, UK rugby league';
+const BASE_URL = 'https://rugbyleaguecentral.com';
 
 export function SEO({ 
   title, 
   description = BASE_DESCRIPTION,
-  keywords,
+  keywords = BASE_KEYWORDS,
   type = 'website',
   image 
 }: SEOProps) {
   useEffect(() => {
-    const fullTitle = title ? `${title} | ${BASE_TITLE}` : `${BASE_TITLE} - Live NRL & Super League Scores`;
+    const fullTitle = title ? `${title} | ${BASE_TITLE}` : BASE_TITLE;
+    const currentUrl = typeof window !== 'undefined' ? window.location.href : BASE_URL;
     
     document.title = fullTitle;
     
@@ -53,12 +56,31 @@ export function SEO({
       twitterDescription.setAttribute('content', description);
     }
     
-    if (keywords) {
-      let metaKeywords = document.querySelector('meta[name="keywords"]');
-      if (metaKeywords) {
-        metaKeywords.setAttribute('content', keywords);
-      }
+    const ogUrl = document.querySelector('meta[property="og:url"]');
+    if (ogUrl) {
+      ogUrl.setAttribute('content', currentUrl);
     }
+
+    const twitterUrl = document.querySelector('meta[name="twitter:url"]');
+    if (twitterUrl) {
+      twitterUrl.setAttribute('content', currentUrl);
+    }
+
+    let metaKeywords = document.querySelector('meta[name="keywords"]');
+    if (!metaKeywords) {
+      metaKeywords = document.createElement('meta');
+      metaKeywords.setAttribute('name', 'keywords');
+      document.head.appendChild(metaKeywords);
+    }
+    metaKeywords.setAttribute('content', keywords || BASE_KEYWORDS);
+
+    let canonicalLink = document.querySelector('link[rel="canonical"]');
+    if (!canonicalLink) {
+      canonicalLink = document.createElement('link');
+      canonicalLink.setAttribute('rel', 'canonical');
+      document.head.appendChild(canonicalLink);
+    }
+    canonicalLink.setAttribute('href', currentUrl);
     
     if (image) {
       const ogImage = document.querySelector('meta[property="og:image"]');
@@ -72,7 +94,7 @@ export function SEO({
     }
     
     return () => {
-      document.title = `${BASE_TITLE} - Live NRL & Super League Scores`;
+      document.title = BASE_TITLE;
     };
   }, [title, description, keywords, type, image]);
   

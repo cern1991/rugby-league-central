@@ -83,11 +83,11 @@ export default function News() {
                     >
                       <div className="flex gap-4">
                         {item.image && (
-                          <div className="w-32 h-24 sm:w-40 sm:h-28 flex-shrink-0 overflow-hidden rounded-lg bg-muted">
+                          <div className="w-32 h-24 sm:w-40 sm:h-28 flex-shrink-0 overflow-hidden rounded-lg bg-muted flex items-center justify-center">
                             <img
                               src={item.image}
                               alt={item.title}
-                              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                              className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
                               loading="lazy"
                             />
                           </div>

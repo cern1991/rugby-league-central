@@ -1,12 +1,27 @@
+import { SUPER_LEAGUE_TEAM_ID_BY_CODE } from "./localSuperLeagueFixtures";
+import { SUPER_LEAGUE_SQUADS } from "./localSuperLeagueSquads";
+import { LOCAL_TEAMS } from "../../shared/localTeams";
+
 export interface LocalPlayer {
   id: string;
   name: string;
   position: string;
 }
 
-const makeId = (teamId: string, name: string) => `${teamId}-${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}`;
+const normalizeSlug = (value: string) =>
+  value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 
-export const LOCAL_TEAM_ROSTERS: Record<string, LocalPlayer[]> = {
+const TEAM_SLUG_BY_ID = LOCAL_TEAMS.reduce<Record<string, string>>((acc, team) => {
+  acc[String(team.id)] = normalizeSlug(team.name);
+  return acc;
+}, {});
+
+const makeId = (teamId: string, name: string) => {
+  const teamSlug = TEAM_SLUG_BY_ID[String(teamId)] || normalizeSlug(teamId);
+  return `${teamSlug}-${normalizeSlug(name)}`;
+};
+
+const BASE_LOCAL_TEAM_ROSTERS: Record<string, LocalPlayer[]> = {
   "135191": [
     { id: makeId("135191", "Reece Walsh"), name: "Reece Walsh", position: "Fullback" },
     { id: makeId("135191", "Selwyn Cobbo"), name: "Selwyn Cobbo", position: "Wing" },
@@ -381,4 +396,37 @@ export const LOCAL_TEAM_ROSTERS: Record<string, LocalPlayer[]> = {
     { id: makeId("135189", "Asu Kepaoa"), name: "Asu Kepaoa", position: "Utility Back" },
     { id: makeId("135189", "Alex Twal"), name: "Alex Twal", position: "Prop" },
   ],
+};
+
+const CURRENT_SUPER_LEAGUE_SEASON = 2026;
+
+const SUPER_LEAGUE_LOCAL_ROSTERS = Object.entries(SUPER_LEAGUE_SQUADS).reduce<Record<string, LocalPlayer[]>>((acc, [code, squads]) => {
+  const teamId = SUPER_LEAGUE_TEAM_ID_BY_CODE[code];
+  if (!teamId) return acc;
+  const squadForSeason = squads.find((squad) => squad.season === CURRENT_SUPER_LEAGUE_SEASON) || squads[0];
+  if (!squadForSeason || !squadForSeason.players || squadForSeason.players.length === 0) return acc;
+
+  const players = squadForSeason.players
+    .map((player) => {
+      const trimmedName = player.name?.trim();
+      if (!trimmedName || /^tba/i.test(trimmedName)) {
+        return null;
+      }
+      return {
+        id: makeId(teamId, trimmedName),
+        name: trimmedName,
+        position: player.position || "Player",
+      };
+    })
+    .filter((player): player is LocalPlayer => Boolean(player));
+
+  if (players.length > 0) {
+    acc[teamId] = players;
+  }
+  return acc;
+}, {});
+
+export const LOCAL_TEAM_ROSTERS: Record<string, LocalPlayer[]> = {
+  ...BASE_LOCAL_TEAM_ROSTERS,
+  ...SUPER_LEAGUE_LOCAL_ROSTERS,
 };

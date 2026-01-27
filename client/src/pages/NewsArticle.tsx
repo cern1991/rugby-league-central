@@ -114,11 +114,11 @@ export default function NewsArticle() {
         </div>
 
         {article?.image && (
-          <div className="rounded-2xl border border-border overflow-hidden">
+          <div className="rounded-2xl border border-border overflow-hidden bg-muted flex items-center justify-center">
             <img
               src={article.image}
               alt={article.title}
-              className="w-full h-64 md:h-80 object-cover"
+              className="w-full h-64 md:h-80 object-contain"
             />
           </div>
         )}
@@ -172,11 +172,11 @@ export default function NewsArticle() {
                       <div className="p-3 rounded-lg border border-border/60 hover:border-primary/50 transition-all bg-background/40 group-hover:bg-background/80">
                         <div className="flex gap-3">
                           {item.image && (
-                            <div className="w-16 h-16 flex-shrink-0 overflow-hidden rounded-md bg-muted">
+                            <div className="w-16 h-16 flex-shrink-0 overflow-hidden rounded-md bg-muted flex items-center justify-center">
                               <img
                                 src={item.image}
                                 alt={item.title}
-                                className="w-full h-full object-cover"
+                                className="w-full h-full object-contain"
                               />
                             </div>
                           )}

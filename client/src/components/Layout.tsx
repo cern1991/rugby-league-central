@@ -1,10 +1,11 @@
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { Trophy, Settings, Menu, User, LogOut, Shield, Home, X, Zap, Newspaper, Users, BarChart3 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { ThemeCustomizer } from "@/components/ThemeCustomizer";
+import { GlobalSearch } from "@/components/GlobalSearch";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,6 +24,30 @@ export function Layout({ children }: LayoutProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { user, loading, logout } = useAuth();
   const [, setLocation] = useLocation();
+  const [showStickySearch, setShowStickySearch] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handleScroll = () => {
+      const target = document.getElementById("hero-global-search");
+      if (!target) {
+        setShowStickySearch(false);
+        return;
+      }
+      const rect = target.getBoundingClientRect();
+      const headerHeight = 80;
+      setShowStickySearch(rect.top <= headerHeight);
+    };
+
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("resize", handleScroll);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", handleScroll);
+    };
+  }, [location]);
 
   const navItems = [
     { label: "Home", icon: Home, href: "/" },
@@ -41,15 +66,15 @@ export function Layout({ children }: LayoutProps) {
             {/* Logo */}
             <Link href="/">
               <div className="flex items-center gap-3 cursor-pointer" data-testid="link-logo">
-                <div className="w-10 h-10 rounded-lg bg-card border border-border flex items-center justify-center font-semibold text-lg tracking-wider">
-                  RLC
+                <div className="w-10 h-10 rounded-xl border border-border bg-gradient-to-br from-card to-muted flex items-center justify-center">
+                  <img src="/logo.svg" alt="Rugby League Central shield logo" className="w-7 h-7" />
                 </div>
                 <span className="sr-only">Rugby League Central</span>
               </div>
             </Link>
 
             {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center gap-1">
+            <nav className="hidden lg:flex items-center gap-1 text-sm">
               {navItems.map((item) => (
                 <Link key={item.href} href={item.href}>
                   <div className={cn(
@@ -118,7 +143,7 @@ export function Layout({ children }: LayoutProps) {
               {/* Mobile Menu Toggle */}
               <button 
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
-                className="md:hidden p-2 rounded-lg hover:bg-muted"
+                className="relative z-50 lg:hidden p-2 rounded-lg hover:bg-muted bg-card/90 border border-border"
                 data-testid="button-menu-toggle"
               >
                 {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -127,9 +152,8 @@ export function Layout({ children }: LayoutProps) {
           </div>
         </div>
 
-        {/* Mobile Menu */}
         {isMobileMenuOpen && (
-          <div className="md:hidden border-t border-border bg-card">
+          <div className="lg:hidden border-t border-border bg-card">
             <nav className="p-4 space-y-1">
               {navItems.map((item) => (
                 <Link key={item.href} href={item.href}>
@@ -151,6 +175,14 @@ export function Layout({ children }: LayoutProps) {
           </div>
         )}
       </header>
+
+      {showStickySearch && !isMobileMenuOpen && (
+        <div className="pointer-events-none fixed top-16 sm:top-[68px] left-0 right-0 z-40 px-4 md:px-6 transition-opacity duration-200">
+          <div className="max-w-7xl mx-auto pointer-events-auto">
+            <GlobalSearch className="shadow-lg border border-border rounded-xl bg-card" />
+          </div>
+        </div>
+      )}
       
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8">
@@ -160,12 +192,8 @@ export function Layout({ children }: LayoutProps) {
       {/* Footer */}
       <footer className="border-t border-border bg-card/50 mt-12">
         <div className="max-w-7xl mx-auto px-4 md:px-6 py-6">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <Trophy className="w-4 h-4 text-primary" />
-              <span>Rugby League Central</span>
-            </div>
-            <p>Data provided by TheSportsDB</p>
+          <div className="flex items-center justify-center text-sm text-muted-foreground">
+            <span className="font-semibold tracking-wide">Rugby League Central</span>
           </div>
         </div>
       </footer>

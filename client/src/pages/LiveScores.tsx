@@ -2,7 +2,7 @@ import { Layout } from "@/components/Layout";
 import { SEO } from "@/components/SEO";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { cn } from "@/lib/utils";
+import { cn, dedupeGames } from "@/lib/utils";
 import { Link } from "wouter";
 import { Zap, Clock, CheckCircle, Calendar } from "lucide-react";
 import LeagueFilter from "@/components/LeagueFilter";
@@ -25,28 +25,10 @@ export default function LiveScores() {
     refetchInterval: 60000,
   });
 
-  const games = useMemo(() => {
-    const list = gamesData?.response || [];
-    if (!list.length) return [];
-
-    const map = new Map<string, Game>();
-    for (const game of list) {
-      if (!game) continue;
-      const key =
-        game.id ||
-        [
-          game.date || "unknown-date",
-          game.time || "unknown-time",
-          game.teams?.home?.id || game.teams?.home?.name || "home",
-          game.teams?.away?.id || game.teams?.away?.name || "away",
-        ].join("|");
-
-      if (!map.has(key)) {
-        map.set(key, game);
-      }
-    }
-    return Array.from(map.values());
-  }, [gamesData]);
+  const games = useMemo(
+    () => dedupeGames(gamesData?.response || []),
+    [gamesData],
+  );
   const liveGames = games.filter(g => 
     g.status.short !== "FT" && g.status.short !== "AET" && 
     g.status.short !== "NS" && g.status.short !== "TBD" &&

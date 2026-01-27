@@ -1,26 +1,28 @@
 import { Switch, Route } from "wouter";
+import { Suspense, lazy } from "react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/lib/auth";
 import { ThemeProvider } from "@/lib/theme";
-import { TeamSelection } from "@/components/TeamSelection";
 import Home from "@/pages/Home";
-import LiveScores from "@/pages/LiveScores";
-import News from "@/pages/News";
-import NewsArticle from "@/pages/NewsArticle";
-import LeagueTables from "@/pages/LeagueTables";
-import Teams from "@/pages/Teams";
-import PlayerPage from "@/pages/Player";
-import MatchDetail from "@/pages/MatchDetail";
-import TeamPage from "@/pages/Team";
-import Login from "@/pages/Login";
-import Register from "@/pages/Register";
-import TwoFactorVerify from "@/pages/TwoFactorVerify";
-import Setup2FA from "@/pages/Setup2FA";
-import Settings from "@/pages/Settings";
-import NotFound from "@/pages/not-found";
+
+const LiveScores = lazy(() => import("@/pages/LiveScores"));
+const News = lazy(() => import("@/pages/News"));
+const NewsArticle = lazy(() => import("@/pages/NewsArticle"));
+const LeagueTables = lazy(() => import("@/pages/LeagueTables"));
+const Teams = lazy(() => import("@/pages/Teams"));
+const MatchDetail = lazy(() => import("@/pages/MatchDetail"));
+const TeamPage = lazy(() => import("@/pages/Team"));
+const PlayerPage = lazy(() => import("@/pages/Player"));
+const Login = lazy(() => import("@/pages/Login"));
+const Register = lazy(() => import("@/pages/Register"));
+const TwoFactorVerify = lazy(() => import("@/pages/TwoFactorVerify"));
+const Setup2FA = lazy(() => import("@/pages/Setup2FA"));
+const Settings = lazy(() => import("@/pages/Settings"));
+const TeamSelection = lazy(() => import("@/components/TeamSelection"));
+const NotFound = lazy(() => import("@/pages/not-found"));
 
 function Router() {
   return (
@@ -52,7 +54,9 @@ function App() {
         <ThemeProvider>
           <TooltipProvider>
             <Toaster />
-            <Router />
+            <Suspense fallback={<div className="p-8 text-center text-muted-foreground">Loading...</div>}>
+              <Router />
+            </Suspense>
           </TooltipProvider>
         </ThemeProvider>
       </AuthProvider>

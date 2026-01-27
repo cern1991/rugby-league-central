@@ -83,22 +83,32 @@ export default function PlayerPage() {
             <p>We couldn't find that player. Please try searching again.</p>
           </div>
         ) : (
-          <div className="grid gap-6 lg:grid-cols-[320px,1fr]">
+          <div className="space-y-6">
             <div className="rounded-2xl border border-border bg-card overflow-hidden">
-              {player.image ? (
-                <img src={player.image} alt={player.name} className="w-full h-80 object-cover" loading="lazy" />
-              ) : (
-                <div className="w-full h-80 bg-muted flex items-center justify-center">
-                  <Users className="w-12 h-12 text-muted-foreground" />
+              <div className="flex flex-col lg:flex-row">
+                <div className="lg:w-1/2 bg-muted/20">
+                  {player.image ? (
+                    <img
+                      src={player.image}
+                      alt={player.name}
+                      className="w-full h-64 lg:h-full object-cover object-top"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="w-full h-64 lg:h-full bg-muted flex items-center justify-center">
+                      <Users className="w-12 h-12 text-muted-foreground" />
+                    </div>
+                  )}
                 </div>
-              )}
-              <div className="p-4 space-y-3 text-sm">
-                <InfoPair label="Team" value={player.team || "Rugby League"} />
-                <InfoPair label="League" value={player.league || "Rugby League"} />
-                <InfoPair label="Position" value={player.position || "—"} />
-                <InfoPair label="Nationality" value={player.nationality || "—"} />
-                <InfoPair label="Birth Date" value={player.birthDate || "—"} />
-                {player.signing && <InfoPair label="Contract" value={player.signing} />}
+                <div className="lg:w-1/2 p-4 lg:p-6 space-y-3 text-sm">
+                  <h2 className="font-semibold text-base text-foreground">Player Profile</h2>
+                  <InfoPair label="Team" value={player.team || "Rugby League"} />
+                  <InfoPair label="League" value={player.league || "Rugby League"} />
+                  <InfoPair label="Position" value={player.position || "—"} />
+                  <InfoPair label="Nationality" value={player.nationality || "—"} />
+                  <InfoPair label="Birth Date" value={player.birthDate || "—"} />
+                  {player.signing && <InfoPair label="Contract" value={player.signing} />}
+                </div>
               </div>
             </div>
 
