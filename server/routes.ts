@@ -1293,74 +1293,58 @@ export async function registerRoutes(
       const teamInfo = resolvedTeamId ? findLocalTeamMeta(resolvedTeamId) : undefined;
       const superLeagueSquads = resolvedTeamId ? SUPER_LEAGUE_SQUADS_BY_TEAM_ID[resolvedTeamId] || [] : [];
 
-      const buildLocalRosterPlayers = async () => {
+      const buildLocalRosterPlayers = () => {
         if (!localRoster || localRoster.length === 0) return null;
-        const enriched = await Promise.all(
-          localRoster.map(async (player) => {
-            const wiki = await getWikipediaProfile(player.name);
-            const avatar = wiki?.image || getFallbackPlayerImage(player.name);
-            return {
-              id: player.id,
-              name: player.name,
-              position: player.position,
-              nationality: teamInfo?.country?.name || "Australia",
-              birthDate: null,
-              height: null,
-              weight: null,
-              photo: avatar,
-              thumbnail: avatar,
-              number: null,
-              description:
-                wiki?.summary ||
-                `${player.name} plays ${player.position} for ${teamInfo?.name || "the club"}.`,
-              stats: generatePlayerStats(player.name),
-            };
-          })
-        );
-        return enriched;
+        return localRoster.map((player) => ({
+          id: player.id,
+          name: player.name,
+          position: player.position,
+          nationality: teamInfo?.country?.name || "Australia",
+          birthDate: null,
+          height: null,
+          weight: null,
+          photo: getFallbackPlayerImage(player.name),
+          thumbnail: getFallbackPlayerImage(player.name),
+          number: null,
+          description: `${player.name} plays ${player.position} for ${teamInfo?.name || "the club"}.`,
+          stats: generatePlayerStats(player.name),
+        }));
       };
 
-      const buildSuperLeaguePlayers = async () => {
+      const buildSuperLeaguePlayers = () => {
         if (!superLeagueSquads || superLeagueSquads.length === 0) return null;
         const squad =
           superLeagueSquads.find((entry) => entry.season === seasonFilter) ||
           superLeagueSquads[0];
         if (!squad || !squad.players || squad.players.length === 0) return null;
-        const enriched = await Promise.all(
-          squad.players.map(async (player, index) => {
-            const wiki = await getWikipediaProfile(player.name);
-            const avatar = wiki?.image || getFallbackPlayerImage(player.name);
-            return {
-              id: `SL-${id}-${player.squad_number ?? index + 1}`,
-              name: player.name,
-              position: player.position,
-              nationality:
-                player.nationality || teamInfo?.country?.name || "England",
-              birthDate: player.dob || null,
-              height: player.height_cm ? `${player.height_cm} cm` : null,
-              weight: player.weight_kg ? `${player.weight_kg} kg` : null,
-              photo: avatar,
-              thumbnail: avatar,
-              number: player.squad_number ? String(player.squad_number) : null,
-              description:
-                wiki?.summary ||
-                (player.position && squad.source_note
-                  ? `${player.name} (${player.position}) - ${squad.source_note}`
-                  : squad.source_note ||
-                    `${player.name} is part of ${squad.team_name}'s ${squad.season} squad.`),
-              stats: generatePlayerStats(player.name),
-            };
-          })
-        );
-        return enriched;
+        return squad.players.map((player, index) => {
+          const avatar = getFallbackPlayerImage(player.name);
+          return {
+            id: `SL-${id}-${player.squad_number ?? index + 1}`,
+            name: player.name,
+            position: player.position,
+            nationality: player.nationality || teamInfo?.country?.name || "England",
+            birthDate: player.dob || null,
+            height: player.height_cm ? `${player.height_cm} cm` : null,
+            weight: player.weight_kg ? `${player.weight_kg} kg` : null,
+            photo: avatar,
+            thumbnail: avatar,
+            number: player.squad_number ? String(player.squad_number) : null,
+            description:
+              player.position && squad.source_note
+                ? `${player.name} (${player.position}) - ${squad.source_note}`
+                : squad.source_note || `${player.name} is part of ${squad.team_name}'s ${squad.season} squad.`,
+            stats: generatePlayerStats(player.name),
+          };
+        });
       };
 
-      const localPlayers = await buildLocalRosterPlayers();
+      const localPlayers = buildLocalRosterPlayers();
       if (localPlayers) {
         return res.json({ response: localPlayers });
       }
 
-      const superLeaguePlayers = await buildSuperLeaguePlayers();
+      const superLeaguePlayers = buildSuperLeaguePlayers();
       if (superLeaguePlayers) {
         return res.json({ response: superLeaguePlayers });
       }
@@ -1918,11 +1902,15 @@ export async function registerRoutes(
         return res.json({ response: EMPTY_SEARCH_RESPONSE });
       }
 
-      const [teams, players, news] = await Promise.all([
+      const [teamsResult, playersResult, newsResult] = await Promise.allSettled([
         searchTeamsByName(query),
         searchPlayersByName(query),
         Promise.resolve(searchNewsItems(query)),
       ]);
+
+      const teams = teamsResult.status === "fulfilled" ? teamsResult.value : [];
+      const players = playersResult.status === "fulfilled" ? playersResult.value : [];
+      const news = newsResult.status === "fulfilled" ? newsResult.value : [];
 
       const games = searchGames(query);
       const tables = searchTables(query);

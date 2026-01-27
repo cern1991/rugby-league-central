@@ -11,7 +11,7 @@ export function LeagueFilter({ selectedLeague, setSelectedLeague, className }: P
   return (
     <div className={className}>
       <div className="flex flex-wrap gap-2 sm:gap-3">
-        {FEATURED_LEAGUES.map((league) => (
+        {FEATURED_LEAGUES.filter((league) => league.id !== "Championship").map((league) => (
           <button
             key={league.id}
             onClick={() => setSelectedLeague(league.id)}
