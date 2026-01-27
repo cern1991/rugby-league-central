@@ -12,7 +12,7 @@ import { NRL_2026_FIXTURES_BY_TEAM, type LocalFixture } from "./data/localFixtur
 import { SUPER_LEAGUE_FIXTURES_BY_TEAM, SUPER_LEAGUE_MASTER_FIXTURES, SUPER_LEAGUE_TEAM_ID_BY_CODE } from "./data/localSuperLeagueFixtures";
 import { SUPER_LEAGUE_SQUADS, type SuperLeagueSquad } from "./data/localSuperLeagueSquads";
 import { getLocalNewsFallback, LOCAL_NEWS_BY_LEAGUE } from "./data/localNews";
-import { LOCAL_TEAMS } from "../shared/localTeams";
+import { LOCAL_TEAMS, type LocalTeamInfo } from "../shared/localTeams";
 
 const SPORTSDB_API_KEY = "3";
 const SPORTSDB_BASE_URL = `https://www.thesportsdb.com/api/v1/json/${SPORTSDB_API_KEY}`;
@@ -22,6 +22,42 @@ const LEAGUE_IDS: Record<string, string> = {
   "Super League": "4415", 
 };
 const CURRENT_SEASON = "2026";
+
+const normalizeTeamSlug = (value?: string | number | null) =>
+  (value ?? "")
+    .toString()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+
+const LOCAL_TEAM_INDEX_BY_ID = LOCAL_TEAMS.reduce<Map<string, LocalTeamInfo>>((acc, team) => {
+  acc.set(String(team.id), team);
+  return acc;
+}, new Map());
+
+const LOCAL_TEAM_INDEX_BY_SLUG = LOCAL_TEAMS.reduce<Map<string, LocalTeamInfo>>((acc, team) => {
+  const slug = normalizeTeamSlug(team.name);
+  if (slug) {
+    acc.set(slug, team);
+  }
+  return acc;
+}, new Map());
+
+const findLocalTeamMeta = (identifier?: string | number | null): LocalTeamInfo | undefined => {
+  if (identifier === undefined || identifier === null) return undefined;
+  const idKey = String(identifier);
+  if (LOCAL_TEAM_INDEX_BY_ID.has(idKey)) {
+    return LOCAL_TEAM_INDEX_BY_ID.get(idKey);
+  }
+  const slug = normalizeTeamSlug(idKey);
+  return LOCAL_TEAM_INDEX_BY_SLUG.get(slug);
+};
+
+const resolveTeamIdentifier = (identifier?: string | number | null): string | null => {
+  if (identifier === undefined || identifier === null) return null;
+  const match = findLocalTeamMeta(identifier);
+  return match ? String(match.id) : String(identifier);
+};
 
 async function fetchFromSportsDB(endpoint: string): Promise<any> {
   try {
@@ -817,12 +853,12 @@ export async function registerRoutes(
 
   // Helper: get local team logo by id
   function getLocalTeamLogo(id: any): string | null {
-    const team = LOCAL_TEAMS.find((t: any) => String(t.id) === String(id));
+    const team = findLocalTeamMeta(id);
     return team?.logo || null;
   }
 
   function findLocalTeamById(id: string) {
-    return LOCAL_TEAMS.find((team) => String(team.id) === String(id));
+    return findLocalTeamMeta(id);
   }
 
   // Search local teams by name
@@ -1046,12 +1082,16 @@ export async function registerRoutes(
   app.get("/api/rugby/team/:id", async (req, res) => {
     try {
       const { id } = req.params;
+      const resolvedTeamId = resolveTeamIdentifier(id);
       
       // Check local data first for known rugby league teams
-      const localTeam = LOCAL_TEAMS.find((t: any) => String(t.id) === String(id));
+      const localTeam = findLocalTeamMeta(id);
       
       // Try TheSportsDB for additional details, but verify it's rugby league
-      const data = await fetchFromSportsDB(`/lookupteam.php?id=${id}`);
+      const shouldLookupRemote = resolvedTeamId ? /^\d+$/.test(resolvedTeamId) : false;
+      const data = shouldLookupRemote && resolvedTeamId
+        ? await fetchFromSportsDB(`/lookupteam.php?id=${resolvedTeamId}`)
+        : null;
       if (data?.teams && data.teams.length > 0) {
         const team = data.teams[0];
         // Only use API data if it's a rugby league team
@@ -1192,13 +1232,14 @@ export async function registerRoutes(
   app.get("/api/rugby/team/:id/players", async (req, res) => {
     try {
       const { id } = req.params;
+      const resolvedTeamId = resolveTeamIdentifier(id);
       const { season } = req.query as { season?: string };
       const defaultSeason = parseInt(CURRENT_SEASON, 10);
       const requestedSeason = season ? parseInt(season, 10) : defaultSeason;
       const seasonFilter = Number.isNaN(requestedSeason) ? defaultSeason : requestedSeason;
-      const localRoster = LOCAL_TEAM_ROSTERS[id] || [];
-      const teamInfo = LOCAL_TEAMS.find((team) => String(team.id) === String(id));
-      const superLeagueSquads = SUPER_LEAGUE_SQUADS_BY_TEAM_ID[id] || [];
+      const localRoster = resolvedTeamId ? LOCAL_TEAM_ROSTERS[resolvedTeamId] || [] : [];
+      const teamInfo = resolvedTeamId ? findLocalTeamMeta(resolvedTeamId) : undefined;
+      const superLeagueSquads = resolvedTeamId ? SUPER_LEAGUE_SQUADS_BY_TEAM_ID[resolvedTeamId] || [] : [];
 
       const buildLocalRosterPlayers = () => {
         if (!localRoster || localRoster.length === 0) return null;
@@ -1427,10 +1468,14 @@ export async function registerRoutes(
   app.get("/api/rugby/team/:id/games", async (req, res) => {
     try {
       const { id } = req.params;
+      const resolvedTeamId = resolveTeamIdentifier(id);
       const { season } = req.query as { season?: string };
       const requestedSeason = season || CURRENT_SEASON;
-      const localTeamInfo = LOCAL_TEAMS.find((team: any) => String(team.id) === String(id));
-      const localFixtures = requestedSeason === CURRENT_SEASON ? getLocalFixturesForTeam(id, localTeamInfo?.league) : undefined;
+      const localTeamInfo = resolvedTeamId ? findLocalTeamMeta(resolvedTeamId) : undefined;
+      const localFixtures =
+        requestedSeason === CURRENT_SEASON && resolvedTeamId
+          ? getLocalFixturesForTeam(resolvedTeamId, localTeamInfo?.league)
+          : undefined;
       
       if (localFixtures && localFixtures.length > 0) {
         const leagueName = localTeamInfo?.league?.toLowerCase().includes("super") ? "Super League" : "NRL";
@@ -1440,11 +1485,15 @@ export async function registerRoutes(
           .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
         return res.json({ response: mapped });
       }
-      
+
+      if (!resolvedTeamId || !/^\d+$/.test(resolvedTeamId)) {
+        return res.json({ response: [] });
+      }
+
       // Get next 5 and last 5 events for the team
       const [nextData, pastData] = await Promise.all([
-        fetchFromSportsDB(`/eventsnext.php?id=${id}`),
-        fetchFromSportsDB(`/eventslast.php?id=${id}`)
+        fetchFromSportsDB(`/eventsnext.php?id=${resolvedTeamId}`),
+        fetchFromSportsDB(`/eventslast.php?id=${resolvedTeamId}`)
       ]);
       
       const mapEvent = (e: any) => {
