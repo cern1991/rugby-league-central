@@ -191,10 +191,13 @@ export function Layout({ children }: LayoutProps) {
 
       {/* Footer */}
       <footer className="border-t border-border bg-card/50 mt-12">
-        <div className="max-w-7xl mx-auto px-4 md:px-6 py-6">
-          <div className="flex items-center justify-center text-sm text-muted-foreground">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 text-center space-y-2">
+          <div className="text-sm text-muted-foreground">
             <span className="font-semibold tracking-wide">Rugby League Central</span>
           </div>
+          <p className="text-xs text-muted-foreground/80 max-w-3xl mx-auto leading-relaxed">
+            Rugby League Central is an independent fan project and is not affiliated with the NRL, RFL, Super League, or any professional club. All club names, logos, and competition marks remain the property of their respective owners.
+          </p>
         </div>
       </footer>
     </div>

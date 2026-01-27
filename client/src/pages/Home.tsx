@@ -21,6 +21,7 @@ import { FEATURED_LEAGUES } from "@shared/schema";
 import { LOCAL_TEAMS } from "@shared/localTeams";
 import { usePreferredLeague } from "@/hooks/usePreferredLeague";
 import { encodeNewsLink, cacheNewsArticle } from "@/lib/news";
+import { getNewsFallbackForLeague } from "@/data/localNewsFallback";
 
 const DEFAULT_FIXTURE_SEASON = "2026";
 const FEATURED_NEWS_LIMIT = 3;
@@ -79,9 +80,19 @@ export default function Home() {
   const { data: newsData, isLoading: newsLoading } = useQuery<{ response: NewsItem[] }>({
     queryKey: ["news", selectedLeague],
     queryFn: async () => {
-      const res = await fetch(`/api/rugby/news?league=${encodeURIComponent(selectedLeague)}`);
-      if (!res.ok) throw new Error("Failed to fetch news");
-      return res.json();
+      const fallback = getNewsFallbackForLeague(selectedLeague);
+      try {
+        const res = await fetch(`/api/rugby/news?league=${encodeURIComponent(selectedLeague)}`);
+        if (!res.ok) throw new Error("Failed to fetch news");
+        const data = await res.json();
+        if (Array.isArray(data?.response) && data.response.length > 0) {
+          return data;
+        }
+        return { response: fallback };
+      } catch (error) {
+        console.error("News fetch failed, using fallback headlines:", error);
+        return { response: fallback };
+      }
     },
   });
 
@@ -98,7 +109,7 @@ export default function Home() {
     return Array.from(unique.values());
   }, [teamsData, fallbackTeams]);
   const games = useMemo(() => dedupeGames(gamesData?.response || []), [gamesData]);
-  const news = newsData?.response || [];
+  const news = newsData?.response || getNewsFallbackForLeague(selectedLeague);
   const featuredNews = useMemo(() => news.slice(0, FEATURED_NEWS_LIMIT), [news]);
   
   const upcomingGames = games.filter(g => g.status.short === "NS" || g.status.short === "TBD");
