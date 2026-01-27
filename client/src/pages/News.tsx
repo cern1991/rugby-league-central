@@ -7,6 +7,7 @@ import LeagueFilter from "@/components/LeagueFilter";
 import { Link } from "wouter";
 import { encodeNewsLink, cacheNewsArticle } from "@/lib/news";
 import { usePreferredLeague } from "@/hooks/usePreferredLeague";
+import { resolveNewsThumbnail } from "@/lib/branding";
 
 export default function News() {
   const { selectedLeague, setSelectedLeague } = usePreferredLeague();
@@ -73,6 +74,7 @@ export default function News() {
               <div className="space-y-4">
                 {news.map((item, index) => {
                   const encodedLink = item.link ? encodeNewsLink(item.link) : "";
+                  const thumbnail = resolveNewsThumbnail(item.image, item.league);
                   const content = (
                     <article 
                       className={cn(
@@ -82,16 +84,14 @@ export default function News() {
                       data-testid={`card-news-${index}`}
                     >
                       <div className="flex gap-4">
-                        {item.image && (
-                          <div className="w-32 h-24 sm:w-40 sm:h-28 flex-shrink-0 overflow-hidden rounded-lg bg-muted flex items-center justify-center">
-                            <img
-                              src={item.image}
-                              alt={item.title}
-                              className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
-                              loading="lazy"
-                            />
-                          </div>
-                        )}
+                        <div className="w-32 h-24 sm:w-40 sm:h-28 flex-shrink-0 overflow-hidden rounded-lg bg-muted flex items-center justify-center">
+                          <img
+                            src={thumbnail}
+                            alt={item.title}
+                            className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
+                            loading="lazy"
+                          />
+                        </div>
                         <div className="flex-1 min-w-0">
                           <h2 className="font-semibold text-lg line-clamp-3 mb-2">
                             {item.title}
@@ -126,7 +126,7 @@ export default function News() {
                       key={index}
                       href={`/news/article/${encodedLink}`}
                       className="block"
-                      onClick={() => cacheNewsArticle(item.link, item)}
+                      onClick={() => cacheNewsArticle(item.link, { ...item, image: thumbnail })}
                       aria-label={`Read article: ${item.title}`}
                     >
                       {content}

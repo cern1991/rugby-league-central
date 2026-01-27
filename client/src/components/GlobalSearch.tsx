@@ -7,6 +7,7 @@ import { Search, Loader2, Users, UserCircle2, Newspaper, CalendarDays, Trophy } 
 import { cacheNewsArticle, encodeNewsLink } from "@/lib/news";
 import { usePreferredLeague } from "@/hooks/usePreferredLeague";
 import type { NewsItem } from "@shared/schema";
+import { resolveNewsThumbnail } from "@/lib/branding";
 
 const MIN_QUERY_LENGTH = 2;
 const TRENDING_SEARCHES = [
@@ -128,7 +129,7 @@ export function GlobalSearch({ className }: Props) {
       </div>
 
       {shouldDisplayPanel && (
-        <div className="border border-border rounded-xl p-4 bg-card/60">
+        <div className="rounded-2xl border border-border/60 bg-background/80 p-5 shadow-2xl space-y-4">
           {!hasMinimumQuery ? (
             <div className="space-y-3">
               <div className="text-sm text-muted-foreground flex flex-wrap items-center gap-2">
@@ -224,17 +225,19 @@ export function GlobalSearch({ className }: Props) {
                     <Link
                       key={game.id}
                       href={`/match/${encodeURIComponent(game.id)}`}
-                      className="rounded-lg border border-border/60 bg-background/80 px-3 py-2 hover:border-primary/60 transition-colors"
+                      className="rounded-2xl border border-border/40 bg-card/80 px-4 py-3 hover:border-primary/60 transition-colors shadow-sm grid gap-1 text-sm"
                     >
-                      <p className="font-semibold text-sm">
+                      <div className="font-semibold text-base text-foreground">
                         {game.homeTeam} <span className="text-muted-foreground">vs</span> {game.awayTeam}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {game.league} · {game.round || "Upcoming"}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {game.date} {game.time && `· ${game.time}`} {game.venue && `· ${game.venue}`}
-                      </p>
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {game.league || "League"} · {game.round || "Upcoming"}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {game.date}
+                        {game.time && ` · ${game.time}`}
+                        {game.venue && ` · ${game.venue}`}
+                      </div>
                     </Link>
                   ))}
                 </ResultSection>
@@ -244,13 +247,14 @@ export function GlobalSearch({ className }: Props) {
                 <ResultSection title="News" icon={<Newspaper className="w-4 h-4" />}>
                   {results.news.map((article) => {
                     const encodedLink = encodeNewsLink(article.link);
+                    const thumbnail = resolveNewsThumbnail(article.image, article.league);
                     const cachedArticle: NewsItem = {
                       title: article.title,
                       link: article.link,
                       pubDate: article.pubDate || "",
                       source: article.source,
                       league: article.league,
-                      image: article.image,
+                      image: thumbnail,
                     };
                     return (
                       <Link
@@ -259,11 +263,9 @@ export function GlobalSearch({ className }: Props) {
                         className="flex gap-3 rounded-lg border border-border/60 bg-background/80 hover:border-primary/60 transition-colors"
                         onClick={() => cacheNewsArticle(article.link, cachedArticle)}
                       >
-                        {article.image && (
-                          <div className="w-16 h-16 flex-shrink-0 overflow-hidden rounded-l-lg bg-muted flex items-center justify-center">
-                            <img src={article.image} alt={article.title} className="w-full h-full object-contain" loading="lazy" />
-                          </div>
-                        )}
+                        <div className="w-16 h-16 flex-shrink-0 overflow-hidden rounded-l-lg bg-muted flex items-center justify-center">
+                          <img src={thumbnail} alt={article.title} className="w-full h-full object-contain" loading="lazy" />
+                        </div>
                         <div className="py-2 pr-3 min-w-0">
                           <p className="font-medium text-sm leading-snug line-clamp-2">{article.title}</p>
                           <p className="text-xs text-muted-foreground mt-1">
@@ -313,7 +315,7 @@ function ResultSection({
   children: ReactNode;
 }) {
   return (
-    <div className="space-y-2">
+    <div className="rounded-2xl border border-border/50 bg-card/70 p-3 space-y-3 shadow-sm">
       <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         {icon}
         {title}

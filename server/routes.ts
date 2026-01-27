@@ -543,6 +543,18 @@ export async function registerRoutes(
     { summary: string | null; image: string | null; expires: number }
   >();
 
+  function sanitizePlayerSummary(summary?: string | null) {
+    if (!summary) return null;
+    const normalized = summary.toLowerCase();
+    const mentionsRugby = normalized.includes("rugby");
+    const mentionsAssociationFootball = normalized.includes("association football");
+    const mentionsFootballer = normalized.includes("footballer");
+    if (!mentionsRugby && (mentionsAssociationFootball || mentionsFootballer)) {
+      return null;
+    }
+    return summary;
+  }
+
   async function getWikipediaProfile(subject?: string | null) {
     if (!subject) return null;
     const normalized = subject.trim();
@@ -568,8 +580,9 @@ export async function registerRoutes(
       }
       const extract: string | null =
         data?.extract || data?.description || null;
-      const summary =
+      let summary =
         extract && extract.length > 900 ? `${extract.slice(0, 900)}…` : extract;
+      summary = sanitizePlayerSummary(summary);
       const image: string | null =
         data?.originalimage?.source ||
         data?.thumbnail?.source ||
@@ -1019,24 +1032,7 @@ export async function registerRoutes(
       return [];
     }
 
-    const results: any[] = [];
-    const data = await fetchFromSportsDB(`/searchplayers.php?p=${encodeURIComponent(name)}`);
-    if (data?.player) {
-      const rugbyPlayers = data.player
-        .filter((player: any) => player.strSport?.toLowerCase().includes("rugby"))
-        .map((player: any) => ({
-          id: player.idPlayer,
-          name: player.strPlayer,
-          position: player.strPosition,
-          team: player.strTeam,
-          league: player.strLeague,
-          nationality: player.strNationality,
-          image: player.strCutout || player.strThumb || getFallbackPlayerImage(player.strPlayer),
-        }));
-      results.push(...rugbyPlayers);
-    }
-
-    const localMatches = searchLocalPlayers(name).map((player) => ({
+    return searchLocalPlayers(name).map((player) => ({
       id: player.id,
       name: player.name,
       position: player.position,
@@ -1044,18 +1040,6 @@ export async function registerRoutes(
       league: player.league,
       image: getFallbackPlayerImage(player.name),
     }));
-
-    // Deduplicate by id, keeping remote data first
-    const seen = new Set<string>();
-    const merged: any[] = [];
-    [...results, ...localMatches].forEach((player) => {
-      if (player.id && !seen.has(String(player.id))) {
-        seen.add(String(player.id));
-        merged.push(player);
-      }
-    });
-
-    return merged;
   }
 
   // Search teams by name

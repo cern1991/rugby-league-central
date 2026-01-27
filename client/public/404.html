@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Redirecting… | Rugby League Central</title>
+    <meta name="robots" content="noindex" />
+    <style>
+      body {
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        background: #020617;
+        color: #e2e8f0;
+        text-align: center;
+        margin: 0;
+      }
+      .card {
+        padding: 2rem;
+        border-radius: 1rem;
+        border: 1px solid rgba(226, 232, 240, 0.15);
+        background: rgba(15, 23, 42, 0.7);
+        max-width: 24rem;
+      }
+      .spinner {
+        width: 48px;
+        height: 48px;
+        border-radius: 999px;
+        border: 4px solid rgba(226, 232, 240, 0.2);
+        border-top-color: #38bdf8;
+        margin: 0 auto 1rem;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+    <script>
+      (function () {
+        var redirectTarget =
+          window.location.pathname + window.location.search + window.location.hash;
+        var redirectUrl = "/?redirect=" + encodeURIComponent(redirectTarget);
+        window.location.replace(redirectUrl);
+      })();
+    </script>
+  </head>
+  <body>
+    <div class="card">
+      <div class="spinner" aria-hidden="true"></div>
+      <p>Loading Rugby League Central…</p>
+      <p style="font-size: 0.875rem; opacity: 0.7">
+        If you are not redirected automatically, <a href="/" style="color: #38bdf8">click here</a>.
+      </p>
+    </div>
+  </body>
+</html>

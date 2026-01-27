@@ -1,8 +1,7 @@
 import { Layout } from "@/components/Layout";
-import { GlobalSearch } from "@/components/GlobalSearch";
 import { SEO } from "@/components/SEO";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { cn, dedupeGames } from "@/lib/utils";
 import { Link } from "wouter";
 import { 
@@ -21,10 +20,12 @@ import { FEATURED_LEAGUES } from "@shared/schema";
 import { LOCAL_TEAMS } from "@shared/localTeams";
 import { usePreferredLeague } from "@/hooks/usePreferredLeague";
 import { encodeNewsLink, cacheNewsArticle } from "@/lib/news";
+import { resolveNewsThumbnail } from "@/lib/branding";
 import { getNewsFallbackForLeague } from "@/data/localNewsFallback";
 
 const DEFAULT_FIXTURE_SEASON = "2026";
 const FEATURED_NEWS_LIMIT = 3;
+const HERO_SLIDE_DURATION = 6000;
 
 interface Team {
   id: string;
@@ -38,6 +39,7 @@ interface Game {
   id: string;
   date: string;
   time: string;
+  week?: string;
   status: { long: string; short: string };
   league: { name: string };
   teams: {
@@ -117,6 +119,98 @@ export default function Home() {
   const liveGames = games.filter(g => g.status.short !== "FT" && g.status.short !== "AET" && g.status.short !== "NS" && g.status.short !== "TBD");
 
   const displayLeagueName = FEATURED_LEAGUES.find(l => l.id === selectedLeague)?.name || selectedLeague;
+  const heroHighlight = liveGames[0] ?? upcomingGames[0] ?? null;
+  const [activeFixtureIndex, setActiveFixtureIndex] = useState(0);
+  const [slideProgress, setSlideProgress] = useState(0);
+  const leagueToggleOptions = useMemo(
+    () => FEATURED_LEAGUES.filter((league) => league.id !== "Championship"),
+    []
+  );
+  const roundFixtures = useMemo(() => {
+    if (upcomingGames.length > 0) {
+      const referenceGame = upcomingGames.find((game) => !!game.week) ?? upcomingGames[0];
+      if (referenceGame?.week) {
+        const weekGames = upcomingGames.filter((game) => game.week === referenceGame.week);
+        if (weekGames.length) {
+          return weekGames;
+        }
+      }
+      return upcomingGames.slice(0, 5);
+    }
+    if (liveGames.length > 0) {
+      return liveGames.slice(0, 5);
+    }
+    if (completedGames.length > 0) {
+      return completedGames.slice(-5);
+    }
+    return [];
+  }, [upcomingGames, liveGames, completedGames]);
+  const roundFixtureKey = useMemo(
+    () => roundFixtures.map((game) => game.id).join("|"),
+    [roundFixtures]
+  );
+  const activeFixture =
+    roundFixtures[activeFixtureIndex] ||
+    roundFixtures[0] ||
+    heroHighlight ||
+    null;
+
+  useEffect(() => {
+    setActiveFixtureIndex(0);
+    setSlideProgress(roundFixtures.length > 1 ? 0 : 1);
+  }, [selectedLeague, roundFixtureKey]);
+
+  useEffect(() => {
+    if (roundFixtures.length <= 1) {
+      setSlideProgress(1);
+      return;
+    }
+    let frameId: number;
+    const start = performance.now();
+    const animate = (timestamp: number) => {
+      const elapsed = timestamp - start;
+      const progress = Math.min(elapsed / HERO_SLIDE_DURATION, 1);
+      setSlideProgress(progress);
+      if (progress >= 1) {
+        setActiveFixtureIndex((prev) => (prev + 1) % roundFixtures.length);
+      } else {
+        frameId = requestAnimationFrame(animate);
+      }
+    };
+    frameId = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(frameId);
+  }, [activeFixtureIndex, roundFixtures.length]);
+  const heroNews = featuredNews[0];
+  const heroMetrics = [
+    {
+      label: "Clubs tracked",
+      value: resolvedTeams.length,
+      detail: displayLeagueName,
+      testId: "stat-teams-count",
+    },
+    {
+      label: "Live games",
+      value: liveGames.length,
+      detail: liveGames.length ? "Happening now" : "All caught up",
+      testId: "stat-live-count",
+    },
+    {
+      label: "Upcoming fixtures",
+      value: upcomingGames.length,
+      detail: "Next 7 days",
+      testId: "stat-upcoming-count",
+    },
+    {
+      label: "Completed fixtures",
+      value: completedGames.length,
+      detail: "Season to date",
+      testId: "stat-completed-count",
+    },
+  ];
+  const nextKickoffLabel = activeFixture
+    ? `${activeFixture.teams.home.name} vs ${activeFixture.teams.away.name}`
+    : "Awaiting announcement";
+  const nextKickoffTime = activeFixture?.date ? format(parseISO(activeFixture.date), "EEE d MMM p") : "Stay tuned";
 
   return (
     <Layout>
@@ -128,18 +222,177 @@ export default function Home() {
       <div className="space-y-8">
         
         {/* Hero Section */}
-        <section className="relative rounded-2xl bg-gradient-to-br from-primary/10 via-background to-purple-500/10 border border-border/50 p-6 md:p-8">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/5 via-transparent to-transparent" />
+        <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary/15 via-background to-purple-500/20 border border-border/60 p-6 md:p-8">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-primary/20 via-transparent to-transparent opacity-80" />
           
-          <div className="relative max-w-3xl space-y-5">
-            <h1 className="font-display text-3xl md:text-4xl font-bold tracking-tight" data-testid="text-main-title">
-              Rugby League Central
-            </h1>
-            <div id="hero-global-search" className="max-w-2xl">
-              <GlobalSearch />
+          <div className="relative grid gap-6 lg:grid-cols-[minmax(0,1.7fr),minmax(0,1fr)]">
+            <div className="space-y-6">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold tracking-wide uppercase">
+                Real-time coverage · {displayLeagueName}
+              </div>
+              <div>
+                <h1 className="font-display text-3xl md:text-4xl font-bold tracking-tight text-white" data-testid="text-main-title">
+                  Track every hit, headline, and kickoff
+                </h1>
+                <p className="mt-3 text-base md:text-lg text-muted-foreground max-w-2xl">
+                  Follow live scores, squads, fixtures, and breaking news from the NRL, Super League, and beyond—all in one place.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                {leagueToggleOptions.map((league) => (
+                  <button
+                    key={league.id}
+                    onClick={() => setSelectedLeague(league.id)}
+                    className={cn(
+                      "flex items-center gap-3 rounded-2xl border px-4 py-3 transition-all backdrop-blur-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary",
+                      selectedLeague === league.id
+                        ? "border-primary/60 bg-primary/15 text-white shadow-lg"
+                        : "border-white/10 bg-white/5 text-white/80 hover:text-white hover:border-white/40"
+                    )}
+                    data-testid={`hero-league-${league.id.toLowerCase().replace(/\s+/g, "-")}`}
+                  >
+                    <span className="h-12 w-12 rounded-xl bg-white/10 flex items-center justify-center ring-1 ring-white/20">
+                      <img
+                        src={league.logo || "/logo.svg"}
+                        alt={`${league.name} logo`}
+                        className="h-8 w-8 object-contain"
+                        loading="lazy"
+                      />
+                    </span>
+                    <div className="text-left">
+                      <p className="text-xs uppercase tracking-wide text-white/70">Follow</p>
+                      <p className="font-semibold text-base">{league.name}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-card/80 border border-border rounded-2xl p-5 space-y-4 shadow-2xl">
+              {roundFixtures.length > 0 ? (
+                <>
+                  <div className="flex items-center justify-between text-xs uppercase tracking-wide text-muted-foreground">
+                    <span>{activeFixture?.week || `${displayLeagueName} fixtures`}</span>
+                    <span>{activeFixture?.status.long || activeFixture?.status.short || "Upcoming"}</span>
+                  </div>
+                  <div className="relative overflow-hidden rounded-xl border border-border/60 bg-background/60">
+                    <div
+                      className="flex transition-transform duration-500"
+                      style={{ transform: `translateX(-${activeFixtureIndex * 100}%)` }}
+                    >
+                      {roundFixtures.map((game) => {
+                        const gameDate = game.date ? parseISO(game.date) : null;
+                        const kickoffText = gameDate ? format(gameDate, "EEE d MMM • p") : "Time TBC";
+                        return (
+                          <Link
+                            key={game.id}
+                            href={`/match/${encodeURIComponent(game.id)}`}
+                            className="block min-w-full p-4 sm:p-5 hover:bg-primary/5 transition-colors"
+                          >
+                            <div className="w-full max-w-2xl">
+                              <div className="flex items-center justify-between text-[11px] uppercase tracking-wide text-muted-foreground mb-3">
+                                <span>{game.week || game.league.name || displayLeagueName}</span>
+                                <span>{game.status.long || "Scheduled"}</span>
+                              </div>
+                              <div className="flex flex-col md:flex-row items-center gap-4 md:gap-6 text-left">
+                                <TeamBlip team={game.teams.home} score={game.scores.home} />
+                                <div className="text-3xl font-bold text-muted-foreground/60">vs</div>
+                                <TeamBlip team={game.teams.away} score={game.scores.away} />
+                              </div>
+                              <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between text-sm text-muted-foreground gap-2">
+                                <span>{kickoffText}</span>
+                                <span className="inline-flex items-center gap-1 text-primary font-medium">
+                                  View fixture
+                                  <ChevronRight className="w-4 h-4" />
+                                </span>
+                              </div>
+                            </div>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between gap-2 pt-1">
+                    <div className="flex items-center gap-2">
+                      {roundFixtures.map((game, index) => (
+                        <button
+                          key={game.id}
+                          aria-label={`Show fixture ${index + 1}`}
+                          onClick={() => {
+                            setActiveFixtureIndex(index);
+                            setSlideProgress(0);
+                          }}
+                          className={cn(
+                            "w-2.5 h-2.5 rounded-full transition-all",
+                            index === activeFixtureIndex ? "bg-primary scale-110" : "bg-muted"
+                          )}
+                        />
+                      ))}
+                    </div>
+                    {roundFixtures.length > 1 && (
+                      <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                        <span
+                          className="block h-full bg-primary transition-[width]"
+                          style={{ width: `${Math.min(slideProgress, 1) * 100}%` }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : heroHighlight ? (
+                <>
+                  <div className="flex items-center justify-between text-xs uppercase tracking-wide text-muted-foreground">
+                    <span>{heroHighlight.league?.name || `${displayLeagueName} highlight`}</span>
+                    <span>{heroHighlight.status.long || heroHighlight.status.short || "Upcoming"}</span>
+                  </div>
+                  {(() => {
+                    const highlightDate = heroHighlight.date ? parseISO(heroHighlight.date) : null;
+                    return (
+                      <div className="space-y-3">
+                        {highlightDate && (
+                          <p className="text-sm text-muted-foreground">
+                            {format(highlightDate, "EEE d MMM • p")}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-4">
+                          <TeamBlip team={heroHighlight.teams.home} score={heroHighlight.scores.home} />
+                          <div className="text-3xl font-bold text-muted-foreground/60">vs</div>
+                          <TeamBlip team={heroHighlight.teams.away} score={heroHighlight.scores.away} />
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </>
+              ) : (
+                <div className="text-sm text-muted-foreground">
+                  Waiting for the next kickoff. Select a league to see upcoming fixtures.
+                </div>
+              )}
+              {heroNews && (
+                <div className="border-t border-border/60 pt-4">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Top story</p>
+                  <Link
+                    href={heroNews.link ? `/news/article/${encodeNewsLink(heroNews.link)}` : "/news"}
+                    className="flex items-center gap-2 text-sm font-semibold hover:text-primary transition-colors"
+                    onClick={() => heroNews.link && cacheNewsArticle(heroNews.link, heroNews)}
+                  >
+                    <span className="line-clamp-2">{heroNews.title}</span>
+                    <ChevronRight className="w-4 h-4" />
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
+        </section>
 
+        <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {heroMetrics.map((metric) => (
+            <div key={metric.label} className="rounded-2xl border border-border bg-card/70 p-4">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">{metric.label}</p>
+              <p className="mt-2 text-3xl font-bold" data-testid={metric.testId}>{metric.value}</p>
+              <p className="text-sm text-muted-foreground">{metric.detail}</p>
+            </div>
+          ))}
         </section>
 
         {/* League Selector */}
@@ -231,20 +484,21 @@ export default function Home() {
           {/* Filter Sidebar */}
           <aside className="lg:col-span-1 space-y-4">
             {/* Quick Stats */}
-            <div className="bg-card border border-border rounded-xl p-4">
-              <h3 className="font-bold mb-3 text-sm">Quick Stats</h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Teams</span>
-                  <span className="font-medium" data-testid="stat-teams-count">{resolvedTeams.length}</span>
+            <div className="bg-card border border-border rounded-xl p-4 space-y-4">
+              <h3 className="font-bold text-sm tracking-wide uppercase text-muted-foreground">League pulse</h3>
+              <div className="space-y-3 text-sm">
+                <div>
+                  <p className="text-muted-foreground">Next kickoff</p>
+                  <p className="font-semibold">{nextKickoffLabel}</p>
+                  <p className="text-xs text-muted-foreground">{nextKickoffTime}</p>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Upcoming</span>
-                  <span className="font-medium" data-testid="stat-upcoming-count">{upcomingGames.length}</span>
+                <div>
+                  <p className="text-muted-foreground">Top story</p>
+                  <p className="font-semibold line-clamp-3">{heroNews?.title ?? "Fresh stories arriving soon"}</p>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Completed</span>
-                  <span className="font-medium" data-testid="stat-completed-count">{completedGames.length}</span>
+                <div>
+                  <p className="text-muted-foreground">Live games</p>
+                  <p className="font-semibold">{liveGames.length}</p>
                 </div>
               </div>
             </div>
@@ -463,6 +717,7 @@ export default function Home() {
                   <div className="space-y-3">
                     {news.map((item, index) => {
                       const encodedLink = item.link ? encodeNewsLink(item.link) : "";
+                      const thumbnail = resolveNewsThumbnail(item.image, item.league);
                       const card = (
                         <div 
                           className={cn(
@@ -472,16 +727,14 @@ export default function Home() {
                           data-testid={`card-news-${index}`}
                         >
                           <div className="flex gap-3">
-                            {item.image && (
-                              <div className="w-20 h-20 flex-shrink-0 overflow-hidden rounded-lg bg-muted flex items-center justify-center">
-                                <img
-                                  src={item.image}
-                                  alt={item.title}
-                                  className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
-                                  loading="lazy"
-                                />
-                              </div>
-                            )}
+                            <div className="w-20 h-20 flex-shrink-0 overflow-hidden rounded-lg bg-muted flex items-center justify-center">
+                              <img
+                                src={thumbnail}
+                                alt={item.title}
+                                className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
+                                loading="lazy"
+                              />
+                            </div>
                             <div className="flex-1 min-w-0">
                               <h3 className="font-semibold text-sm line-clamp-2 mb-2">
                                 {item.title}
@@ -513,7 +766,7 @@ export default function Home() {
                           key={index}
                           href={`/news/article/${encodedLink}`}
                           className="block"
-                          onClick={() => cacheNewsArticle(item.link, item)}
+                          onClick={() => cacheNewsArticle(item.link, { ...item, image: thumbnail })}
                           aria-label={`Read article: ${item.title}`}
                         >
                           {card}
@@ -583,6 +836,23 @@ export default function Home() {
 
       </div>
     </Layout>
+  );
+}
+function TeamBlip({ team, score }: { team: Game["teams"]["home"]; score: number | null }) {
+  return (
+    <div className="flex flex-col items-center text-center flex-1 gap-2">
+      {team.logo ? (
+        <img src={team.logo} alt={team.name} className="w-12 h-12 rounded-full object-contain bg-muted/40" />
+      ) : (
+        <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center text-sm font-bold text-muted-foreground">
+          {team.name.slice(0, 2).toUpperCase()}
+        </div>
+      )}
+      <div className="space-y-1">
+        <p className="text-sm font-semibold line-clamp-1">{team.name}</p>
+        <p className="text-3xl font-display text-foreground">{score ?? "–"}</p>
+      </div>
+    </div>
   );
 }
 

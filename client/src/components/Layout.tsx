@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
-import { Trophy, Settings, Menu, User, LogOut, Shield, Home, X, Zap, Newspaper, Users, BarChart3 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { Trophy, Settings, Menu, User, LogOut, Shield, Home, X, Zap, Newspaper, Users, BarChart3, Search } from "lucide-react";
+import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { ThemeCustomizer } from "@/components/ThemeCustomizer";
@@ -14,6 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -24,30 +25,7 @@ export function Layout({ children }: LayoutProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { user, loading, logout } = useAuth();
   const [, setLocation] = useLocation();
-  const [showStickySearch, setShowStickySearch] = useState(false);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const handleScroll = () => {
-      const target = document.getElementById("hero-global-search");
-      if (!target) {
-        setShowStickySearch(false);
-        return;
-      }
-      const rect = target.getBoundingClientRect();
-      const headerHeight = 80;
-      setShowStickySearch(rect.top <= headerHeight);
-    };
-
-    handleScroll();
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    window.addEventListener("resize", handleScroll);
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-      window.removeEventListener("resize", handleScroll);
-    };
-  }, [location]);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   const navItems = [
     { label: "Home", icon: Home, href: "/" },
@@ -92,6 +70,21 @@ export function Layout({ children }: LayoutProps) {
 
             {/* Right Side */}
             <div className="flex items-center gap-3">
+              <button
+                onClick={() => setIsSearchOpen(true)}
+                className="hidden md:flex items-center gap-2 px-3 py-2 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                data-testid="button-open-search"
+              >
+                <Search className="w-4 h-4" />
+                <span>Search</span>
+              </button>
+              <button
+                onClick={() => setIsSearchOpen(true)}
+                className="md:hidden p-2 rounded-lg border border-border text-muted-foreground hover:bg-muted"
+                aria-label="Open search"
+              >
+                <Search className="w-4 h-4" />
+              </button>
               <ThemeCustomizer />
               {!loading && (
                 <>
@@ -155,6 +148,16 @@ export function Layout({ children }: LayoutProps) {
         {isMobileMenuOpen && (
           <div className="lg:hidden border-t border-border bg-card">
             <nav className="p-4 space-y-1">
+              <button
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors cursor-pointer text-muted-foreground hover:bg-muted hover:text-foreground"
+                onClick={() => {
+                  setIsSearchOpen(true);
+                  setIsMobileMenuOpen(false);
+                }}
+              >
+                <Search className="w-4 h-4" />
+                Search
+              </button>
               {navItems.map((item) => (
                 <Link key={item.href} href={item.href}>
                   <div 
@@ -176,13 +179,14 @@ export function Layout({ children }: LayoutProps) {
         )}
       </header>
 
-      {showStickySearch && !isMobileMenuOpen && (
-        <div className="pointer-events-none fixed top-16 sm:top-[68px] left-0 right-0 z-40 px-4 md:px-6 transition-opacity duration-200">
-          <div className="max-w-7xl mx-auto pointer-events-auto">
-            <GlobalSearch className="shadow-lg border border-border rounded-xl bg-card" />
-          </div>
-        </div>
-      )}
+      <Dialog open={isSearchOpen} onOpenChange={setIsSearchOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Search Rugby League Central</DialogTitle>
+          </DialogHeader>
+          <GlobalSearch />
+        </DialogContent>
+      </Dialog>
       
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8">

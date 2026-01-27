@@ -135,20 +135,6 @@ export default function PlayerPage() {
                 <StatCard icon={<Dumbbell className="w-4 h-4" />} label="Weight" value={player.weight || "—"} />
               </div>
 
-              {player.stats && (
-                <div className="space-y-3">
-                  <h2 className="font-display text-lg font-semibold">Season statistics</h2>
-                  <div className="grid sm:grid-cols-3 gap-3">
-                    <StatBadge label="Appearances" value={player.stats.appearances.toString()} />
-                    <StatBadge label="Tries" value={player.stats.tries.toString()} />
-                    <StatBadge label="Goals" value={player.stats.goals.toString()} />
-                    <StatBadge label="Tackle Busts" value={player.stats.tackleBusts.toString()} />
-                    <StatBadge label="Run Meters" value={`${player.stats.runMeters.toLocaleString()} m`} />
-                    <StatBadge label="Tackles" value={player.stats.tackles.toString()} />
-                  </div>
-                </div>
-              )}
-
               {renderSocialLinks(player.socials)}
             </div>
           </div>

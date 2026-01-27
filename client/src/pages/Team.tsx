@@ -413,7 +413,6 @@ export default function TeamPage() {
             {!playersLoading && playersData?.response && playersData.response.length > 0 && (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {playersData.response.map((player) => {
-                  const stats = player.stats;
                   return (
                     <Link key={player.id} href={`/player/${encodeURIComponent(player.id)}`}>
                       <div 
@@ -447,23 +446,17 @@ export default function TeamPage() {
                             </div>
                           )}
                         </div>
-                        <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs text-muted-foreground">
+                        <div className="mt-4 grid grid-cols-2 gap-2 text-center text-xs text-muted-foreground">
                           <div className="rounded-lg bg-muted/30 p-2">
-                            <p className="text-[11px] uppercase tracking-wide">Apps</p>
+                            <p className="text-[11px] uppercase tracking-wide">Squad #</p>
                             <p className="text-base font-semibold text-foreground">
-                              {stats?.appearances ?? "—"}
+                              {player.number ?? "—"}
                             </p>
                           </div>
                           <div className="rounded-lg bg-muted/30 p-2">
-                            <p className="text-[11px] uppercase tracking-wide">Tries</p>
+                            <p className="text-[11px] uppercase tracking-wide">Position</p>
                             <p className="text-base font-semibold text-foreground">
-                              {stats?.tries ?? "—"}
-                            </p>
-                          </div>
-                          <div className="rounded-lg bg-muted/30 p-2">
-                            <p className="text-[11px] uppercase tracking-wide">Meters</p>
-                            <p className="text-base font-semibold text-foreground">
-                              {stats?.runMeters ? `${stats.runMeters.toLocaleString()}m` : "—"}
+                              {player.position || "—"}
                             </p>
                           </div>
                         </div>
