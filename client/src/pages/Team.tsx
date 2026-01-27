@@ -5,18 +5,24 @@ import { cn } from "@/lib/utils";
 import { ArrowLeft, Calendar, Users, Trophy, MapPin, Clock, ChevronRight } from "lucide-react";
 import { useMemo, useState } from "react";
 import { format, parseISO, isPast, isFuture, isToday } from "date-fns";
+import { LOCAL_TEAMS } from "@shared/localTeams";
 
 const DEFAULT_TEAM_SEASON = "2026";
 
 interface Team {
-  id: number;
+  id: string;
   name: string;
-  logo: string;
-  country: {
+  logo?: string | null;
+  league?: string;
+  country?: {
     name: string;
-    code: string;
-    flag: string;
+    code?: string;
+    flag?: string | null;
   };
+  stadium?: string | null;
+  description?: string | null;
+  founded?: string | null;
+  website?: string | null;
 }
 
 interface Game {
@@ -87,46 +93,86 @@ interface ApiResponse<T> {
   response: T;
 }
 
+const slugify = (value: string) =>
+  value
+    ?.toString()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "") || "";
+
 export default function TeamPage() {
   const [match, params] = useRoute("/team/:id");
   const [activeTab, setActiveTab] = useState<"fixtures" | "players">("fixtures");
 
-  const teamId = params?.id;
-  const numericTeamId = useMemo(() => (teamId ? Number(teamId) : null), [teamId]);
+  const routeTeamId = params?.id || null;
+
+  const fallbackTeam = useMemo(() => {
+    if (!routeTeamId) return undefined;
+    const exact = LOCAL_TEAMS.find((team) => String(team.id) === String(routeTeamId));
+    if (exact) return exact;
+    const normalized = slugify(routeTeamId);
+    return LOCAL_TEAMS.find((team) => slugify(team.name) === normalized);
+  }, [routeTeamId]);
+
+  const fallbackTeamAsTeam = useMemo<Team | undefined>(() => {
+    if (!fallbackTeam) return undefined;
+    return {
+      id: String(fallbackTeam.id),
+      name: fallbackTeam.name,
+      logo: fallbackTeam.logo,
+      league: fallbackTeam.league,
+      country: fallbackTeam.country,
+    };
+  }, [fallbackTeam]);
+
+  const resolvedTeamId = fallbackTeam ? String(fallbackTeam.id) : routeTeamId;
+  const numericTeamId = useMemo(() => {
+    if (!resolvedTeamId) return null;
+    return /^\d+$/.test(resolvedTeamId) ? Number(resolvedTeamId) : null;
+  }, [resolvedTeamId]);
 
   const { data: teamData, isLoading: teamLoading, error: teamError } = useQuery<ApiResponse<Team[]>>({
-    queryKey: ["team", teamId],
+    queryKey: ["team", resolvedTeamId],
     queryFn: async () => {
-      const res = await fetch(`/api/rugby/team/${teamId}`);
+      if (!resolvedTeamId) {
+        return { response: [] };
+      }
+      const res = await fetch(`/api/rugby/team/${encodeURIComponent(resolvedTeamId)}`);
       if (!res.ok) throw new Error("Failed to fetch team");
       return res.json();
     },
-    enabled: !!teamId,
+    enabled: !!resolvedTeamId,
   });
 
   const { data: gamesData, isLoading: gamesLoading } = useQuery<ApiResponse<Game[]>>({
-    queryKey: ["team-games", teamId],
+    queryKey: ["team-games", resolvedTeamId],
     queryFn: async () => {
-      const res = await fetch(`/api/rugby/team/${teamId}/games?season=${DEFAULT_TEAM_SEASON}`);
+      if (!resolvedTeamId) {
+        return { response: [] };
+      }
+      const res = await fetch(`/api/rugby/team/${encodeURIComponent(resolvedTeamId)}/games?season=${DEFAULT_TEAM_SEASON}`);
       if (!res.ok) throw new Error("Failed to fetch games");
       return res.json();
     },
-    enabled: !!teamId,
+    enabled: !!resolvedTeamId,
   });
 
   const { data: playersData, isLoading: playersLoading } = useQuery<ApiResponse<Player[]>>({
-    queryKey: ["team-players", teamId],
+    queryKey: ["team-players", resolvedTeamId, activeTab === "players"],
     queryFn: async () => {
-      const res = await fetch(`/api/rugby/team/${teamId}/players`);
+      if (!resolvedTeamId) {
+        return { response: [] };
+      }
+      const res = await fetch(`/api/rugby/team/${encodeURIComponent(resolvedTeamId)}/players`);
       if (!res.ok) throw new Error("Failed to fetch players");
       return res.json();
     },
-    enabled: !!teamId && activeTab === "players",
+    enabled: !!resolvedTeamId && activeTab === "players",
   });
 
-  if (!match || !teamId) return null;
+  if (!match || !routeTeamId) return null;
 
-  const team = teamData?.response?.[0];
+  const team = teamData?.response?.[0] || fallbackTeamAsTeam;
   const games = gamesData?.response || [];
 
   const validGames = games.filter(g => g && g.teams?.home && g.teams?.away && g.status && g.scores);
@@ -184,7 +230,7 @@ export default function TeamPage() {
     };
   }, [pastGames, numericTeamId]);
 
-  if (teamLoading) {
+  if (teamLoading && !team) {
     return (
       <Layout>
         <div className="flex items-center justify-center h-64">
@@ -194,7 +240,7 @@ export default function TeamPage() {
     );
   }
 
-  if (teamError || !team) {
+  if ((teamError || !team) && !fallbackTeamAsTeam) {
     return (
       <Layout>
         <div className="flex flex-col items-center justify-center h-64">

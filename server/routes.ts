@@ -530,10 +530,61 @@ export async function registerRoutes(
     }
   }
 
-  function getPublisherLogo(url?: string | null) {
-    const host = getHostFromUrl(url);
-    if (!host) return null;
-    return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=128`;
+  const SITE_LOGO = "/logo.svg";
+
+  const WIKIPEDIA_HEADERS = {
+    "User-Agent":
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+    Accept: "application/json",
+  };
+  const WIKIPEDIA_CACHE_TTL = 1000 * 60 * 60 * 12;
+  const wikipediaProfileCache = new Map<
+    string,
+    { summary: string | null; image: string | null; expires: number }
+  >();
+
+  async function getWikipediaProfile(subject?: string | null) {
+    if (!subject) return null;
+    const normalized = subject.trim();
+    if (!normalized) return null;
+    const cacheKey = normalized.toLowerCase();
+    const cached = wikipediaProfileCache.get(cacheKey);
+    if (cached && cached.expires > Date.now()) {
+      return cached;
+    }
+
+    const slug = encodeURIComponent(normalized.replace(/\s+/g, "_"));
+    const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${slug}`;
+    try {
+      const response = await fetch(url, {
+        headers: WIKIPEDIA_HEADERS,
+      });
+      if (!response.ok) {
+        return null;
+      }
+      const data = await response.json();
+      if (data?.type === "disambiguation") {
+        return null;
+      }
+      const extract: string | null =
+        data?.extract || data?.description || null;
+      const summary =
+        extract && extract.length > 900 ? `${extract.slice(0, 900)}…` : extract;
+      const image: string | null =
+        data?.originalimage?.source ||
+        data?.thumbnail?.source ||
+        null;
+      const payload = {
+        summary: summary || null,
+        image,
+        expires: Date.now() + WIKIPEDIA_CACHE_TTL,
+      };
+      wikipediaProfileCache.set(cacheKey, payload);
+      return payload;
+    } catch (error) {
+      console.error("Wikipedia profile fetch failed:", error);
+      return null;
+    }
   }
 
   function resolveNewsImage(title: string, leagueHint?: string) {
@@ -575,14 +626,15 @@ export async function registerRoutes(
 
   function mapNewsItemsWithBranding<T extends { title: string; league?: string; image?: string | null; link?: string | null }>(items: T[], leagueHint?: string) {
     return items.map((item) => {
-      const leagueContext = item.league || leagueHint;
+      const leagueContext = item.league || leagueHint || "";
+      const leagueLogo =
+        findLeagueLogoInText(leagueContext, leagueContext) ||
+        findLeagueLogoInText(item.title, leagueContext);
+      const teamLogo = findTeamLogoInText(item.title);
+      const effectiveLogo = leagueLogo || teamLogo || SITE_LOGO;
       return {
         ...item,
-        image:
-          item.image ||
-          getPublisherLogo(item.link) ||
-          buildHeadlineImageUrl(item.title, leagueContext) ||
-          resolveNewsImage(item.title, leagueContext),
+        image: effectiveLogo,
       };
     });
   }
@@ -1241,57 +1293,74 @@ export async function registerRoutes(
       const teamInfo = resolvedTeamId ? findLocalTeamMeta(resolvedTeamId) : undefined;
       const superLeagueSquads = resolvedTeamId ? SUPER_LEAGUE_SQUADS_BY_TEAM_ID[resolvedTeamId] || [] : [];
 
-      const buildLocalRosterPlayers = () => {
+      const buildLocalRosterPlayers = async () => {
         if (!localRoster || localRoster.length === 0) return null;
-        return localRoster.map((player) => ({
-          id: player.id,
-          name: player.name,
-          position: player.position,
-          nationality: teamInfo?.country?.name || "Australia",
-          birthDate: null,
-          height: null,
-          weight: null,
-          photo: getFallbackPlayerImage(player.name),
-          thumbnail: getFallbackPlayerImage(player.name),
-          number: null,
-          description: `${player.name} plays ${player.position} for ${teamInfo?.name || "the club"}.`,
-          stats: generatePlayerStats(player.name),
-        }));
+        const enriched = await Promise.all(
+          localRoster.map(async (player) => {
+            const wiki = await getWikipediaProfile(player.name);
+            const avatar = wiki?.image || getFallbackPlayerImage(player.name);
+            return {
+              id: player.id,
+              name: player.name,
+              position: player.position,
+              nationality: teamInfo?.country?.name || "Australia",
+              birthDate: null,
+              height: null,
+              weight: null,
+              photo: avatar,
+              thumbnail: avatar,
+              number: null,
+              description:
+                wiki?.summary ||
+                `${player.name} plays ${player.position} for ${teamInfo?.name || "the club"}.`,
+              stats: generatePlayerStats(player.name),
+            };
+          })
+        );
+        return enriched;
       };
 
-      const buildSuperLeaguePlayers = () => {
+      const buildSuperLeaguePlayers = async () => {
         if (!superLeagueSquads || superLeagueSquads.length === 0) return null;
         const squad =
           superLeagueSquads.find((entry) => entry.season === seasonFilter) ||
           superLeagueSquads[0];
         if (!squad || !squad.players || squad.players.length === 0) return null;
-        return squad.players.map((player, index) => {
-          const avatar = getFallbackPlayerImage(player.name);
-          return {
-          id: `SL-${id}-${player.squad_number ?? index + 1}`,
-          name: player.name,
-          position: player.position,
-          nationality: player.nationality || teamInfo?.country?.name || "England",
-          birthDate: player.dob || null,
-          height: player.height_cm ? `${player.height_cm} cm` : null,
-          weight: player.weight_kg ? `${player.weight_kg} kg` : null,
-          photo: avatar,
-          thumbnail: avatar,
-          number: player.squad_number ? String(player.squad_number) : null,
-          description:
-            player.position && squad.source_note
-              ? `${player.name} (${player.position}) - ${squad.source_note}`
-              : squad.source_note || `${player.name} is part of ${squad.team_name}'s ${squad.season} squad.`,
-          stats: generatePlayerStats(player.name),
-        }});
+        const enriched = await Promise.all(
+          squad.players.map(async (player, index) => {
+            const wiki = await getWikipediaProfile(player.name);
+            const avatar = wiki?.image || getFallbackPlayerImage(player.name);
+            return {
+              id: `SL-${id}-${player.squad_number ?? index + 1}`,
+              name: player.name,
+              position: player.position,
+              nationality:
+                player.nationality || teamInfo?.country?.name || "England",
+              birthDate: player.dob || null,
+              height: player.height_cm ? `${player.height_cm} cm` : null,
+              weight: player.weight_kg ? `${player.weight_kg} kg` : null,
+              photo: avatar,
+              thumbnail: avatar,
+              number: player.squad_number ? String(player.squad_number) : null,
+              description:
+                wiki?.summary ||
+                (player.position && squad.source_note
+                  ? `${player.name} (${player.position}) - ${squad.source_note}`
+                  : squad.source_note ||
+                    `${player.name} is part of ${squad.team_name}'s ${squad.season} squad.`),
+              stats: generatePlayerStats(player.name),
+            };
+          })
+        );
+        return enriched;
       };
 
-      const localPlayers = buildLocalRosterPlayers();
+      const localPlayers = await buildLocalRosterPlayers();
       if (localPlayers) {
         return res.json({ response: localPlayers });
       }
 
-      const superLeaguePlayers = buildSuperLeaguePlayers();
+      const superLeaguePlayers = await buildSuperLeaguePlayers();
       if (superLeaguePlayers) {
         return res.json({ response: superLeaguePlayers });
       }
@@ -1312,6 +1381,8 @@ export async function registerRoutes(
 
       const localPlayer = getLocalPlayerById(id);
       if (localPlayer) {
+        const wikiProfile = await getWikipediaProfile(localPlayer.name);
+        const avatar = wikiProfile?.image || getFallbackPlayerImage(localPlayer.name);
         return res.json({
           response: {
             id: localPlayer.id,
@@ -1320,8 +1391,10 @@ export async function registerRoutes(
             team: localPlayer.teamName,
             league: localPlayer.league,
             nationality: localPlayer.country?.name || "Australia",
-            image: getFallbackPlayerImage(localPlayer.name),
-            description: `${localPlayer.name} plays ${localPlayer.position} for ${localPlayer.teamName || "their club"}.`,
+            image: avatar,
+            description:
+              wikiProfile?.summary ||
+              `${localPlayer.name} plays ${localPlayer.position} for ${localPlayer.teamName || "their club"}.`,
             socials: {},
             stats: localPlayer.stats || generatePlayerStats(localPlayer.name),
           },
