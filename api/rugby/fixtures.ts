@@ -1,4 +1,4 @@
-import type { Game } from "@shared/schema";
+import type { Game } from "../../shared/schema";
 import {
   buildNrlFixturesFromLocalData,
   buildSuperLeagueFixturesFromLocalData,
