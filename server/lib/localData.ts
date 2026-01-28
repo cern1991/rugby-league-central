@@ -1,4 +1,4 @@
-import type { Game } from "@shared/schema";
+import type { Game } from "../../shared/schema";
 import { LOCAL_TEAMS, type LocalTeamInfo } from "../../shared/localTeams";
 import { NRL_2026_FIXTURES_BY_TEAM, type LocalFixture } from "../data/localFixtures";
 import {
