@@ -8,7 +8,7 @@ import { Check, Heart, Palette, ChevronRight } from "lucide-react";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 
-export function TeamSelection() {
+export default function TeamSelection() {
   const [selectedTeams, setSelectedTeams] = useState<string[]>([]);
   const [selectedTheme, setSelectedTheme] = useState("default");
   const [step, setStep] = useState<"teams" | "theme">("teams");
@@ -182,3 +182,5 @@ export function TeamSelection() {
     </div>
   );
 }
+
+export { TeamSelection };
