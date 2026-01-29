@@ -6,6 +6,7 @@
     }
   },
   "rewrites": [
+    
     {
       "source": "/api/rugby/:path*",
       "destination": "/api/rugby/:path*"
