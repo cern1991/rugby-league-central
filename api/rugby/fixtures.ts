@@ -1,7 +1,7 @@
 import type { Game } from "../../shared/schema";
-import { LOCAL_TEAMS, type LocalTeamInfo } from "../../shared/localTeams";
-import { NRL_2026_FIXTURES_BY_TEAM, type LocalFixture } from "../../server/data/localFixtures";
-import { SUPER_LEAGUE_MASTER_FIXTURES } from "../../server/data/localSuperLeagueFixtures";
+import { LOCAL_TEAMS, type LocalTeamInfo } from "../../shared/localTeams.js";
+import { NRL_2026_FIXTURES_BY_TEAM, type LocalFixture } from "../../server/data/localFixtures.js";
+import { SUPER_LEAGUE_MASTER_FIXTURES } from "../../server/data/localSuperLeagueFixtures.js";
 
 const CURRENT_SEASON = "2026";
 const LEAGUE_IDS: Record<string, number> = { nrl: 4416, "super league": 4415 };

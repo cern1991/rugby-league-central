@@ -6,3 +6,5 @@ vite.config.ts.*
 *.tar.gz
 server.log
 server.pid
+.vercel
+.env*.local
