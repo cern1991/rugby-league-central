@@ -65,7 +65,6 @@ const mapLocalFixtureToGame = (fixture: LocalFixture, leagueName: string): Game 
       },
     },
     scores: { home: null, away: null },
-    venue: fixture.location,
     status: { long: "Not Started", short: "NS" },
   };
 };
