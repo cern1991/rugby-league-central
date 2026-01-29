@@ -5,10 +5,7 @@
       "includeFiles": "shared/**"
     },
     "api/rugby/fixtures.ts": {
-      "includeFiles": [
-        "server/data/localFixtures.js",
-        "server/data/localSuperLeagueFixtures.js"
-      ]
+      "includeFiles": "server/data/localFixtures.js server/data/localSuperLeagueFixtures.js"
     }
   },
   "rewrites": [
