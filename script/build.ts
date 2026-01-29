@@ -51,6 +51,7 @@ async function buildLocalDataModules() {
         target: "node18",
         bundle: false,
         outfile,
+        logLevel: "error",
       })
     )
   );
