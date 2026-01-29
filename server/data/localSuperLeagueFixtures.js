@@ -22,7 +22,7 @@ const SUPER_LEAGUE_TEAM_ALIASES = {
   hullkr: "Hull Kingston Rovers"
 };
 function normalizeTeamKey(name) {
-  return (name == null ? void 0 : name.toLowerCase().replace(/[^a-z0-9]+/g, "")) || "";
+  return name?.toLowerCase().replace(/[^a-z0-9]+/g, "") || "";
 }
 function canonicalizeSuperLeagueTeamName(name) {
   if (!name) return name;
