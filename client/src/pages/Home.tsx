@@ -167,10 +167,10 @@ export default function Home() {
               </div>
               <div>
                 <h1 className="font-display text-3xl md:text-4xl font-bold tracking-tight text-white" data-testid="text-main-title">
-                  Track every hit, headline, and kickoff
+                  Track every game, headline, and kickoff
                 </h1>
                 <p className="mt-3 text-base md:text-lg text-muted-foreground max-w-2xl">
-                  Follow live scores, squads, fixtures, and breaking news from the NRL, Super League, and beyond—all in one place.
+                  Follow live scores, squads, fixtures, and breaking news from the NRL, Super League — all in one place.
                 </p>
               </div>
               <div className="flex flex-wrap gap-3">
