@@ -6,3 +6,6 @@ vite.config.ts.*
 *.tar.gz
 server.log
 server.pid
+shared/localTeams.js
+server/data/localFixtures.js
+server/data/localSuperLeagueFixtures.js

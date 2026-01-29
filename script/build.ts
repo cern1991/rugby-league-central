@@ -32,8 +32,35 @@ const allowlist = [
   "zod-validation-error",
 ];
 
+const localDataModules = [
+  { entry: "shared/localTeams.ts", outfile: "shared/localTeams.js" },
+  { entry: "server/data/localFixtures.ts", outfile: "server/data/localFixtures.js" },
+  {
+    entry: "server/data/localSuperLeagueFixtures.ts",
+    outfile: "server/data/localSuperLeagueFixtures.js",
+  },
+];
+
+async function buildLocalDataModules() {
+  await Promise.all(
+    localDataModules.map(({ entry, outfile }) =>
+      esbuild({
+        entryPoints: [entry],
+        platform: "node",
+        format: "esm",
+        target: "node18",
+        bundle: false,
+        outfile,
+      })
+    )
+  );
+}
+
 async function buildAll() {
   await rm("dist", { recursive: true, force: true });
+
+  console.log("preparing shared data modules...");
+  await buildLocalDataModules();
 
   console.log("building client...");
   await viteBuild();
