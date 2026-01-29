@@ -112,6 +112,9 @@ export default function handler(req: any, res: any) {
     return res.status(200).json({ response: fixtures });
   } catch (error: any) {
     console.error("Serverless fixtures error:", error);
-    return res.status(500).json({ message: error?.message || "Failed to load fixtures" });
+    return res.status(500).json({
+      message: error?.message || "Failed to load fixtures",
+      stack: error?.stack,
+    });
   }
 }
