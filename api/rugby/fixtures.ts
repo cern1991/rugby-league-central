@@ -50,7 +50,7 @@ const mapLocalFixtureToGame = (fixture: LocalFixture, leagueName: string): Game 
       id: leagueId,
       name: leagueName,
       season: CURRENT_SEASON,
-      logo: home?.league === "Super League" ? home.logo : home?.league === "NRL" ? home.logo : null,
+      logo: home?.league === "Super League" ? home?.logo ?? undefined : home?.league === "NRL" ? home?.logo ?? undefined : undefined,
     },
     teams: {
       home: {
