@@ -647,6 +647,7 @@ export async function registerRoutes(
       const effectiveLogo = leagueLogo || teamLogo || SITE_LOGO;
       return {
         ...item,
+        link: normalizeNewsArticleUrl(item.link),
         image: effectiveLogo,
       };
     });
@@ -1758,6 +1759,91 @@ export async function registerRoutes(
 
   const FALLBACK_NEWS_POOL = Object.values(LOCAL_NEWS_BY_LEAGUE).flat();
 
+  function padBase64(value: string) {
+    const mod = value.length % 4;
+    if (mod === 0) return value;
+    return value + "=".repeat(4 - mod);
+  }
+
+  function decodeGoogleNewsLink(link?: string | null) {
+    if (!link) return "";
+    try {
+      const url = new URL(link);
+      if (!url.hostname.endsWith("news.google.com")) {
+        return link;
+      }
+      const articleMatch = url.pathname.match(/\/articles\/([^/?]+)/);
+      if (!articleMatch?.[1]) {
+        return link;
+      }
+      const encodedPayload = padBase64(articleMatch[1].replace(/-/g, "+").replace(/_/g, "/"));
+      const decoded = Buffer.from(encodedPayload, "base64").toString("utf8");
+      const httpLinks = decoded.match(/https?:\/\/[^\s"']+/g);
+      if (httpLinks?.length) {
+        const cleanedLinks = httpLinks
+          .map((candidate) => candidate.replace(/\u0000/g, "").trim())
+          .filter(Boolean);
+        const canonical = cleanedLinks.find((candidate) => !candidate.includes("/amp/")) || cleanedLinks[0];
+        return canonical;
+      }
+      return link;
+    } catch (error) {
+      console.error("Failed to decode Google News link", error);
+      return link;
+    }
+  }
+
+  function normalizeNewsArticleUrl(link?: string | null) {
+    return decodeGoogleNewsLink(link) || link || "";
+  }
+
+  function isValidHttpUrl(value?: string | null) {
+    if (!value) return false;
+    try {
+      const parsed = new URL(value);
+      return parsed.protocol === "http:" || parsed.protocol === "https:";
+    } catch {
+      return false;
+    }
+  }
+
+  const ARTICLE_CONTENT_MAX_LENGTH = 60_000;
+  const ARTICLE_FETCH_TIMEOUT_MS = 15000;
+
+  function stripDangerousMarkup(html: string) {
+    return html
+      .replace(/<script[\s\S]*?<\/script>/gi, "")
+      .replace(/<style[\s\S]*?<\/style>/gi, "")
+      .replace(/<iframe[\s\S]*?<\/iframe>/gi, "")
+      .replace(/<noscript[\s\S]*?<\/noscript>/gi, "")
+      .replace(/on[a-zA-Z]+=("[^"]*"|'[^']*')/gi, "")
+      .replace(/href=("|')javascript:[^"']*("|')/gi, 'href="#"')
+      .replace(/src=("|')javascript:[^"']*("|')/gi, "");
+  }
+
+  function extractPrimaryArticleSection(html: string) {
+    const articleMatch = html.match(/<article[\s\S]*?<\/article>/i);
+    if (articleMatch) return articleMatch[0];
+    const mainMatch = html.match(/<main[\s\S]*?<\/main>/i);
+    if (mainMatch) return mainMatch[0];
+    const bodyMatch = html.match(/<body[\s\S]*?<\/body>/i);
+    if (bodyMatch) {
+      return bodyMatch[0].replace(/<\/?body[^>]*>/gi, "");
+    }
+    return html;
+  }
+
+  function sanitizeArticleContent(html: string) {
+    if (!html) return "";
+    const primary = extractPrimaryArticleSection(html);
+    const stripped = stripDangerousMarkup(primary).trim();
+    if (!stripped) return "";
+    if (stripped.length > ARTICLE_CONTENT_MAX_LENGTH) {
+      return stripped.slice(0, ARTICLE_CONTENT_MAX_LENGTH);
+    }
+    return stripped;
+  }
+
   // Helper to decode HTML entities
   function decodeHtmlEntities(text: string): string {
     return text
@@ -1784,7 +1870,7 @@ export async function registerRoutes(
     }).map((item) => ({
       id: item.id,
       title: item.title,
-      link: item.link,
+      link: normalizeNewsArticleUrl(item.link),
       pubDate: item.pubDate,
       source: item.source,
       league: item.league,
@@ -1844,10 +1930,12 @@ export async function registerRoutes(
 
         if (rawTitle && link) {
           const decodedTitle = decodeHtmlEntities(rawTitle);
+          const normalizedLink = normalizeNewsArticleUrl(link);
+          const idSource = normalizedLink || link;
           items.push({
-            id: Buffer.from(link).toString('base64').slice(0, 20),
+            id: Buffer.from(idSource).toString('base64').slice(0, 20),
             title: decodedTitle,
-            link,
+            link: normalizedLink,
             pubDate,
             source: decodeHtmlEntities(rawSource),
             league: searchQuery,
@@ -1866,6 +1954,49 @@ export async function registerRoutes(
     } catch (error) {
       console.error("News fetch error:", error);
       return res.json({ response: mapNewsItemsWithBranding(fallbackNews, league || searchQuery) });
+    }
+  });
+
+  app.get("/api/rugby/news/article", async (req, res) => {
+    const { url } = req.query as { url?: string };
+    const normalizedUrl = normalizeNewsArticleUrl(url);
+
+    if (!isValidHttpUrl(normalizedUrl)) {
+      return res.status(400).json({ message: "Valid article URL required" });
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), ARTICLE_FETCH_TIMEOUT_MS);
+
+    try {
+      const response = await fetch(normalizedUrl, {
+        headers: ARTICLE_IMAGE_HEADERS,
+        redirect: "follow",
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+
+      if (!response.ok) {
+        console.error("Article fetch failed:", response.status, response.statusText);
+        return res.status(502).json({ message: "Failed to load article" });
+      }
+
+      const finalUrl = response.url || normalizedUrl;
+      const html = await response.text();
+      const sanitized = sanitizeArticleContent(html);
+
+      return res.json({
+        html: sanitized,
+        finalUrl,
+      });
+    } catch (error: any) {
+      clearTimeout(timeout);
+      if (error?.name === "AbortError") {
+        console.error("Article fetch timeout:", normalizedUrl);
+        return res.status(504).json({ message: "Article request timed out" });
+      }
+      console.error("Article fetch error:", error);
+      return res.status(500).json({ message: "Failed to load article" });
     }
   });
 
