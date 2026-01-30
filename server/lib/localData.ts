@@ -241,8 +241,15 @@ export const searchGames = (query: string) => {
 };
 
 export {
+  CURRENT_SEASON,
   LEAGUE_IDS,
   LOCAL_GAME_ID_PREFIX,
+  buildNrlFixturesFromLocalData,
+  buildSuperLeagueFixturesFromLocalData,
+  resolveTeamIdentifier,
+  findLocalTeamMeta,
+  getLocalFixturesForTeam,
   mapLocalFixtureToGame,
   transformLocalGameForMatchDetail,
+  findLocalGameById,
 };

@@ -40,6 +40,8 @@ const localDataModules = [
     outfile: "server/data/localSuperLeagueFixtures.js",
   },
   { entry: "server/lib/localData.ts", outfile: "server/lib/localData.js" },
+  { entry: "server/data/localRosters.ts", outfile: "server/data/localRosters.js" },
+  { entry: "server/data/localSuperLeagueSquads.ts", outfile: "server/data/localSuperLeagueSquads.js" },
 ];
 
 async function buildLocalDataModules() {
