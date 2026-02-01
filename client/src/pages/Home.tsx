@@ -21,6 +21,7 @@ import { usePreferredLeague } from "@/hooks/usePreferredLeague";
 import { encodeNewsLink, cacheNewsArticle } from "@/lib/news";
 import { resolveNewsThumbnail } from "@/lib/branding";
 import { getNewsFallbackForLeague } from "@/data/localNewsFallback";
+import { getLocalFixturesForLeague } from "@/lib/localFixtures";
 
 const DEFAULT_FIXTURE_SEASON = "2026";
 const FEATURED_NEWS_LIMIT = 3;
@@ -71,9 +72,17 @@ export default function Home() {
   const { data: gamesData, isLoading: gamesLoading } = useQuery<{ response: Game[] }>({
     queryKey: ["fixtures", selectedLeague],
     queryFn: async () => {
-      const res = await fetch(`/api/rugby/fixtures?league=${encodeURIComponent(selectedLeague)}&season=${DEFAULT_FIXTURE_SEASON}`);
-      if (!res.ok) throw new Error("Failed to fetch fixtures");
-      return res.json();
+      try {
+        const res = await fetch(`/api/rugby/fixtures?league=${encodeURIComponent(selectedLeague)}&season=${DEFAULT_FIXTURE_SEASON}`);
+        if (!res.ok) throw new Error("Failed to fetch fixtures");
+        const data = await res.json();
+        if (Array.isArray(data?.response) && data.response.length > 0) {
+          return data;
+        }
+      } catch (error) {
+        console.error("Fixtures fetch failed, using local fixtures:", error);
+      }
+      return { response: getLocalFixturesForLeague(selectedLeague) };
     },
   });
 

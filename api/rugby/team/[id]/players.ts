@@ -7,7 +7,7 @@ import {
   SUPER_LEAGUE_SQUADS,
   type SuperLeaguePlayer,
 } from "../../../../server/data/localSuperLeagueSquads";
-import { SUPER_LEAGUE_TEAM_ID_BY_CODE } from "../../../../server/data/localSuperLeagueFixtures";
+import { SUPER_LEAGUE_TEAM_ID_BY_CODE } from "../../../../shared/localSuperLeagueFixtures";
 
 type RequestLike = {
   query: Record<string, string | string[]>;

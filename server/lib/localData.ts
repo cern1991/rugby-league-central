@@ -1,10 +1,10 @@
 import type { Game } from "../../shared/schema";
 import { LOCAL_TEAMS, type LocalTeamInfo } from "../../shared/localTeams";
-import { NRL_2026_FIXTURES_BY_TEAM, type LocalFixture } from "../data/localFixtures";
+import { NRL_2026_FIXTURES_BY_TEAM, type LocalFixture } from "../../shared/localFixtures";
 import {
   SUPER_LEAGUE_FIXTURES_BY_TEAM,
   SUPER_LEAGUE_MASTER_FIXTURES,
-} from "../data/localSuperLeagueFixtures";
+} from "../../shared/localSuperLeagueFixtures";
 
 const LEAGUE_IDS: Record<string, string> = {
   NRL: "4416",

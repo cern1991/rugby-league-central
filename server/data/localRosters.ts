@@ -1,4 +1,4 @@
-import { SUPER_LEAGUE_TEAM_ID_BY_CODE } from "./localSuperLeagueFixtures";
+import { SUPER_LEAGUE_TEAM_ID_BY_CODE } from "../../shared/localSuperLeagueFixtures";
 import { SUPER_LEAGUE_SQUADS } from "./localSuperLeagueSquads";
 import { LOCAL_TEAMS } from "../../shared/localTeams";
 
