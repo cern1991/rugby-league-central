@@ -39,18 +39,19 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (!id.includes("node_modules")) return;
-          if (
-            id.includes("react") ||
-            id.includes("react-dom") ||
-            id.includes("scheduler") ||
-            id.includes("use-sync-external-store")
-          ) {
-            return "react";
-          }
           if (id.includes("@radix-ui")) return "radix";
           if (id.includes("@tanstack")) return "tanstack";
           if (id.includes("lucide-react")) return "icons";
           if (id.includes("date-fns")) return "date-fns";
+          if (id.includes("wouter")) return "router";
+          if (
+            id.includes("class-variance-authority") ||
+            id.includes("clsx") ||
+            id.includes("tailwind-merge")
+          ) {
+            return "ui-utils";
+          }
+          if (id.includes("nanoid")) return "nanoid";
           return "vendor";
         },
       },

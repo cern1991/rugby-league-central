@@ -17,7 +17,7 @@ export function Layout({ children }: LayoutProps) {
 
   const navItems = [
     { label: "Home", icon: Home, href: "/" },
-    { label: "Live Scores", icon: Zap, href: "/live" },
+    { label: "Fixtures", icon: Zap, href: "/live" },
     { label: "News", icon: Newspaper, href: "/news" },
     { label: "Tables", icon: BarChart3, href: "/tables" },
     { label: "Teams", icon: Users, href: "/teams" },
