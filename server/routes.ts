@@ -1106,19 +1106,17 @@ export async function registerRoutes(
       const seasonYear = season || CURRENT_SEASON;
       const normalizedLeague = leagueName.toLowerCase();
 
-      if (seasonYear === CURRENT_SEASON) {
-        if (normalizedLeague.includes("super")) {
-          const localFixtures = buildSuperLeagueFixturesFromLocalData();
-          if (localFixtures.length > 0) {
-            return res.json({ response: localFixtures });
-          }
+      if (normalizedLeague.includes("super")) {
+        const localFixtures = buildSuperLeagueFixturesFromLocalData();
+        if (localFixtures.length > 0) {
+          return res.json({ response: localFixtures });
         }
+      }
 
-        if (normalizedLeague.includes("nrl")) {
-          const localFixtures = buildNrlFixturesFromLocalData();
-          if (localFixtures.length > 0) {
-            return res.json({ response: localFixtures });
-          }
+      if (normalizedLeague.includes("nrl")) {
+        const localFixtures = buildNrlFixturesFromLocalData();
+        if (localFixtures.length > 0) {
+          return res.json({ response: localFixtures });
         }
       }
       

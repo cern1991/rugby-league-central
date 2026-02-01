@@ -34,14 +34,12 @@ export default async function handler(req: RequestLike, res: ResponseLike) {
     const leagueParam = normalizeLeagueName(req.query?.league);
     const season = getQueryValue(req.query?.season) || CURRENT_SEASON;
 
-    if (season === CURRENT_SEASON) {
-      if (leagueParam.includes("super")) {
-        return res.status(200).json({ response: buildSuperLeagueFixturesFromLocalData() });
-      }
+    if (leagueParam.includes("super")) {
+      return res.status(200).json({ response: buildSuperLeagueFixturesFromLocalData() });
+    }
 
-      if (leagueParam.includes("nrl")) {
-        return res.status(200).json({ response: buildNrlFixturesFromLocalData() });
-      }
+    if (leagueParam.includes("nrl")) {
+      return res.status(200).json({ response: buildNrlFixturesFromLocalData() });
     }
 
     // For non-current seasons fall back to SportsDB season endpoint
