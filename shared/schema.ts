@@ -57,6 +57,7 @@ export interface Team {
   league: string;
   leagueId?: number;
   country: { name: string; code?: string; flag?: string | null };
+  stadium?: string | null;
 }
 
 export interface Game {
@@ -138,14 +139,5 @@ export const FEATURED_LEAGUES = [
     color: "from-red-600 to-red-800",
     icon: "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
     logo: "https://upload.wikimedia.org/wikipedia/en/f/fb/Super_League_Logo_2020.png",
-  },
-  {
-    id: "Championship",
-    name: "Championship",
-    shortName: "Championship",
-    country: "England",
-    color: "from-orange-600 to-orange-800",
-    icon: "🏆",
-    logo: "https://upload.wikimedia.org/wikipedia/en/1/17/Betfred_Championship_logo.jpg",
   },
 ];

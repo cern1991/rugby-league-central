@@ -633,8 +633,6 @@ export async function registerRoutes(
     const leagueLower = league.toLowerCase();
     if (leagueLower.includes("super")) {
       return LOCAL_TEAMS.filter(t => t.league === "Super League");
-    } else if (leagueLower.includes("championship")) {
-      return LOCAL_TEAMS.filter(t => t.league === "Championship");
     } else if (leagueLower.includes("nrl") || leagueLower.includes("national")) {
       return LOCAL_TEAMS.filter(t => t.league === "NRL");
     }
@@ -794,9 +792,6 @@ export async function registerRoutes(
       // Fallback to TheSportsDB if no local teams exist for the league
       const leagueCandidates = [leagueName];
       const leagueLower = leagueName.toLowerCase();
-      if (leagueLower.includes("championship") && !leagueLower.includes("rfl")) {
-        leagueCandidates.push("RFL Championship");
-      }
       if (leagueLower.includes("super") && !leagueLower.includes("league")) {
         leagueCandidates.push("Super League");
       }
@@ -825,6 +820,7 @@ export async function registerRoutes(
                           ? "https://flagcdn.com/w40/gb.png"
                           : null,
               },
+              stadium: team.strStadium || null,
             }));
           if (mapped.length > 0) {
             return res.json({ response: mapped });
@@ -1473,7 +1469,6 @@ export async function registerRoutes(
       res.json({ response: [
         { id: "NRL", name: "NRL", country: "Australia" },
         { id: "Super League", name: "Super League", country: "England" },
-        { id: "Championship", name: "Championship", country: "England" }
       ] });
     } catch (error: any) {
       console.error("Leagues fetch error:", error);
@@ -1614,8 +1609,6 @@ export async function registerRoutes(
         const leagueLower = league.toLowerCase();
         if (leagueLower.includes("super")) {
           searchQuery = "Super League rugby";
-        } else if (leagueLower.includes("championship")) {
-          searchQuery = "RFL Championship rugby";
         } else if (leagueLower.includes("nrl") || leagueLower.includes("national")) {
           searchQuery = "NRL rugby league";
         }

@@ -118,10 +118,7 @@ export default function Home() {
 
   const displayLeagueName = FEATURED_LEAGUES.find(l => l.id === selectedLeague)?.name || selectedLeague;
   const heroHighlight = liveGames[0] ?? upcomingGames[0] ?? null;
-  const leagueToggleOptions = useMemo(
-    () => FEATURED_LEAGUES.filter((league) => league.id !== "Championship"),
-    []
-  );
+  const leagueToggleOptions = useMemo(() => FEATURED_LEAGUES, []);
   const heroNews = featuredNews[0];
   const roundFixtures = useMemo(() => {
     const source =

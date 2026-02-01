@@ -69,29 +69,6 @@ export const LOCAL_NEWS_BY_LEAGUE: Record<string, LocalNewsItem[]> = {
       "https://images.unsplash.com/photo-1508609349937-5ec4ae374ebf?auto=format&fit=crop&w=800&q=80"
     ),
   ],
-  Championship: [
-    makeItem(
-      "Championship",
-      "Featherstone target fast start with squad refresh",
-      "https://example.com/champ/featherstone",
-      "Championship Weekly",
-      "https://images.unsplash.com/photo-1521410804344-26f2fe60c336?auto=format&fit=crop&w=800&q=80"
-    ),
-    makeItem(
-      "Championship",
-      "York secure dual-registration options for 2026",
-      "https://example.com/champ/york-dual",
-      "Knights News",
-      "https://images.unsplash.com/photo-1529655683826-aba9b3e77383?auto=format&fit=crop&w=800&q=80"
-    ),
-    makeItem(
-      "Championship",
-      "New coach outlines bold plan for Widnes revival",
-      "https://example.com/champ/widnes-plan",
-      "Halton Herald",
-      "https://images.unsplash.com/photo-1434648957308-5e6a859697e8?auto=format&fit=crop&w=800&q=80"
-    ),
-  ],
 };
 
 export function getLocalNewsFallback(league?: string): LocalNewsItem[] {
@@ -101,9 +78,6 @@ export function getLocalNewsFallback(league?: string): LocalNewsItem[] {
   const normalized = league.toLowerCase();
   if (normalized.includes("super")) {
     return LOCAL_NEWS_BY_LEAGUE["Super League"];
-  }
-  if (normalized.includes("champ")) {
-    return LOCAL_NEWS_BY_LEAGUE["Championship"];
   }
   return LOCAL_NEWS_BY_LEAGUE.NRL;
 }

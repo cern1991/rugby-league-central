@@ -7,6 +7,7 @@ import { Link } from "wouter";
 import { Users, ChevronRight } from "lucide-react";
 import { Team, FEATURED_LEAGUES } from "@shared/schema";
 import { usePreferredLeague } from "@/hooks/usePreferredLeague";
+import { LOCAL_TEAMS } from "@shared/localTeams";
 
 export default function Teams() {
   const { selectedLeague, setSelectedLeague } = usePreferredLeague();
@@ -21,6 +22,23 @@ export default function Teams() {
   });
 
   const teams = teamsData?.response || [];
+  const localTeams = LOCAL_TEAMS.filter((team) => {
+    const leagueLower = selectedLeague.toLowerCase();
+    if (leagueLower.includes("super")) return team.league === "Super League";
+    if (leagueLower.includes("nrl") || leagueLower.includes("national")) return team.league === "NRL";
+    return team.league === selectedLeague;
+  });
+  const resolvedTeams = (() => {
+    const merged = [...teams, ...localTeams];
+    const unique = new Map<string, Team>();
+    merged.forEach((team) => {
+      const key = team.id || team.name;
+      if (key && !unique.has(key)) {
+        unique.set(key, team);
+      }
+    });
+    return Array.from(unique.values());
+  })();
   const displayLeagueName = FEATURED_LEAGUES.find(l => l.id === selectedLeague)?.name || selectedLeague;
 
   return (
@@ -48,7 +66,7 @@ export default function Teams() {
           <div className="mb-4 inline-block bg-card border border-border rounded-lg p-3 sm:p-4">
             <p className="text-xs sm:text-sm text-muted-foreground">Total Teams</p>
             <div className="text-2xl sm:text-3xl font-bold text-primary" data-testid="stat-teams-count">
-              {teams.length}
+              {resolvedTeams.length}
             </div>
           </div>
 
@@ -63,9 +81,9 @@ export default function Teams() {
                 </div>
               ))}
             </div>
-          ) : teams.length > 0 ? (
+          ) : resolvedTeams.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {teams.map((team) => (
+              {resolvedTeams.map((team) => (
                 <Link key={team.id} href={`/team/${team.id}`} data-testid={`link-team-${team.id}`}>
                   <div 
                     className="bg-card border border-border rounded-xl p-6 hover:border-primary/50 hover:shadow-lg transition-all cursor-pointer group"
@@ -90,6 +108,11 @@ export default function Teams() {
                         <p className="text-sm text-muted-foreground truncate">
                           {team.country?.name || displayLeagueName}
                         </p>
+                        {team.stadium && (
+                          <p className="text-xs text-muted-foreground truncate">
+                            Home ground: {team.stadium}
+                          </p>
+                        )}
                         <div className="flex items-center gap-1 text-xs text-primary mt-2 group-hover:gap-2 transition-all">
                           <span>View squad</span>
                           <ChevronRight className="w-3 h-3" />
