@@ -2,7 +2,7 @@ import {
   buildNrlFixturesFromLocalData,
   buildSuperLeagueFixturesFromLocalData,
   CURRENT_SEASON,
-} from "../../server/lib/localData.js";
+} from "../../server/lib/localData";
 
 type RequestLike = {
   query?: Record<string, string | string[]>;

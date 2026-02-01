@@ -4,67 +4,10 @@ import { rm, readFile } from "fs/promises";
 
 // server deps to bundle to reduce openat(2) syscalls
 // which helps cold start times
-const allowlist = [
-  "@google/generative-ai",
-  "axios",
-  "connect-pg-simple",
-  "cors",
-  "date-fns",
-  "drizzle-orm",
-  "drizzle-zod",
-  "express",
-  "express-rate-limit",
-  "express-session",
-  "jsonwebtoken",
-  "memorystore",
-  "multer",
-  "nanoid",
-  "nodemailer",
-  "openai",
-  "passport",
-  "passport-local",
-  "pg",
-  "stripe",
-  "uuid",
-  "ws",
-  "xlsx",
-  "zod",
-  "zod-validation-error",
-];
-
-const localDataModules = [
-  { entry: "shared/localTeams.ts", outfile: "shared/localTeams.js" },
-  { entry: "server/data/localFixtures.ts", outfile: "server/data/localFixtures.js" },
-  {
-    entry: "server/data/localSuperLeagueFixtures.ts",
-    outfile: "server/data/localSuperLeagueFixtures.js",
-  },
-  { entry: "server/lib/localData.ts", outfile: "server/lib/localData.js" },
-  { entry: "server/data/localRosters.ts", outfile: "server/data/localRosters.js" },
-  { entry: "server/data/localSuperLeagueSquads.ts", outfile: "server/data/localSuperLeagueSquads.js" },
-];
-
-async function buildLocalDataModules() {
-  await Promise.all(
-    localDataModules.map(({ entry, outfile }) =>
-      esbuild({
-        entryPoints: [entry],
-        platform: "node",
-        format: "esm",
-        target: "node18",
-        bundle: false,
-        outfile,
-        logLevel: "error",
-      })
-    )
-  );
-}
+const allowlist = ["dotenv", "drizzle-orm", "drizzle-zod", "express", "zod"];
 
 async function buildAll() {
   await rm("dist", { recursive: true, force: true });
-
-  console.log("preparing shared data modules...");
-  await buildLocalDataModules();
 
   console.log("building client...");
   await viteBuild();

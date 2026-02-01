@@ -1,5 +1,4 @@
 import { Layout } from "@/components/Layout";
-import { SEO } from "@/components/SEO";
 import { usePreferredLeague } from "@/hooks/usePreferredLeague";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useEffect } from "react";
@@ -72,11 +71,6 @@ export default function NewsArticle() {
 
   return (
     <Layout>
-      <SEO
-        title={`${displayTitle} | Rugby League News`}
-        description={`Read the latest rugby league news article: ${displayTitle}`}
-        type="article"
-      />
       <div className="space-y-6">
         <div className="flex items-center gap-4">
           <Link href="/news" className="inline-flex items-center gap-2 text-sm text-primary hover:underline">

@@ -1,5 +1,4 @@
 import { Layout } from "@/components/Layout";
-import { SEO } from "@/components/SEO";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { cn, dedupeGames } from "@/lib/utils";
@@ -43,20 +42,9 @@ export default function LiveScores() {
   const pageSubtitle = hasLiveGames
     ? "Real-time scores and upcoming matches"
     : "Full fixture list — live updates appear on match day";
-  const seoTitle = hasLiveGames
-    ? `Live ${displayLeagueName} Scores & Fixtures`
-    : `${displayLeagueName} Fixtures`;
-  const seoDescription = hasLiveGames
-    ? `Live ${displayLeagueName} rugby league scores, upcoming fixtures, and recent results. Follow all matches in real-time.`
-    : `Upcoming ${displayLeagueName} rugby league fixtures, venues, and kickoff times. Check back on match day for live scores.`;
 
   return (
     <Layout>
-      <SEO 
-        title={seoTitle}
-        description={seoDescription}
-        keywords={`${displayLeagueName} fixtures, ${displayLeagueName} live scores, rugby league schedule`}
-      />
       <div className="space-y-6">
         <div>
           <h1 className="font-display text-3xl font-bold flex items-center gap-3" data-testid="text-page-title">

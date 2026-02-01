@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { Layout } from "@/components/Layout";
-import { SEO } from "@/components/SEO";
 import { useRoute, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Users, Activity, MapPin, Ruler, Dumbbell, Share2 } from "lucide-react";
@@ -51,15 +50,9 @@ export default function PlayerPage() {
   });
 
   const player = data?.response;
-  const pageTitle = player ? `${player.name} | Player Profile` : "Player Profile";
 
   return (
     <Layout>
-      <SEO
-        title={pageTitle}
-        description={player ? `Learn more about ${player.name}, ${player.position || "rugby league player"} for ${player.team || "club"}.` : undefined}
-        type="profile"
-      />
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <Link href="/teams" className="inline-flex items-center gap-2 text-sm text-primary hover:underline">

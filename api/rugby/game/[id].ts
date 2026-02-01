@@ -1,7 +1,7 @@
 import {
   LEAGUE_IDS,
   findLocalGameById,
-} from "../../../server/lib/localData.js";
+} from "../../../server/lib/localData";
 
 type RequestLike = {
   query: {

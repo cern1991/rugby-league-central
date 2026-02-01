@@ -1,6 +1,5 @@
 import { useRoute, Link } from "wouter";
 import { Layout } from "@/components/Layout";
-import { SEO } from "@/components/SEO";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { ArrowLeft, MapPin, Calendar, Clock } from "lucide-react";
@@ -90,11 +89,6 @@ export default function MatchDetail() {
 
   return (
     <Layout>
-      <SEO 
-        title={game ? `${game.homeTeam.name} vs ${game.awayTeam.name}` : 'Match Details'}
-        description={game ? `${game.homeTeam.name} vs ${game.awayTeam.name} - ${game.league} rugby league match. View scores, venue, and match details.` : 'Rugby league match details'}
-        keywords={game ? `${game.homeTeam.name}, ${game.awayTeam.name}, ${game.league}, rugby league match, rugby scores` : 'rugby league match'}
-      />
       <div className="max-w-4xl mx-auto space-y-6">
         <Link href="/">
           <button className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors text-sm mb-4" data-testid="button-back">

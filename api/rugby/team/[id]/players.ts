@@ -1,13 +1,13 @@
 import {
   findLocalTeamMeta,
   resolveTeamIdentifier,
-} from "../../../../server/lib/localData.js";
-import { LOCAL_TEAM_ROSTERS } from "../../../../server/data/localRosters.js";
+} from "../../../../server/lib/localData";
+import { LOCAL_TEAM_ROSTERS } from "../../../../server/data/localRosters";
 import {
   SUPER_LEAGUE_SQUADS,
   type SuperLeaguePlayer,
-} from "../../../../server/data/localSuperLeagueSquads.js";
-import { SUPER_LEAGUE_TEAM_ID_BY_CODE } from "../../../../server/data/localSuperLeagueFixtures.js";
+} from "../../../../server/data/localSuperLeagueSquads";
+import { SUPER_LEAGUE_TEAM_ID_BY_CODE } from "../../../../server/data/localSuperLeagueFixtures";
 
 type RequestLike = {
   query: Record<string, string | string[]>;

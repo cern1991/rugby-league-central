@@ -1,5 +1,4 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { useAuth } from "./auth";
 import { LOCAL_TEAMS } from "@shared/localTeams";
 
 export interface TeamTheme {
@@ -152,10 +151,9 @@ interface ThemeContextType {
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+const THEME_STORAGE_KEY = "rlc-theme";
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const { user, updatePreferences } = useAuth();
-
   const resolveThemePreference = (theme?: string | null) => {
     if (!theme || theme === "default" || theme === "light") {
       return "dark";
@@ -163,22 +161,23 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     return theme;
   };
 
-  const [currentTheme, setCurrentTheme] = useState(() => resolveThemePreference(user?.themePreference));
-
-  useEffect(() => {
-    setCurrentTheme(resolveThemePreference(user?.themePreference));
-  }, [user?.themePreference]);
+  const [currentTheme, setCurrentTheme] = useState(() => {
+    if (typeof window === "undefined") {
+      return "dark";
+    }
+    const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
+    return resolveThemePreference(stored);
+  });
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", currentTheme);
   }, [currentTheme]);
 
   const setTheme = (theme: string) => {
-    setCurrentTheme(theme);
-    if (user) {
-      updatePreferences(user.favoriteTeams ?? [], theme).catch((error) => {
-        console.error("Failed to save theme preference", error);
-      });
+    const resolved = resolveThemePreference(theme);
+    setCurrentTheme(resolved);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(THEME_STORAGE_KEY, resolved);
     }
   };
 

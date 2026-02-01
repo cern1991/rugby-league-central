@@ -1,4 +1,4 @@
-import { findLocalTeamMeta } from "../../../../server/lib/localData.js";
+import { findLocalTeamMeta } from "../../../../server/lib/localData";
 
 type RequestLike = {
   query: Record<string, string | string[]>;
