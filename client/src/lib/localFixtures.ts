@@ -1,6 +1,7 @@
 import type { Game } from "@shared/schema";
 import { NRL_2026_FIXTURES_BY_TEAM, type LocalFixture } from "@shared/localFixtures";
 import { SUPER_LEAGUE_MASTER_FIXTURES } from "@shared/localSuperLeagueFixtures";
+import { SUPER_LEAGUE_FIXTURES_BY_TEAM } from "@shared/localSuperLeagueFixtures";
 import { LOCAL_TEAMS } from "@shared/localTeams";
 
 const LEAGUE_IDS: Record<string, string> = {
@@ -105,4 +106,32 @@ export function getLocalFixturesForLeague(leagueId?: string) {
     ).sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
   }
   return buildFixturesFromLocalMap(NRL_2026_FIXTURES_BY_TEAM, "NRL");
+}
+
+export function getLocalFixturesForTeam(teamId?: string | number | null, leagueHint?: string) {
+  if (!teamId) return [] as Game[];
+  const teamKey = String(teamId);
+  const normalizedLeague = leagueHint?.toLowerCase() || "";
+
+  const nrlFixtures = NRL_2026_FIXTURES_BY_TEAM[teamKey];
+  if (nrlFixtures && nrlFixtures.length > 0) {
+    return nrlFixtures
+      .map((fixture) => mapLocalFixtureToGame(fixture, "NRL", LEAGUE_IDS.NRL))
+      .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+  }
+
+  const superFixtures = SUPER_LEAGUE_FIXTURES_BY_TEAM[teamKey];
+  if (superFixtures && superFixtures.length > 0) {
+    return superFixtures
+      .map((fixture) => mapLocalFixtureToGame(fixture, "Super League", LEAGUE_IDS["Super League"]))
+      .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+  }
+
+  if (normalizedLeague.includes("super")) {
+    return getLocalFixturesForLeague("Super League");
+  }
+  if (normalizedLeague.includes("nrl")) {
+    return getLocalFixturesForLeague("NRL");
+  }
+  return [] as Game[];
 }

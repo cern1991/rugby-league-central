@@ -6,6 +6,7 @@ import { ArrowLeft, Calendar, Users, Trophy, MapPin, Clock, ChevronRight } from 
 import { useMemo, useState } from "react";
 import { format, parseISO, isPast, isFuture, isToday } from "date-fns";
 import { LOCAL_TEAMS } from "@shared/localTeams";
+import { getLocalFixturesForTeam } from "@/lib/localFixtures";
 
 const DEFAULT_TEAM_SEASON = "2026";
 
@@ -26,38 +27,37 @@ interface Team {
 }
 
 interface Game {
-  id: number;
+  id: string | number;
   date: string;
   time: string;
-  timestamp: number;
-  timezone: string;
-  week: string;
+  timestamp?: number;
+  week?: string;
   status: {
     long: string;
     short: string;
   };
   league: {
-    id: number;
+    id?: number | string;
     name: string;
-    type: string;
-    logo: string;
-    season: number;
+    type?: string;
+    logo?: string;
+    season?: number | string;
   };
-  country: {
+  country?: {
     name: string;
-    code: string;
-    flag: string;
+    code?: string;
+    flag?: string;
   };
   teams: {
     home: {
-      id: number;
+      id: number | string;
       name: string;
-      logo: string;
+      logo: string | null;
     };
     away: {
-      id: number;
+      id: number | string;
       name: string;
-      logo: string;
+      logo: string | null;
     };
   };
   scores: {
@@ -126,10 +126,7 @@ export default function TeamPage() {
   }, [fallbackTeam]);
 
   const resolvedTeamId = fallbackTeam ? String(fallbackTeam.id) : routeTeamId;
-  const numericTeamId = useMemo(() => {
-    if (!resolvedTeamId) return null;
-    return /^\d+$/.test(resolvedTeamId) ? Number(resolvedTeamId) : null;
-  }, [resolvedTeamId]);
+  const teamIdKey = useMemo(() => (resolvedTeamId ? String(resolvedTeamId) : null), [resolvedTeamId]);
 
   const { data: teamData, isLoading: teamLoading, error: teamError } = useQuery<ApiResponse<Team[]>>({
     queryKey: ["team", resolvedTeamId],
@@ -150,9 +147,17 @@ export default function TeamPage() {
       if (!resolvedTeamId) {
         return { response: [] };
       }
-      const res = await fetch(`/api/rugby/team/${encodeURIComponent(resolvedTeamId)}/games?season=${DEFAULT_TEAM_SEASON}`);
-      if (!res.ok) throw new Error("Failed to fetch games");
-      return res.json();
+      try {
+        const res = await fetch(`/api/rugby/team/${encodeURIComponent(resolvedTeamId)}/games?season=${DEFAULT_TEAM_SEASON}`);
+        if (!res.ok) throw new Error("Failed to fetch games");
+        const data = await res.json();
+        if (Array.isArray(data?.response) && data.response.length > 0) {
+          return data;
+        }
+      } catch (error) {
+        console.error("Team fixtures fetch failed, using local fixtures:", error);
+      }
+      return { response: getLocalFixturesForTeam(resolvedTeamId, fallbackTeam?.league) };
     },
     enabled: !!resolvedTeamId,
   });
@@ -187,13 +192,13 @@ export default function TeamPage() {
   );
 
   const teamStats = useMemo(() => {
-    if (!numericTeamId) {
+    if (!teamIdKey) {
       return { wins: 0, losses: 0, draws: 0, avgFor: 0, avgAgainst: 0 };
     }
 
     const completed = pastGames.filter(game => {
-      const isHome = game.teams.home?.id === numericTeamId;
-      const isAway = game.teams.away?.id === numericTeamId;
+      const isHome = String(game.teams.home?.id) === teamIdKey;
+      const isAway = String(game.teams.away?.id) === teamIdKey;
       if (!isHome && !isAway) return false;
       const teamScore = isHome ? game.scores.home : game.scores.away;
       const oppScore = isHome ? game.scores.away : game.scores.home;
@@ -206,7 +211,7 @@ export default function TeamPage() {
 
     const totals = completed.reduce(
       (acc, game) => {
-        const isHome = game.teams.home?.id === numericTeamId;
+        const isHome = String(game.teams.home?.id) === teamIdKey;
         const teamScore = isHome ? game.scores.home! : game.scores.away!;
         const oppScore = isHome ? game.scores.away! : game.scores.home!;
 
@@ -228,7 +233,7 @@ export default function TeamPage() {
       avgFor: totals.pointsFor / completed.length,
       avgAgainst: totals.pointsAgainst / completed.length,
     };
-  }, [pastGames, numericTeamId]);
+  }, [pastGames, teamIdKey]);
 
   if (teamLoading && !team) {
     return (
@@ -358,7 +363,7 @@ export default function TeamPage() {
                 </h3>
                 <div className="space-y-3">
                   {liveGames.map(game => (
-                    <GameCard key={game.id} game={game} teamId={numericTeamId ?? 0} />
+                    <GameCard key={game.id} game={game} teamId={teamIdKey ?? ""} />
                   ))}
                 </div>
               </div>
@@ -372,7 +377,7 @@ export default function TeamPage() {
                 </h3>
                 <div className="space-y-3">
                   {upcomingGames.map(game => (
-                    <GameCard key={game.id} game={game} teamId={numericTeamId ?? 0} />
+                    <GameCard key={game.id} game={game} teamId={teamIdKey ?? ""} />
                   ))}
                 </div>
               </div>
@@ -386,7 +391,7 @@ export default function TeamPage() {
                 </h3>
                 <div className="space-y-3">
                   {pastGames.slice().reverse().map(game => (
-                    <GameCard key={game.id} game={game} teamId={numericTeamId ?? 0} />
+                    <GameCard key={game.id} game={game} teamId={teamIdKey ?? ""} />
                   ))}
                 </div>
               </div>
@@ -513,12 +518,12 @@ function StatCard({
   );
 }
 
-function GameCard({ game, teamId }: { game: Game; teamId: number }) {
+function GameCard({ game, teamId }: { game: Game; teamId: string }) {
   if (!game.teams?.home || !game.teams?.away || !game.scores || !game.status) {
     return null;
   }
   
-  const isHome = game.teams.home.id === teamId;
+  const isHome = String(game.teams.home.id) === teamId;
   const opponent = isHome ? game.teams.away : game.teams.home;
   const ourScore = isHome ? game.scores.home : game.scores.away;
   const theirScore = isHome ? game.scores.away : game.scores.home;
