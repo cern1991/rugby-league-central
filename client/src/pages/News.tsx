@@ -4,8 +4,7 @@ import { cn } from "@/lib/utils";
 import { Newspaper, RefreshCw } from "lucide-react";
 import { NewsItem, FEATURED_LEAGUES } from "@shared/schema";
 import LeagueFilter from "@/components/LeagueFilter";
-import { Link } from "wouter";
-import { encodeNewsLink, cacheNewsArticle } from "@/lib/news";
+import { useMemo } from "react";
 import { usePreferredLeague } from "@/hooks/usePreferredLeague";
 import { resolveNewsThumbnail } from "@/lib/branding";
 
@@ -22,7 +21,14 @@ export default function News() {
     refetchInterval: 300000,
   });
 
-  const news = newsData?.response || [];
+  const news = useMemo(() => {
+    const items = newsData?.response || [];
+    return [...items].sort((a, b) => {
+      const aTime = a.pubDate ? Date.parse(a.pubDate) : 0;
+      const bTime = b.pubDate ? Date.parse(b.pubDate) : 0;
+      return bTime - aTime;
+    });
+  }, [newsData]);
   const displayLeagueName = FEATURED_LEAGUES.find(l => l.id === selectedLeague)?.name || selectedLeague;
 
   return (
@@ -73,7 +79,7 @@ export default function News() {
             ) : news.length > 0 ? (
               <div className="space-y-4">
                 {news.map((item, index) => {
-                  const encodedLink = item.link ? encodeNewsLink(item.link) : "";
+                  const href = item.link || "";
                   const thumbnail = resolveNewsThumbnail(item.image, item.league);
                   const content = (
                     <article 
@@ -122,15 +128,16 @@ export default function News() {
                   }
 
                   return (
-                    <Link
+                    <a
                       key={index}
-                      href={`/news/article/${encodedLink}`}
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="block"
-                      onClick={() => cacheNewsArticle(item.link, { ...item, image: thumbnail })}
                       aria-label={`Read article: ${item.title}`}
                     >
                       {content}
-                    </Link>
+                    </a>
                   );
                 })}
               </div>

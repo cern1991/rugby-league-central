@@ -9,7 +9,6 @@ import Home from "@/pages/Home";
 
 const LiveScores = lazy(() => import("@/pages/LiveScores"));
 const News = lazy(() => import("@/pages/News"));
-const NewsArticle = lazy(() => import("@/pages/NewsArticle"));
 const LeagueTables = lazy(() => import("@/pages/LeagueTables"));
 const Teams = lazy(() => import("@/pages/Teams"));
 const MatchDetail = lazy(() => import("@/pages/MatchDetail"));
@@ -23,7 +22,6 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/live" component={LiveScores} />
       <Route path="/news" component={News} />
-      <Route path="/news/article/:encoded" component={NewsArticle} />
       <Route path="/tables" component={LeagueTables} />
       <Route path="/teams" component={Teams} />
       <Route path="/match/:id" component={MatchDetail} />

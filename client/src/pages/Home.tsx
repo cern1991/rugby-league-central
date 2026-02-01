@@ -18,7 +18,6 @@ import LeagueFilter from "@/components/LeagueFilter";
 import { FEATURED_LEAGUES } from "@shared/schema";
 import { LOCAL_TEAMS } from "@shared/localTeams";
 import { usePreferredLeague } from "@/hooks/usePreferredLeague";
-import { encodeNewsLink, cacheNewsArticle } from "@/lib/news";
 import { resolveNewsThumbnail } from "@/lib/branding";
 import { getNewsFallbackForLeague } from "@/data/localNewsFallback";
 import { getLocalFixturesForLeague } from "@/lib/localFixtures";
@@ -264,7 +263,7 @@ export default function Home() {
             ) : featuredNews.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {featuredNews.map((item, index) => {
-                  const encodedLink = item.link ? encodeNewsLink(item.link) : "";
+                  const href = item.link || "";
                   const cardContent = (
                     <article
                       className="group relative rounded-xl border border-border bg-gradient-to-b from-background to-card shadow-sm hover:shadow-lg transition-shadow p-4 space-y-3"
@@ -297,14 +296,15 @@ export default function Home() {
                   }
 
                   return (
-                    <Link
+                    <a
                       key={index}
-                      href={`/news/article/${encodedLink}`}
-                      onClick={() => cacheNewsArticle(item.link, item)}
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
                       aria-label={`Read article: ${item.title}`}
                     >
                       {cardContent}
-                    </Link>
+                    </a>
                   );
                 })}
               </div>
@@ -527,7 +527,7 @@ export default function Home() {
                 ) : news.length > 0 ? (
                   <div className="space-y-3">
                     {news.map((item, index) => {
-                      const encodedLink = item.link ? encodeNewsLink(item.link) : "";
+                      const href = item.link || "";
                       const thumbnail = resolveNewsThumbnail(item.image, item.league);
                       const card = (
                         <div 
@@ -573,15 +573,16 @@ export default function Home() {
                       }
 
                       return (
-                        <Link
+                        <a
                           key={index}
-                          href={`/news/article/${encodedLink}`}
+                          href={href}
+                          target="_blank"
+                          rel="noopener noreferrer"
                           className="block"
-                          onClick={() => cacheNewsArticle(item.link, { ...item, image: thumbnail })}
                           aria-label={`Read article: ${item.title}`}
                         >
                           {card}
-                        </Link>
+                        </a>
                       );
                     })}
                   </div>

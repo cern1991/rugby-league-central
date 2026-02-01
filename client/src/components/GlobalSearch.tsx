@@ -4,9 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Link } from "wouter";
 import { cn } from "@/lib/utils";
 import { Search, Loader2, Users, UserCircle2, Newspaper, CalendarDays, Trophy } from "lucide-react";
-import { cacheNewsArticle, encodeNewsLink } from "@/lib/news";
 import { usePreferredLeague } from "@/hooks/usePreferredLeague";
-import type { NewsItem } from "@shared/schema";
 import { resolveNewsThumbnail } from "@/lib/branding";
 
 const MIN_QUERY_LENGTH = 2;
@@ -246,22 +244,15 @@ export function GlobalSearch({ className }: Props) {
               {results.news.length > 0 && (
                 <ResultSection title="News" icon={<Newspaper className="w-4 h-4" />}>
                   {results.news.map((article) => {
-                    const encodedLink = encodeNewsLink(article.link);
+                    const href = article.link || "";
                     const thumbnail = resolveNewsThumbnail(article.image, article.league);
-                    const cachedArticle: NewsItem = {
-                      title: article.title,
-                      link: article.link,
-                      pubDate: article.pubDate || "",
-                      source: article.source,
-                      league: article.league,
-                      image: thumbnail,
-                    };
                     return (
-                      <Link
+                      <a
                         key={article.id}
-                        href={`/news/article/${encodedLink}`}
+                        href={href}
+                        target="_blank"
+                        rel="noopener noreferrer"
                         className="flex gap-3 rounded-lg border border-border/60 bg-background/80 hover:border-primary/60 transition-colors"
-                        onClick={() => cacheNewsArticle(article.link, cachedArticle)}
                       >
                         <div className="w-16 h-16 flex-shrink-0 overflow-hidden rounded-l-lg bg-muted flex items-center justify-center">
                           <img src={thumbnail} alt={article.title} className="w-full h-full object-contain" loading="lazy" />
@@ -273,7 +264,7 @@ export function GlobalSearch({ className }: Props) {
                             {article.pubDate ? ` · ${article.pubDate}` : ""}
                           </p>
                         </div>
-                      </Link>
+                      </a>
                     );
                   })}
                 </ResultSection>
