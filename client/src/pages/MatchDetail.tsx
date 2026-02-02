@@ -2,8 +2,10 @@ import { useRoute, Link } from "wouter";
 import { Layout } from "@/components/Layout";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
+import { useMemo } from "react";
 import { ArrowLeft, MapPin, Calendar, Clock } from "lucide-react";
 import { format, parseISO } from "date-fns";
+import { findLocalMatchById } from "@/lib/localFixtures";
 
 interface MatchEvent {
   id: string;
@@ -32,6 +34,20 @@ interface ApiResponse<T> {
   response: T;
 }
 
+interface LocalMatchFallback {
+  id: string | number;
+  date?: string;
+  time?: string;
+  venue?: string;
+  week?: string;
+  league?: { name?: string; season?: number | string };
+  teams?: {
+    home?: { id?: string | number; name?: string; logo?: string | null };
+    away?: { id?: string | number; name?: string; logo?: string | null };
+  };
+  scores?: { home?: number | null; away?: number | null };
+}
+
 export default function MatchDetail() {
   const [match, params] = useRoute("/match/:id");
   const matchId = (() => {
@@ -42,6 +58,8 @@ export default function MatchDetail() {
       return params.id;
     }
   })();
+
+  const fallbackMatch = useMemo(() => findLocalMatchById(matchId), [matchId]);
 
   const { data: matchData, isLoading, error } = useQuery<ApiResponse<MatchEvent[]>>({
     queryKey: ["match", matchId],
@@ -54,12 +72,50 @@ export default function MatchDetail() {
       if (!res.ok) throw new Error("Failed to fetch match");
       return res.json();
     },
-    enabled: !!matchId,
+    enabled: !!matchId && !fallbackMatch,
   });
 
-  if (!match || !matchId) return null;
+  if (!match || !matchId) {
+    return (
+      <Layout>
+        <div className="flex flex-col items-center justify-center h-64">
+          <h2 className="text-xl font-bold" data-testid="text-match-not-found">Match not found</h2>
+          <Link href="/" className="text-primary hover:underline mt-4" data-testid="link-back-home">
+            Back to Dashboard
+          </Link>
+        </div>
+      </Layout>
+    );
+  }
 
-  const game = matchData?.response?.[0];
+  const fallbackMatchEvent = useMemo<MatchEvent | null>(() => {
+    if (!fallbackMatch) return null;
+    const local = fallbackMatch as LocalMatchFallback;
+    return {
+      id: String(local.id),
+      date: local.date || "",
+      time: local.time || "",
+      venue: local.venue || "",
+      league: local.league?.name || "Rugby League",
+      season: local.league?.season ? String(local.league.season) : "",
+      status: "Not Started",
+      description: "",
+      homeTeam: {
+        id: String(local.teams?.home?.id ?? ""),
+        name: local.teams?.home?.name || "",
+        logo: local.teams?.home?.logo ?? null,
+        score: local.scores?.home ?? null,
+      },
+      awayTeam: {
+        id: String(local.teams?.away?.id ?? ""),
+        name: local.teams?.away?.name || "",
+        logo: local.teams?.away?.logo ?? null,
+        score: local.scores?.away ?? null,
+      },
+    };
+  }, [fallbackMatch]);
+
+  const game = matchData?.response?.[0] ?? fallbackMatchEvent;
 
   if (isLoading) {
     return (

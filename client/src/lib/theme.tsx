@@ -24,7 +24,6 @@ const LOCAL_TEAM_LOGOS = LOCAL_TEAMS.reduce<Record<string, string | null>>((acc,
 }, {});
 
 const BASE_TEAM_THEMES: (Omit<TeamTheme, "logo"> & { logo?: string | null })[] = [
-  { id: "default", name: "Default Dark", league: "System", previewColor: "bg-slate-900" },
   // NRL Teams (17 teams)
   { id: "brisbane-broncos", name: "Brisbane Broncos", league: "NRL", previewColor: "bg-yellow-500" },
   { id: "canberra-raiders", name: "Canberra Raiders", league: "NRL", previewColor: "bg-lime-500" },
@@ -133,8 +132,8 @@ const THEME_STORAGE_KEY = "rlc-theme";
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const resolveThemePreference = (theme?: string | null) => {
-    if (!theme || theme === "default" || theme === "light") {
-      return "dark";
+    if (!theme || theme === "default" || theme === "light" || theme === "dark") {
+      return "nrl";
     }
     return theme;
   };

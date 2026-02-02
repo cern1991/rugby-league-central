@@ -20,7 +20,7 @@ function readStoredLeague() {
 
 export function usePreferredLeague() {
   const [selectedLeague, setSelectedLeagueState] = useState<string>(() => readStoredLeague());
-  const { setTheme } = useTheme();
+  const { currentTheme, setTheme } = useTheme();
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -28,14 +28,15 @@ export function usePreferredLeague() {
   }, [selectedLeague]);
 
   useEffect(() => {
+    const prefersLight = currentTheme.endsWith("-light");
     if (selectedLeague === "NRL") {
-      setTheme("nrl");
+      setTheme(prefersLight ? "nrl-light" : "nrl");
       return;
     }
     if (selectedLeague === "Super League") {
-      setTheme("super-league");
+      setTheme(prefersLight ? "super-league-light" : "super-league");
     }
-  }, [selectedLeague, setTheme]);
+  }, [selectedLeague, currentTheme, setTheme]);
 
   const setSelectedLeague = useCallback((leagueId: string) => {
     setSelectedLeagueState(VALID_LEAGUE_IDS.has(leagueId) ? leagueId : DEFAULT_LEAGUE);

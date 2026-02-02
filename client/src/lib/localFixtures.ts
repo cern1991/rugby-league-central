@@ -11,6 +11,11 @@ const LEAGUE_IDS: Record<string, string> = {
 const CURRENT_SEASON = "2026";
 const LOCAL_GAME_ID_PREFIX = "local-";
 
+type LocalGame = Game & {
+  matchNumber: number;
+  legacyId: string;
+};
+
 const normalizeName = (value?: string | null) =>
   (value || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
 
@@ -31,6 +36,29 @@ function findTeamMetaByName(name?: string | null) {
   });
 }
 
+const toBase64Url = (value: string) => {
+  const encoded = typeof window !== "undefined"
+    ? btoa(unescape(encodeURIComponent(value)))
+    : Buffer.from(value, "utf8").toString("base64");
+  return encoded.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+};
+
+const fromBase64Url = (value: string) => {
+  let base64 = value.replace(/-/g, "+").replace(/_/g, "/");
+  while (base64.length % 4 !== 0) {
+    base64 += "=";
+  }
+  const decoded = typeof window !== "undefined"
+    ? decodeURIComponent(escape(atob(base64)))
+    : Buffer.from(base64, "base64").toString("utf8");
+  return decoded;
+};
+
+function createLocalMatchId(leagueName: string, matchNumber: number, homeTeam: string, awayTeam: string) {
+  const payload = JSON.stringify({ leagueName, matchNumber, homeTeam, awayTeam });
+  return `${LOCAL_GAME_ID_PREFIX}${toBase64Url(payload)}`;
+}
+
 function createLegacyLocalMatchId(
   leagueName: string,
   matchNumber: number,
@@ -40,15 +68,63 @@ function createLegacyLocalMatchId(
   return `${LOCAL_GAME_ID_PREFIX}${leagueName}-${matchNumber}-${homeTeam}-${awayTeam}`;
 }
 
-function mapLocalFixtureToGame(fixture: LocalFixture, leagueName: string, leagueId: string): Game {
+function decodeLocalMatchId(matchId: string) {
+  if (!matchId.startsWith(LOCAL_GAME_ID_PREFIX)) {
+    return null;
+  }
+  const encoded = matchId.slice(LOCAL_GAME_ID_PREFIX.length);
+  try {
+    const json = fromBase64Url(encoded);
+    return JSON.parse(json) as {
+      leagueName: string;
+      matchNumber: number;
+      homeTeam: string;
+      awayTeam: string;
+    };
+  } catch {
+    return null;
+  }
+}
+
+function decodeLegacyLocalMatchId(matchId: string) {
+  if (!matchId.startsWith(LOCAL_GAME_ID_PREFIX)) {
+    return null;
+  }
+  const withoutPrefix = matchId.slice(LOCAL_GAME_ID_PREFIX.length);
+  const parts = withoutPrefix.split("-");
+  if (parts.length < 4) {
+    return null;
+  }
+  const leagueName = parts[0];
+  const matchNumber = parseInt(parts[1], 10);
+  if (Number.isNaN(matchNumber)) {
+    return null;
+  }
+  const homeParts = parts.slice(2, parts.length - 1);
+  const homeTeam = homeParts.join("-") || parts[2];
+  const awayTeam = parts[parts.length - 1];
+  return { leagueName, matchNumber, homeTeam, awayTeam };
+}
+
+const normalizeNameForComparison = (value: string) =>
+  value?.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+
+const namesMatch = (a: string, b: string) => {
+  const normA = normalizeNameForComparison(a);
+  const normB = normalizeNameForComparison(b);
+  return normA === normB || normA.includes(normB) || normB.includes(normA);
+};
+
+function mapLocalFixtureToGame(fixture: LocalFixture, leagueName: string, leagueId: string): LocalGame {
   const homeTeam = findTeamMetaByName(fixture.homeTeam);
   const awayTeam = findTeamMetaByName(fixture.awayTeam);
   const datePart = fixture.dateUtc.split("T")[0];
   const timePart = fixture.dateUtc.split("T")[1] || "";
   const timestamp = Date.parse(fixture.dateUtc) || undefined;
+  const legacyId = createLegacyLocalMatchId(leagueName, fixture.matchNumber, fixture.homeTeam, fixture.awayTeam);
 
   return {
-    id: createLegacyLocalMatchId(leagueName, fixture.matchNumber, fixture.homeTeam, fixture.awayTeam),
+    id: createLocalMatchId(leagueName, fixture.matchNumber, fixture.homeTeam, fixture.awayTeam),
     date: datePart,
     time: timePart,
     timestamp,
@@ -74,6 +150,8 @@ function mapLocalFixtureToGame(fixture: LocalFixture, leagueName: string, league
       },
     },
     scores: { home: null, away: null },
+    matchNumber: fixture.matchNumber,
+    legacyId,
   };
 }
 
@@ -106,6 +184,37 @@ export function getLocalFixturesForLeague(leagueId?: string) {
     ).sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
   }
   return buildFixturesFromLocalMap(NRL_2026_FIXTURES_BY_TEAM, "NRL");
+}
+
+export function findLocalMatchById(matchId?: string | null) {
+  if (!matchId) return undefined;
+  const allMatches = [
+    ...getLocalFixturesForLeague("NRL"),
+    ...getLocalFixturesForLeague("Super League"),
+  ];
+
+  const directMatch = allMatches.find((game) => game.id === matchId || game.legacyId === matchId);
+  if (directMatch) return directMatch;
+
+  const decoded = decodeLocalMatchId(matchId);
+  if (decoded) {
+    return allMatches.find((game) =>
+      game.matchNumber === decoded.matchNumber &&
+      namesMatch(game.teams.home?.name || "", decoded.homeTeam) &&
+      namesMatch(game.teams.away?.name || "", decoded.awayTeam)
+    );
+  }
+
+  const legacy = decodeLegacyLocalMatchId(matchId);
+  if (legacy) {
+    return allMatches.find((game) =>
+      game.matchNumber === legacy.matchNumber &&
+      namesMatch(game.teams.home?.name || "", legacy.homeTeam) &&
+      namesMatch(game.teams.away?.name || "", legacy.awayTeam)
+    );
+  }
+
+  return undefined;
 }
 
 export function getLocalFixturesForTeam(teamId?: string | number | null, leagueHint?: string) {

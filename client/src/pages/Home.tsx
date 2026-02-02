@@ -178,14 +178,14 @@ export default function Home() {
                     key={league.id}
                     onClick={() => setSelectedLeague(league.id)}
                     className={cn(
-                      "flex items-center gap-3 rounded-2xl border px-4 py-3 transition-all backdrop-blur-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary",
+                      "flex items-center gap-3 rounded-2xl border px-4 py-3 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary",
                       selectedLeague === league.id
-                        ? "border-primary/60 bg-primary/15 text-white shadow-lg"
-                        : "border-white/10 bg-white/5 text-white/80 hover:text-white hover:border-white/40"
+                        ? "border-primary bg-primary text-primary-foreground shadow-lg"
+                        : "border-border bg-card text-foreground hover:border-primary/50 hover:bg-accent"
                     )}
                     data-testid={`hero-league-${league.id.toLowerCase().replace(/\s+/g, "-")}`}
                   >
-                    <span className="h-12 w-12 rounded-xl bg-white/10 flex items-center justify-center ring-1 ring-white/20">
+                    <span className="h-12 w-12 rounded-xl bg-background/80 flex items-center justify-center ring-1 ring-border">
                       <img
                         src={league.logo || "/logo.svg"}
                         alt={`${league.name} logo`}
@@ -194,7 +194,14 @@ export default function Home() {
                       />
                     </span>
                     <div className="text-left">
-                      <p className="text-xs uppercase tracking-wide text-white/70">Follow</p>
+                      <p
+                        className={cn(
+                          "text-xs uppercase tracking-wide",
+                          selectedLeague === league.id ? "text-primary-foreground/80" : "text-muted-foreground"
+                        )}
+                      >
+                        Follow
+                      </p>
                       <p className="font-semibold text-base">{league.name}</p>
                     </div>
                   </button>
@@ -598,23 +605,12 @@ export default function Home() {
         </div>
 
         {/* Info Cards */}
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-card border border-border rounded-xl p-6" data-testid="card-feature-live">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center">
-                <TrendingUp className="w-5 h-5 text-green-500" />
-              </div>
-              <div>
-                <h3 className="font-bold">Live Coverage</h3>
-                <p className="text-xs text-muted-foreground">Real-time updates</p>
-              </div>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Get instant score updates from matches across all leagues worldwide.
-            </p>
-          </div>
-
-          <div className="bg-card border border-border rounded-xl p-6" data-testid="card-feature-fixtures">
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Link
+            href="/live"
+            className="block bg-card border border-border rounded-xl p-6 hover:border-primary/50 hover:shadow-lg transition-all"
+            data-testid="card-feature-fixtures"
+          >
             <div className="flex items-center gap-3 mb-3">
               <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
                 <Calendar className="w-5 h-5 text-blue-500" />
@@ -627,9 +623,13 @@ export default function Home() {
             <p className="text-sm text-muted-foreground">
               View upcoming matches and past results for every team in the competition.
             </p>
-          </div>
+          </Link>
 
-          <div className="bg-card border border-border rounded-xl p-6" data-testid="card-feature-teams">
+          <Link
+            href="/teams"
+            className="block bg-card border border-border rounded-xl p-6 hover:border-primary/50 hover:shadow-lg transition-all"
+            data-testid="card-feature-teams"
+          >
             <div className="flex items-center gap-3 mb-3">
               <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
                 <Trophy className="w-5 h-5 text-purple-500" />
@@ -642,7 +642,7 @@ export default function Home() {
             <p className="text-sm text-muted-foreground">
               Explore detailed team pages with player information and match history.
             </p>
-          </div>
+          </Link>
         </section>
 
       </div>
@@ -720,7 +720,7 @@ function GameCard({ game }: { game: Game }) {
               </span>
             )}
             {!isLive && !isFinished && game.time && (
-              <span className="text-xs text-muted-foreground">{game.time}</span>
+              <span className="text-xs text-muted-foreground">{formatTime(game.time)}</span>
             )}
             {isFinished && (
               <span className="text-xs text-muted-foreground">{game.status.long}</span>
@@ -732,4 +732,10 @@ function GameCard({ game }: { game: Game }) {
       </div>
     </Link>
   );
+}
+
+function formatTime(value: string) {
+  const trimmed = value.trim();
+  const match = trimmed.match(/\b(\d{1,2}:\d{2})\b/);
+  return match ? match[1] : trimmed;
 }

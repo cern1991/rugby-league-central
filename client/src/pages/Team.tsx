@@ -24,6 +24,14 @@ interface Team {
   description?: string | null;
   founded?: string | null;
   website?: string | null;
+  honours?: {
+    premierships?: string[];
+    minorPremierships?: string[];
+    worldClubChallenge?: string[];
+    superLeagueTitles?: string[];
+    challengeCup?: string[];
+    leagueLeadersShield?: string[];
+  };
 }
 
 interface Game {
@@ -122,6 +130,10 @@ export default function TeamPage() {
       logo: fallbackTeam.logo,
       league: fallbackTeam.league,
       country: fallbackTeam.country,
+      stadium: fallbackTeam.stadium ?? null,
+      founded: fallbackTeam.founded ?? null,
+      description: fallbackTeam.description ?? null,
+      honours: fallbackTeam.honours,
     };
   }, [fallbackTeam]);
 
@@ -175,9 +187,46 @@ export default function TeamPage() {
     enabled: !!resolvedTeamId && activeTab === "players",
   });
 
-  if (!match || !routeTeamId) return null;
+  if (!match || !routeTeamId) {
+    return (
+      <Layout>
+        <div className="flex flex-col items-center justify-center h-64">
+          <h2 className="text-xl font-bold" data-testid="text-team-not-found">Team not found</h2>
+          <Link href="/" className="text-primary hover:underline mt-4" data-testid="link-back-home">
+            Back to Dashboard
+          </Link>
+        </div>
+      </Layout>
+    );
+  }
 
-  const team = teamData?.response?.[0] || fallbackTeamAsTeam;
+  const team = useMemo(() => {
+    const apiTeam = teamData?.response?.[0];
+    if (!apiTeam) return fallbackTeamAsTeam;
+    if (!fallbackTeamAsTeam) return apiTeam;
+    return {
+      ...fallbackTeamAsTeam,
+      ...apiTeam,
+      stadium: apiTeam.stadium || fallbackTeamAsTeam.stadium,
+      founded: apiTeam.founded || fallbackTeamAsTeam.founded,
+      description: apiTeam.description || fallbackTeamAsTeam.description,
+      logo: apiTeam.logo || fallbackTeamAsTeam.logo,
+      honours: apiTeam.honours || fallbackTeamAsTeam.honours,
+    };
+  }, [teamData, fallbackTeamAsTeam]);
+
+  const honourItems = useMemo(() => {
+    const honours = team?.honours;
+    if (!honours) return [];
+    return [
+      { label: "Premierships", years: honours.premierships || [] },
+      { label: "Minor Premierships", years: honours.minorPremierships || [] },
+      { label: "World Club Challenge", years: honours.worldClubChallenge || [] },
+      { label: "Super League Titles", years: honours.superLeagueTitles || [] },
+      { label: "Challenge Cup", years: honours.challengeCup || [] },
+      { label: "League Leaders’ Shield", years: honours.leagueLeadersShield || [] },
+    ];
+  }, [team]);
   const games = gamesData?.response || [];
 
   const validGames = games.filter(g => g && g.teams?.home && g.teams?.away && g.status && g.scores);
@@ -323,6 +372,66 @@ export default function TeamPage() {
           <StatCard label="Avg Points For" value={teamStats.avgFor} isAverage />
           <StatCard label="Avg Points Against" value={teamStats.avgAgainst} isAverage />
         </section>
+
+        <section className="grid gap-4 md:grid-cols-[1.4fr,1fr]">
+          <div className="bg-card border border-border rounded-2xl p-6 space-y-3">
+            <div>
+              <h2 className="font-display text-xl font-bold">Club Overview</h2>
+              <p className="text-xs text-muted-foreground">Bio & history</p>
+            </div>
+            {team.description ? (
+              <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
+                {team.description}
+              </p>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                A full club history and background will appear here as soon as details are available.
+              </p>
+            )}
+          </div>
+
+          <div className="bg-card border border-border rounded-2xl p-6">
+            <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground mb-4">
+              Club Details
+            </h3>
+            <div className="space-y-3 text-sm">
+              <InfoRow label="League" value={team.league || "Rugby League"} />
+              <InfoRow label="Home ground" value={team.stadium || "TBC"} />
+              <InfoRow label="Established" value={team.founded || "—"} />
+              <InfoRow label="Country" value={team.country?.name || "—"} />
+            </div>
+          </div>
+        </section>
+
+        {team.honours && (
+          <section className="bg-card border border-border rounded-2xl p-6">
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <div>
+              <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">Honours</h3>
+              <p className="text-xs text-muted-foreground">Major titles and trophies</p>
+            </div>
+          </div>
+          {honourItems.length > 0 && honourItems.some((item) => item.years.length > 0) ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {honourItems
+                .filter((item) => item.years.length > 0)
+                .map((item) => (
+                  <div key={item.label} className="rounded-xl border border-border bg-background/60 p-4">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <p className="text-sm font-semibold">{item.label}</p>
+                      <span className="text-xs text-muted-foreground">{item.years.length}</span>
+                    </div>
+                      <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
+                        {item.years.join(", ")}
+                      </p>
+                  </div>
+                ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">No major honours recorded yet.</p>
+          )}
+          </section>
+        )}
 
         <div className="flex items-center gap-1 border-b border-border">
           <button 
@@ -514,6 +623,15 @@ function StatCard({
     <div className="rounded-xl border border-border bg-card p-4 text-center">
       <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
       <p className={cn("mt-2 text-2xl font-bold", accent)}>{formatted}</p>
+    </div>
+  );
+}
+
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-4">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="font-medium text-right">{value}</span>
     </div>
   );
 }

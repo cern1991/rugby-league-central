@@ -26,13 +26,13 @@ export function Layout({ children }: LayoutProps) {
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-border bg-card/80 backdrop-blur-xl">
+      <header className="rlc-header sticky top-0 z-50 border-b border-border bg-card/80 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 md:px-6">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <Link href="/">
               <div className="flex items-center gap-3 cursor-pointer" data-testid="link-logo">
-                <div className="w-10 h-10 rounded-xl border border-border bg-gradient-to-br from-card to-muted flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl border border-border bg-card flex items-center justify-center">
                   <img src="/logo.svg" alt="Rugby League Central shield logo" className="w-7 h-7" />
                 </div>
                 <span className="sr-only">Rugby League Central</span>
@@ -78,7 +78,7 @@ export function Layout({ children }: LayoutProps) {
               {/* Mobile Menu Toggle */}
               <button 
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
-                className="relative z-50 lg:hidden p-2 rounded-lg hover:bg-muted bg-card/90 border border-border"
+                className="rlc-menu-toggle relative z-50 lg:hidden p-2 rounded-lg hover:bg-muted bg-card/90 border border-border"
                 data-testid="button-menu-toggle"
               >
                 {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}

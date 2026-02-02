@@ -195,7 +195,7 @@ function GameCard({ game, isLive }: { game: Game; isLive?: boolean }) {
             {gameDate && (
               <div className="text-xs text-muted-foreground">
                 <div className="font-medium">{format(gameDate, "EEE, MMM d")}</div>
-                <div>{game.time || format(gameDate, "HH:mm")}</div>
+                <div>{game.time ? formatTime(game.time) : format(gameDate, "HH:mm")}</div>
               </div>
             )}
             {isLive && (
@@ -256,4 +256,10 @@ function GameCard({ game, isLive }: { game: Game; isLive?: boolean }) {
       </div>
     </Link>
   );
+}
+
+function formatTime(value: string) {
+  const trimmed = value.trim();
+  const match = trimmed.match(/\b(\d{1,2}:\d{2})\b/);
+  return match ? match[1] : trimmed;
 }

@@ -49,42 +49,40 @@
   --radius: 0.5rem;
 }
 
-:root,
-[data-theme="dark"],
-[data-theme="default"] {
-  --background: 220 13% 9%;
-  --foreground: 210 30% 96%;
+:root {
+  --background: 220 8% 6%;
+  --foreground: 210 10% 92%;
 
-  --card: 220 12% 13%;
-  --card-foreground: 210 30% 96%;
+  --card: 220 8% 10%;
+  --card-foreground: 210 10% 92%;
 
-  --popover: 220 13% 9%;
-  --popover-foreground: 210 30% 96%;
+  --popover: 220 8% 8%;
+  --popover-foreground: 210 10% 92%;
 
-  --primary: 199 89% 48%;
-  --primary-foreground: 222 47% 11%;
+  --primary: 210 10% 85%;
+  --primary-foreground: 220 10% 12%;
 
-  --secondary: 216 12% 17%;
-  --secondary-foreground: 210 30% 96%;
+  --secondary: 220 8% 14%;
+  --secondary-foreground: 210 10% 92%;
 
-  --muted: 216 12% 18%;
-  --muted-foreground: 215 14% 70%;
+  --muted: 220 8% 14%;
+  --muted-foreground: 215 8% 65%;
 
-  --accent: 220 14% 18%;
-  --accent-foreground: 210 30% 96%;
+  --accent: 220 8% 16%;
+  --accent-foreground: 210 10% 92%;
 
   --destructive: 0 70% 38%;
-  --destructive-foreground: 210 30% 96%;
+  --destructive-foreground: 210 10% 92%;
 
-  --border: 220 12% 18%;
-  --input: 220 12% 18%;
-  --ring: 199 89% 48%;
+  --border: 220 8% 18%;
+  --input: 220 8% 18%;
+  --ring: 210 10% 85%;
 
-  --chart-1: 199 89% 48%;
-  --chart-2: 160 20% 55%;
-  --chart-3: 35 80% 55%;
-  --chart-4: 280 40% 50%;
-  --chart-5: 344 60% 60%;
+  --chart-1: 210 10% 85%;
+  --chart-2: 215 10% 70%;
+  --chart-3: 35 60% 55%;
+  --chart-4: 260 20% 55%;
+  --chart-5: 0 0% 80%;
 }
 
 [data-theme="nrl"] {
@@ -123,6 +121,48 @@
   --chart-5: 210 30% 55%;
 }
 
+[data-theme="nrl-light"] {
+  --background: 0 0% 99%;
+  --foreground: 0 0% 8%;
+
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 8%;
+
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 8%;
+
+  --primary: 160 45% 20%;
+  --primary-foreground: 0 0% 98%;
+
+  --secondary: 0 0% 94%;
+  --secondary-foreground: 0 0% 12%;
+
+  --muted: 0 0% 96%;
+  --muted-foreground: 0 0% 35%;
+
+  --accent: 0 0% 92%;
+  --accent-foreground: 0 0% 12%;
+
+  --destructive: 0 75% 40%;
+  --destructive-foreground: 0 0% 98%;
+
+  --border: 0 0% 85%;
+  --input: 0 0% 85%;
+  --ring: 160 45% 20%;
+
+  --chart-1: 150 55% 32%;
+  --chart-2: 110 45% 35%;
+  --chart-3: 35 75% 40%;
+  --chart-4: 170 35% 32%;
+  --chart-5: 210 35% 35%;
+
+  --header-bg: 0 0% 10%;
+  --header-foreground: 0 0% 98%;
+  --header-border: 0 0% 18%;
+
+  --heading: 0 0% 8%;
+}
+
 [data-theme="super-league"] {
   --background: 350 16% 6%;
   --foreground: 0 0% 90%;
@@ -157,6 +197,126 @@
   --chart-3: 210 30% 55%;
   --chart-4: 320 30% 52%;
   --chart-5: 15 50% 52%;
+}
+
+[data-theme="super-league-light"] {
+  --background: 0 0% 99%;
+  --foreground: 0 0% 8%;
+
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 8%;
+
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 8%;
+
+  --primary: 0 65% 28%;
+  --primary-foreground: 0 0% 98%;
+
+  --secondary: 0 0% 94%;
+  --secondary-foreground: 0 0% 12%;
+
+  --muted: 0 0% 96%;
+  --muted-foreground: 0 0% 35%;
+
+  --accent: 0 0% 92%;
+  --accent-foreground: 0 0% 12%;
+
+  --destructive: 0 75% 40%;
+  --destructive-foreground: 0 0% 98%;
+
+  --border: 0 0% 85%;
+  --input: 0 0% 85%;
+  --ring: 0 65% 28%;
+
+  --chart-1: 0 65% 28%;
+  --chart-2: 30 70% 40%;
+  --chart-3: 210 35% 35%;
+  --chart-4: 320 35% 35%;
+  --chart-5: 15 60% 35%;
+
+  --header-bg: 0 0% 10%;
+  --header-foreground: 0 0% 98%;
+  --header-border: 0 0% 18%;
+
+  --heading: 0 0% 8%;
+}
+
+[data-theme="nrl-light"] .rlc-header,
+[data-theme="super-league-light"] .rlc-header {
+  background-color: hsl(var(--header-bg));
+  border-color: hsl(var(--header-border));
+  color: hsl(var(--header-foreground));
+}
+
+[data-theme="nrl-light"] h1,
+[data-theme="nrl-light"] h2,
+[data-theme="nrl-light"] h3,
+[data-theme="nrl-light"] h4,
+[data-theme="nrl-light"] h5,
+[data-theme="nrl-light"] h6,
+[data-theme="super-league-light"] h1,
+[data-theme="super-league-light"] h2,
+[data-theme="super-league-light"] h3,
+[data-theme="super-league-light"] h4,
+[data-theme="super-league-light"] h5,
+[data-theme="super-league-light"] h6 {
+  color: hsl(var(--heading));
+}
+
+[data-theme="nrl-light"] .rlc-header h1,
+[data-theme="nrl-light"] .rlc-header h2,
+[data-theme="nrl-light"] .rlc-header h3,
+[data-theme="nrl-light"] .rlc-header h4,
+[data-theme="nrl-light"] .rlc-header h5,
+[data-theme="nrl-light"] .rlc-header h6,
+[data-theme="super-league-light"] .rlc-header h1,
+[data-theme="super-league-light"] .rlc-header h2,
+[data-theme="super-league-light"] .rlc-header h3,
+[data-theme="super-league-light"] .rlc-header h4,
+[data-theme="super-league-light"] .rlc-header h5,
+[data-theme="super-league-light"] .rlc-header h6 {
+  color: hsl(var(--header-foreground));
+}
+[data-theme="nrl-light"] .rlc-header .text-muted-foreground,
+[data-theme="super-league-light"] .rlc-header .text-muted-foreground {
+  color: hsl(0 0% 82%);
+}
+
+[data-theme="nrl-light"] .rlc-header .bg-card,
+[data-theme="super-league-light"] .rlc-header .bg-card {
+  background-color: hsl(var(--header-bg));
+}
+
+[data-theme="nrl-light"] .rlc-header .border-border,
+[data-theme="super-league-light"] .rlc-header .border-border {
+  border-color: hsl(var(--header-border));
+}
+
+[data-theme="nrl-light"] .rlc-menu-toggle,
+[data-theme="super-league-light"] .rlc-menu-toggle {
+  background-color: hsl(0 0% 14%);
+  border-color: hsl(0 0% 22%);
+  color: hsl(0 0% 96%);
+}
+
+[data-theme="nrl-light"] .rlc-menu-toggle:hover,
+[data-theme="super-league-light"] .rlc-menu-toggle:hover {
+  background-color: hsl(0 0% 18%);
+}
+
+[data-theme="nrl-light"] [data-testid^="filter-league-"],
+[data-theme="super-league-light"] [data-testid^="filter-league-"] {
+  color: hsl(0 0% 10%);
+}
+
+[data-theme="nrl-light"] [data-testid^="filter-league-"] span,
+[data-theme="super-league-light"] [data-testid^="filter-league-"] span {
+  color: hsl(0 0% 10%);
+}
+
+[data-theme="nrl-light"] [data-testid^="filter-league-"].text-muted-foreground,
+[data-theme="super-league-light"] [data-testid^="filter-league-"].text-muted-foreground {
+  color: hsl(0 0% 10%);
 }
 
 
