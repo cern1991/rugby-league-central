@@ -323,102 +323,106 @@
 /* ========== NRL TEAMS ========== */
 
 /* Brisbane Broncos - Maroon/Gold */
-[data-theme="brisbane-broncos"] {
-  --primary: 45 90% 50%;
-  --primary-foreground: 0 80% 25%;
-  --ring: 45 70% 60%;
-  --chart-1: 45 90% 50%;
-  --team-accent: 345 65% 34%;
-  --team-base: 345 45% 18%;
+[data-team="brisbane-broncos"] {
+  --primary: 353 54% 32%;
+  --primary-foreground: 0 0% 100%;
+  --ring: 353 54% 45%;
+  --chart-1: 353 54% 32%;
+  --team-accent: 51 100% 50%;
+  --team-accent-foreground: 222 47% 11%;
+  --team-base: 353 45% 16%;
 }
 
 /* Canberra Raiders - Lime Green */
-[data-theme="canberra-raiders"] {
-  --primary: 90 70% 45%;
+[data-team="canberra-raiders"] {
+  --primary: 80 61% 50%;
   --primary-foreground: 0 0% 10%;
-  --ring: 90 55% 55%;
-  --chart-1: 90 70% 45%;
-  --team-accent: 205 70% 45%;
-  --team-base: 220 55% 18%;
+  --ring: 80 61% 60%;
+  --chart-1: 80 61% 50%;
+  --team-accent: 0 0% 96%;
+  --team-accent-foreground: 222 47% 11%;
+  --team-base: 80 45% 18%;
 }
 
 /* Canterbury Bulldogs - Blue/White */
-[data-theme="canterbury-bulldogs"] {
-  --primary: 220 80% 50%;
+[data-team="canterbury-bulldogs"] {
+  --primary: 223 76% 50%;
   --primary-foreground: 0 0% 100%;
-  --ring: 220 65% 60%;
-  --chart-1: 220 80% 50%;
+  --ring: 223 76% 62%;
+  --chart-1: 223 76% 50%;
   --team-accent: 0 0% 96%;
   --team-accent-foreground: 222 47% 11%;
-  --team-base: 220 60% 20%;
+  --team-base: 240 60% 14%;
 }
 
 /* Cronulla Sharks - Sky Blue/Black */
-[data-theme="cronulla-sharks"] {
-  --primary: 195 80% 55%;
+[data-team="cronulla-sharks"] {
+  --primary: 206 77% 65%;
   --primary-foreground: 0 0% 10%;
-  --ring: 195 65% 65%;
-  --chart-1: 195 80% 55%;
-  --team-accent: 200 70% 35%;
+  --ring: 206 77% 75%;
+  --chart-1: 206 77% 65%;
+  --team-accent: 0 0% 10%;
+  --team-accent-foreground: 0 0% 100%;
   --team-base: 210 15% 12%;
 }
 
 /* Dolphins - Red/Gold */
-[data-theme="dolphins"] {
-  --primary: 0 75% 50%;
+[data-team="dolphins"] {
+  --primary: 356 95% 46%;
   --primary-foreground: 0 0% 100%;
-  --ring: 0 60% 60%;
-  --chart-1: 0 75% 50%;
-  --team-accent: 45 90% 55%;
+  --ring: 356 95% 60%;
+  --chart-1: 356 95% 46%;
+  --team-accent: 51 100% 50%;
   --team-accent-foreground: 222 47% 11%;
-  --team-base: 0 70% 28%;
+  --team-base: 356 70% 20%;
 }
 
 /* Gold Coast Titans - Cyan/Gold */
-[data-theme="gold-coast-titans"] {
-  --primary: 180 70% 50%;
+[data-team="gold-coast-titans"] {
+  --primary: 196 100% 44%;
   --primary-foreground: 0 0% 10%;
-  --ring: 180 55% 60%;
-  --chart-1: 180 70% 50%;
-  --team-accent: 45 92% 55%;
+  --ring: 196 100% 60%;
+  --chart-1: 196 100% 44%;
+  --team-accent: 44 100% 59%;
   --team-accent-foreground: 222 47% 11%;
-  --team-base: 220 60% 18%;
+  --team-base: 213 68% 15%;
 }
 
 /* Manly Sea Eagles - Maroon/White */
-[data-theme="manly-sea-eagles"] {
-  --primary: 350 65% 35%;
+[data-team="manly-sea-eagles"] {
+  --primary: 352 59% 34%;
   --primary-foreground: 0 0% 100%;
-  --ring: 350 50% 50%;
-  --chart-1: 350 65% 35%;
-  --team-accent: 210 10% 72%;
+  --ring: 352 59% 50%;
+  --chart-1: 352 59% 34%;
+  --team-accent: 0 0% 96%;
   --team-accent-foreground: 222 47% 11%;
-  --team-base: 345 45% 18%;
+  --team-base: 352 45% 16%;
 }
 
 /* Melbourne Storm - Purple/Gold */
-[data-theme="melbourne-storm"] {
-  --primary: 270 60% 50%;
+[data-team="melbourne-storm"] {
+  --primary: 265 53% 39%;
   --primary-foreground: 0 0% 100%;
-  --ring: 270 50% 65%;
-  --chart-1: 270 60% 50%;
-  --team-accent: 45 90% 58%;
+  --ring: 265 53% 55%;
+  --chart-1: 265 53% 39%;
+  --team-accent: 41 98% 57%;
   --team-accent-foreground: 222 47% 11%;
-  --team-base: 255 55% 16%;
+  --team-base: 240 100% 13%;
 }
 
 /* Newcastle Knights - Blue/Red */
-[data-theme="newcastle-knights"] {
-  --primary: 220 85% 45%;
+[data-team="newcastle-knights"] {
+  --primary: 0 100% 50%;
   --primary-foreground: 0 0% 100%;
-  --ring: 220 70% 55%;
-  --chart-1: 220 85% 45%;
-  --team-accent: 0 70% 48%;
-  --team-base: 220 65% 18%;
+  --ring: 0 100% 60%;
+  --chart-1: 0 100% 50%;
+  --team-accent: 220 96% 30%;
+  --team-accent-foreground: 0 0% 100%;
+  --team-base: 220 60% 18%;
 }
 
 /* New Zealand Warriors - Grey/Red */
-[data-theme="nz-warriors"] {
+[data-team="nz-warriors"] {
   --primary: 210 15% 40%;
   --primary-foreground: 0 0% 100%;
   --ring: 210 10% 55%;
@@ -428,230 +432,242 @@
 }
 
 /* North Queensland Cowboys - Navy/Yellow */
-[data-theme="nth-qld-cowboys"] {
-  --primary: 45 85% 50%;
-  --primary-foreground: 220 80% 20%;
-  --ring: 45 70% 60%;
-  --chart-1: 45 85% 50%;
-  --team-accent: 225 70% 22%;
-  --team-base: 225 60% 15%;
+[data-team="nth-qld-cowboys"] {
+  --primary: 212 100% 18%;
+  --primary-foreground: 0 0% 100%;
+  --ring: 212 100% 32%;
+  --chart-1: 212 100% 18%;
+  --team-accent: 52 100% 50%;
+  --team-accent-foreground: 222 47% 11%;
+  --team-base: 212 80% 12%;
 }
 
 /* Parramatta Eels - Blue/Gold */
-[data-theme="parramatta-eels"] {
-  --primary: 50 90% 50%;
-  --primary-foreground: 220 75% 25%;
-  --ring: 50 75% 60%;
-  --chart-1: 50 90% 50%;
-  --team-accent: 220 80% 34%;
-  --team-base: 220 65% 18%;
+[data-team="parramatta-eels"] {
+  --primary: 221 100% 31%;
+  --primary-foreground: 0 0% 100%;
+  --ring: 221 100% 45%;
+  --chart-1: 221 100% 31%;
+  --team-accent: 48 100% 50%;
+  --team-accent-foreground: 222 47% 11%;
+  --team-base: 221 70% 16%;
 }
 
 /* Penrith Panthers - Pink/Black */
-[data-theme="penrith-panthers"] {
-  --primary: 330 80% 55%;
+[data-team="penrith-panthers"] {
+  --primary: 0 76% 52%;
   --primary-foreground: 0 0% 100%;
-  --ring: 330 60% 70%;
-  --chart-1: 330 80% 55%;
-  --team-accent: 125 65% 38%;
-  --team-base: 210 8% 8%;
+  --ring: 0 76% 65%;
+  --chart-1: 0 76% 52%;
+  --team-accent: 53 96% 54%;
+  --team-accent-foreground: 222 47% 11%;
+  --team-base: 0 0% 8%;
 }
 
 /* South Sydney Rabbitohs - Green/Red */
-[data-theme="south-sydney-rabbitohs"] {
-  --primary: 140 65% 40%;
+[data-team="south-sydney-rabbitohs"] {
+  --primary: 155 100% 25%;
   --primary-foreground: 0 0% 100%;
-  --ring: 140 50% 55%;
-  --chart-1: 140 65% 40%;
-  --team-accent: 0 65% 45%;
-  --team-base: 130 45% 20%;
+  --ring: 155 100% 40%;
+  --chart-1: 155 100% 25%;
+  --team-accent: 349 96% 44%;
+  --team-accent-foreground: 0 0% 100%;
+  --team-base: 155 55% 14%;
 }
 
 /* St George Illawarra Dragons - Red/White */
-[data-theme="st-george-dragons"] {
-  --primary: 0 80% 50%;
+[data-team="st-george-dragons"] {
+  --primary: 0 100% 50%;
   --primary-foreground: 0 0% 100%;
-  --ring: 0 65% 60%;
-  --chart-1: 0 80% 50%;
-  --team-accent: 0 0% 95%;
+  --ring: 0 100% 60%;
+  --chart-1: 0 100% 50%;
+  --team-accent: 0 0% 96%;
   --team-accent-foreground: 222 47% 11%;
-  --team-base: 0 65% 24%;
+  --team-base: 0 60% 22%;
 }
 
 /* Sydney Roosters - Red/Blue */
-[data-theme="sydney-roosters"] {
-  --primary: 0 75% 50%;
+[data-team="sydney-roosters"] {
+  --primary: 0 100% 50%;
   --primary-foreground: 0 0% 100%;
-  --ring: 0 60% 60%;
-  --chart-1: 0 75% 50%;
-  --team-accent: 220 70% 23%;
-  --team-base: 220 60% 14%;
+  --ring: 0 100% 60%;
+  --chart-1: 0 100% 50%;
+  --team-accent: 240 100% 15%;
+  --team-accent-foreground: 0 0% 100%;
+  --team-base: 240 100% 10%;
 }
 
 /* Wests Tigers - Orange/Black */
-[data-theme="wests-tigers"] {
-  --primary: 30 90% 50%;
+[data-team="wests-tigers"] {
+  --primary: 28 91% 54%;
   --primary-foreground: 0 0% 10%;
-  --ring: 30 75% 60%;
-  --chart-1: 30 90% 50%;
-  --team-accent: 210 10% 12%;
-  --team-base: 210 12% 8%;
+  --ring: 28 91% 65%;
+  --chart-1: 28 91% 54%;
+  --team-accent: 0 0% 10%;
+  --team-accent-foreground: 0 0% 100%;
+  --team-base: 28 40% 12%;
 }
 
 /* ========== SUPER LEAGUE TEAMS (14 teams 2026) ========== */
 
 /* Bradford Bulls - Amber/Black */
-[data-theme="bradford-bulls"] {
-  --primary: 35 85% 50%;
-  --primary-foreground: 0 0% 10%;
-  --ring: 35 70% 60%;
-  --chart-1: 35 85% 50%;
-  --team-accent: 0 70% 45%;
-  --team-base: 220 10% 8%;
+[data-team="bradford-bulls"] {
+  --primary: 0 100% 50%;
+  --primary-foreground: 0 0% 100%;
+  --ring: 0 100% 60%;
+  --chart-1: 0 100% 50%;
+  --team-accent: 41 100% 55%;
+  --team-accent-foreground: 222 47% 11%;
+  --team-base: 0 60% 20%;
 }
 
 /* Castleford Tigers - Amber/Black */
-[data-theme="castleford-tigers"] {
-  --primary: 40 90% 50%;
+[data-team="castleford-tigers"] {
+  --primary: 48 100% 50%;
   --primary-foreground: 0 0% 10%;
-  --ring: 40 75% 60%;
-  --chart-1: 40 90% 50%;
-  --team-accent: 220 12% 12%;
-  --team-base: 220 12% 8%;
+  --ring: 48 100% 60%;
+  --chart-1: 48 100% 50%;
+  --team-accent: 0 0% 10%;
+  --team-accent-foreground: 0 0% 100%;
+  --team-base: 48 40% 12%;
 }
 
 /* Catalans Dragons - Red/Yellow */
-[data-theme="catalans-dragons"] {
-  --primary: 45 95% 50%;
-  --primary-foreground: 0 85% 40%;
-  --ring: 45 80% 60%;
-  --chart-1: 45 95% 50%;
-  --team-accent: 0 70% 48%;
-  --team-base: 0 60% 26%;
-}
-
-/* Huddersfield Giants - Claret/Gold */
-[data-theme="huddersfield-giants"] {
-  --primary: 330 55% 40%;
+[data-team="catalans-dragons"] {
+  --primary: 0 100% 50%;
   --primary-foreground: 0 0% 100%;
-  --ring: 45 75% 55%;
-  --chart-1: 330 55% 40%;
-  --team-accent: 45 80% 55%;
-  --team-accent-foreground: 222 47% 11%;
-  --team-base: 330 45% 20%;
-}
-
-/* Hull FC - Black/White */
-[data-theme="hull-fc"] {
-  --primary: 0 0% 20%;
-  --primary-foreground: 0 0% 100%;
-  --ring: 0 0% 35%;
-  --chart-1: 0 0% 25%;
-  --team-accent: 0 0% 96%;
-  --team-accent-foreground: 222 47% 11%;
-  --team-base: 210 8% 8%;
-}
-
-/* Hull Kingston Rovers - Red/White */
-[data-theme="hull-kr"] {
-  --primary: 0 70% 45%;
-  --primary-foreground: 0 0% 100%;
-  --ring: 0 55% 55%;
-  --chart-1: 0 70% 45%;
-  --team-accent: 0 0% 96%;
+  --ring: 0 100% 60%;
+  --chart-1: 0 100% 50%;
+  --team-accent: 51 100% 50%;
   --team-accent-foreground: 222 47% 11%;
   --team-base: 0 60% 24%;
 }
 
+/* Huddersfield Giants - Claret/Gold */
+[data-team="huddersfield-giants"] {
+  --primary: 343 69% 29%;
+  --primary-foreground: 0 0% 100%;
+  --ring: 343 69% 45%;
+  --chart-1: 343 69% 29%;
+  --team-accent: 48 100% 50%;
+  --team-accent-foreground: 222 47% 11%;
+  --team-base: 343 50% 18%;
+}
+
+/* Hull FC - Black/White */
+[data-team="hull-fc"] {
+  --primary: 0 0% 20%;
+  --primary-foreground: 0 0% 100%;
+  --ring: 0 0% 40%;
+  --chart-1: 0 0% 20%;
+  --team-accent: 45 90% 85%;
+  --team-accent-foreground: 222 47% 11%;
+  --team-base: 0 0% 8%;
+}
+
+/* Hull Kingston Rovers - Red/White */
+[data-team="hull-kr"] {
+  --primary: 351 80% 49%;
+  --primary-foreground: 0 0% 100%;
+  --ring: 351 80% 60%;
+  --chart-1: 351 80% 49%;
+  --team-accent: 0 0% 96%;
+  --team-accent-foreground: 222 47% 11%;
+  --team-base: 351 60% 20%;
+}
+
 /* Leeds Rhinos - Blue/Amber */
-[data-theme="leeds-rhinos"] {
-  --primary: 40 90% 50%;
-  --primary-foreground: 220 80% 25%;
-  --ring: 40 75% 60%;
-  --chart-1: 40 90% 50%;
-  --team-accent: 220 75% 36%;
-  --team-base: 220 60% 18%;
+[data-team="leeds-rhinos"] {
+  --primary: 219 100% 26%;
+  --primary-foreground: 0 0% 100%;
+  --ring: 219 100% 40%;
+  --chart-1: 219 100% 26%;
+  --team-accent: 48 100% 51%;
+  --team-accent-foreground: 222 47% 11%;
+  --team-base: 219 60% 14%;
 }
 
 /* Leigh Leopards - Cherry/White */
-[data-theme="leigh-leopards"] {
-  --primary: 350 70% 40%;
+[data-team="leigh-leopards"] {
+  --primary: 0 100% 50%;
   --primary-foreground: 0 0% 100%;
-  --ring: 350 55% 55%;
-  --chart-1: 350 70% 40%;
-  --team-accent: 0 0% 96%;
-  --team-accent-foreground: 222 47% 11%;
-  --team-base: 350 55% 22%;
+  --ring: 0 100% 60%;
+  --chart-1: 0 100% 50%;
+  --team-accent: 0 0% 10%;
+  --team-accent-foreground: 0 0% 100%;
+  --team-base: 0 0% 8%;
 }
 
 /* St Helens - Red/White */
-[data-theme="st-helens"] {
-  --primary: 5 80% 50%;
+[data-team="st-helens"] {
+  --primary: 2 100% 44%;
   --primary-foreground: 0 0% 100%;
-  --ring: 5 65% 60%;
-  --chart-1: 5 80% 50%;
-  --team-accent: 0 0% 97%;
+  --ring: 2 100% 58%;
+  --chart-1: 2 100% 44%;
+  --team-accent: 41 100% 55%;
   --team-accent-foreground: 222 47% 11%;
-  --team-base: 5 60% 24%;
+  --team-base: 2 55% 18%;
 }
 
 /* Toulouse Olympique - Red/Blue */
-[data-theme="toulouse-olympique"] {
-  --primary: 0 75% 50%;
-  --primary-foreground: 0 0% 100%;
-  --ring: 0 60% 60%;
-  --chart-1: 0 75% 50%;
-  --team-accent: 215 80% 45%;
-  --team-base: 215 60% 18%;
+[data-team="toulouse-olympique"] {
+  --primary: 195 100% 50%;
+  --primary-foreground: 0 0% 10%;
+  --ring: 195 100% 60%;
+  --chart-1: 195 100% 50%;
+  --team-accent: 0 0% 96%;
+  --team-accent-foreground: 222 47% 11%;
+  --team-base: 200 45% 14%;
 }
 
 /* Wakefield Trinity - Blue/White */
-[data-theme="wakefield-trinity"] {
-  --primary: 210 75% 50%;
+[data-team="wakefield-trinity"] {
+  --primary: 359 73% 55%;
   --primary-foreground: 0 0% 100%;
-  --ring: 210 60% 60%;
-  --chart-1: 210 75% 50%;
-  --team-accent: 0 70% 48%;
-  --team-base: 215 60% 20%;
+  --ring: 359 73% 65%;
+  --chart-1: 359 73% 55%;
+  --team-accent: 220 100% 30%;
+  --team-accent-foreground: 0 0% 100%;
+  --team-base: 359 45% 18%;
 }
 
 /* Warrington Wolves - Blue/Yellow */
-[data-theme="warrington-wolves"] {
-  --primary: 200 75% 50%;
-  --primary-foreground: 0 0% 100%;
-  --ring: 200 60% 60%;
-  --chart-1: 200 75% 50%;
-  --team-accent: 48 95% 55%;
+[data-team="warrington-wolves"] {
+  --primary: 225 73% 57%;
+  --primary-foreground: 0 0% 10%;
+  --ring: 225 73% 70%;
+  --chart-1: 225 73% 57%;
+  --team-accent: 55 100% 50%;
   --team-accent-foreground: 222 47% 11%;
-  --team-base: 215 65% 20%;
+  --team-base: 225 40% 18%;
 }
 
 /* Wigan Warriors - Cherry/White */
-[data-theme="wigan-warriors"] {
-  --primary: 350 75% 45%;
+[data-team="wigan-warriors"] {
+  --primary: 352 100% 42%;
   --primary-foreground: 0 0% 100%;
-  --ring: 350 60% 60%;
-  --chart-1: 350 75% 45%;
-  --team-accent: 0 0% 96%;
+  --ring: 352 100% 58%;
+  --chart-1: 352 100% 42%;
+  --team-accent: 51 100% 50%;
   --team-accent-foreground: 222 47% 11%;
-  --team-base: 350 55% 22%;
+  --team-base: 352 55% 18%;
 }
 
 /* York Knights - Blue/White */
-[data-theme="york-knights"] {
-  --primary: 215 75% 50%;
+[data-team="york-knights"] {
+  --primary: 0 0% 10%;
   --primary-foreground: 0 0% 100%;
-  --ring: 215 60% 60%;
-  --chart-1: 215 75% 50%;
-  --team-accent: 45 85% 50%;
+  --ring: 0 0% 25%;
+  --chart-1: 0 0% 10%;
+  --team-accent: 48 100% 50%;
   --team-accent-foreground: 222 47% 11%;
-  --team-base: 215 55% 16%;
+  --team-base: 0 0% 6%;
 }
 
 /* ========== CHAMPIONSHIP TEAMS (13 teams 2025) ========== */
 
 /* Barrow Raiders - Blue/White */
-[data-theme="barrow-raiders"] {
+[data-team="barrow-raiders"] {
   --primary: 220 80% 40%;
   --primary-foreground: 0 0% 100%;
   --ring: 220 65% 55%;
@@ -662,7 +678,7 @@
 }
 
 /* Batley Bulldogs - Claret/Gold */
-[data-theme="batley-bulldogs"] {
+[data-team="batley-bulldogs"] {
   --primary: 320 55% 40%;
   --primary-foreground: 0 0% 100%;
   --ring: 320 45% 55%;
@@ -673,7 +689,7 @@
 }
 
 /* Doncaster - Blue/Yellow */
-[data-theme="doncaster"] {
+[data-team="doncaster"] {
   --primary: 210 75% 50%;
   --primary-foreground: 0 0% 100%;
   --ring: 210 60% 60%;
@@ -684,7 +700,7 @@
 }
 
 /* Featherstone Rovers - Blue/White */
-[data-theme="featherstone-rovers"] {
+[data-team="featherstone-rovers"] {
   --primary: 220 75% 45%;
   --primary-foreground: 0 0% 100%;
   --ring: 220 60% 55%;
@@ -695,7 +711,7 @@
 }
 
 /* Halifax Panthers - Blue/White */
-[data-theme="halifax-panthers"] {
+[data-team="halifax-panthers"] {
   --primary: 220 85% 25%;
   --primary-foreground: 0 0% 100%;
   --ring: 220 70% 40%;
@@ -705,7 +721,7 @@
 }
 
 /* Hunslet - Green/White */
-[data-theme="hunslet"] {
+[data-team="hunslet"] {
   --primary: 140 60% 40%;
   --primary-foreground: 0 0% 100%;
   --ring: 140 50% 55%;
@@ -716,7 +732,7 @@
 }
 
 /* London Broncos - Blue/Red */
-[data-theme="london-broncos"] {
+[data-team="london-broncos"] {
   --primary: 210 75% 50%;
   --primary-foreground: 0 0% 100%;
   --ring: 210 60% 60%;
@@ -726,7 +742,7 @@
 }
 
 /* Oldham - Red/White */
-[data-theme="oldham"] {
+[data-team="oldham"] {
   --primary: 0 70% 45%;
   --primary-foreground: 0 0% 100%;
   --ring: 0 55% 55%;
@@ -737,7 +753,7 @@
 }
 
 /* Sheffield Eagles - Amber/Red */
-[data-theme="sheffield-eagles"] {
+[data-team="sheffield-eagles"] {
   --primary: 40 85% 50%;
   --primary-foreground: 0 0% 10%;
   --ring: 40 70% 60%;
@@ -747,7 +763,7 @@
 }
 
 /* Widnes Vikings - Black/White */
-[data-theme="widnes-vikings"] {
+[data-team="widnes-vikings"] {
   --primary: 210 20% 35%;
   --primary-foreground: 0 0% 100%;
   --ring: 210 15% 50%;
@@ -760,7 +776,7 @@
 /* ========== STATE OF ORIGIN ========== */
 
 /* New South Wales Blues - Sky Blue */
-[data-theme="new-south-wales"] {
+[data-team="new-south-wales"] {
   --primary: 200 85% 55%;
   --primary-foreground: 200 90% 15%;
   --ring: 200 70% 65%;
@@ -770,7 +786,7 @@
 }
 
 /* Queensland Maroons - Maroon */
-[data-theme="queensland"] {
+[data-team="queensland"] {
   --primary: 350 70% 35%;
   --primary-foreground: 0 0% 100%;
   --ring: 350 55% 50%;
@@ -783,7 +799,7 @@
 /* ========== INTERNATIONAL ========== */
 
 /* Australia Kangaroos - Green/Gold */
-[data-theme="australia"] {
+[data-team="australia"] {
   --primary: 140 60% 40%;
   --primary-foreground: 45 100% 50%;
   --ring: 140 50% 55%;
@@ -794,7 +810,7 @@
 }
 
 /* New Zealand Kiwis - Black/White */
-[data-theme="new-zealand"] {
+[data-team="new-zealand"] {
   --primary: 0 0% 20%;
   --primary-foreground: 0 0% 100%;
   --ring: 0 0% 40%;
@@ -805,7 +821,7 @@
 }
 
 /* England - White/Red */
-[data-theme="england"] {
+[data-team="england"] {
   --primary: 0 0% 95%;
   --primary-foreground: 0 75% 45%;
   --ring: 0 0% 80%;
@@ -815,7 +831,7 @@
 }
 
 /* Fiji - Sky Blue/White */
-[data-theme="fiji"] {
+[data-team="fiji"] {
   --primary: 195 75% 55%;
   --primary-foreground: 0 0% 10%;
   --ring: 195 60% 65%;
@@ -826,7 +842,7 @@
 }
 
 /* Samoa - Blue */
-[data-theme="samoa"] {
+[data-team="samoa"] {
   --primary: 220 80% 45%;
   --primary-foreground: 0 0% 100%;
   --ring: 220 65% 55%;
@@ -836,7 +852,7 @@
 }
 
 /* Tonga - Red */
-[data-theme="tonga"] {
+[data-team="tonga"] {
   --primary: 0 70% 45%;
   --primary-foreground: 0 0% 100%;
   --ring: 0 55% 55%;
@@ -847,7 +863,7 @@
 }
 
 /* Papua New Guinea Kumuls - Red/Gold/Black */
-[data-theme="papua-new-guinea"] {
+[data-team="papua-new-guinea"] {
   --primary: 0 75% 50%;
   --primary-foreground: 45 90% 50%;
   --ring: 0 60% 60%;

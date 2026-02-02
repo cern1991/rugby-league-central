@@ -3,10 +3,11 @@ import { Layout } from "@/components/Layout";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { ArrowLeft, Calendar, Users, Trophy, MapPin, Clock, ChevronRight } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { format, parseISO, isPast, isFuture, isToday } from "date-fns";
 import { LOCAL_TEAMS } from "@shared/localTeams";
 import { getLocalFixturesForTeam } from "@/lib/localFixtures";
+import { AVAILABLE_TEAMS } from "@/lib/theme";
 
 const DEFAULT_TEAM_SEASON = "2026";
 
@@ -111,6 +112,7 @@ const slugify = (value: string) =>
 export default function TeamPage() {
   const [match, params] = useRoute("/team/:id");
   const [activeTab, setActiveTab] = useState<"fixtures" | "players">("fixtures");
+  const previousTeamThemeRef = useRef<string | null>(null);
 
   const routeTeamId = params?.id || null;
 
@@ -214,6 +216,48 @@ export default function TeamPage() {
       honours: apiTeam.honours || fallbackTeamAsTeam.honours,
     };
   }, [teamData, fallbackTeamAsTeam]);
+
+  const teamThemeId = useMemo(() => {
+    const name = team?.name || fallbackTeamAsTeam?.name || fallbackTeam?.name;
+    if (!name) return null;
+    const normalized = slugify(name);
+    const matchTheme = AVAILABLE_TEAMS.find((entry) => slugify(entry.name) === normalized);
+    return matchTheme?.themeId ?? null;
+  }, [team?.name, fallbackTeamAsTeam, fallbackTeam]);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const root = document.documentElement;
+    if (!teamThemeId) {
+      if (previousTeamThemeRef.current !== null) {
+        if (previousTeamThemeRef.current) {
+          root.setAttribute("data-team", previousTeamThemeRef.current);
+        } else {
+          root.removeAttribute("data-team");
+        }
+        previousTeamThemeRef.current = null;
+      }
+      return;
+    }
+
+    if (previousTeamThemeRef.current === null) {
+      previousTeamThemeRef.current = root.getAttribute("data-team");
+    }
+    root.setAttribute("data-team", teamThemeId);
+
+    return () => {
+      if (previousTeamThemeRef.current !== null) {
+        if (previousTeamThemeRef.current) {
+          root.setAttribute("data-team", previousTeamThemeRef.current);
+        } else {
+          root.removeAttribute("data-team");
+        }
+        previousTeamThemeRef.current = null;
+      } else {
+        root.removeAttribute("data-team");
+      }
+    };
+  }, [teamThemeId]);
 
   const honourItems = useMemo(() => {
     const honours = team?.honours;
