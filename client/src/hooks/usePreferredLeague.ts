@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { FEATURED_LEAGUES } from "@shared/schema";
+import { useTheme } from "@/lib/theme";
 
 const STORAGE_KEY = "rlc.preferredLeague";
 const DEFAULT_LEAGUE =
@@ -19,11 +20,22 @@ function readStoredLeague() {
 
 export function usePreferredLeague() {
   const [selectedLeague, setSelectedLeagueState] = useState<string>(() => readStoredLeague());
+  const { setTheme } = useTheme();
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     window.localStorage.setItem(STORAGE_KEY, selectedLeague);
   }, [selectedLeague]);
+
+  useEffect(() => {
+    if (selectedLeague === "NRL") {
+      setTheme("nrl");
+      return;
+    }
+    if (selectedLeague === "Super League") {
+      setTheme("super-league");
+    }
+  }, [selectedLeague, setTheme]);
 
   const setSelectedLeague = useCallback((leagueId: string) => {
     setSelectedLeagueState(VALID_LEAGUE_IDS.has(leagueId) ? leagueId : DEFAULT_LEAGUE);

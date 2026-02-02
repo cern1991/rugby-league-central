@@ -22,6 +22,8 @@ import { Palette, Moon } from "lucide-react";
 
 const SYSTEM_THEMES = [
   { id: "dark", label: "Default Dark", icon: Moon, description: "Charcoal base with electric blue accents" },
+  { id: "nrl", label: "NRL Core", icon: Moon, description: "Deep green base with matchday highlights" },
+  { id: "super-league", label: "Super League Core", icon: Moon, description: "Crimson base with bright contrast" },
 ];
 
 const TEAM_COLOR_THEMES = TEAM_THEMES.filter(
@@ -33,7 +35,8 @@ export function ThemeCustomizer() {
   const [teamDialogOpen, setTeamDialogOpen] = useState(false);
 
   const currentLabel = useMemo(() => {
-    if (currentTheme === "dark") return "Default Dark";
+    const systemMatch = SYSTEM_THEMES.find((theme) => theme.id === currentTheme);
+    if (systemMatch) return systemMatch.label;
     const match = TEAM_THEMES.find((theme) => theme.id === currentTheme);
     return match ? match.name : "Custom Theme";
   }, [currentTheme]);

@@ -9,8 +9,8 @@ interface Props {
 
 export function LeagueFilter({ selectedLeague, setSelectedLeague, className }: Props) {
   return (
-    <div className={className}>
-      <div className="flex flex-wrap gap-2 sm:gap-3">
+    <div className={cn("w-full", className)}>
+      <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
         {FEATURED_LEAGUES.map((league) => (
           <button
             key={league.id}

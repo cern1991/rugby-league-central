@@ -172,7 +172,7 @@ export default function Home() {
                   Follow live scores, squads, fixtures, and breaking news from the NRL, Super League — all in one place.
                 </p>
               </div>
-              <div className="flex flex-wrap gap-3">
+              <div className="flex w-full flex-wrap justify-center gap-3">
                 {leagueToggleOptions.map((league) => (
                   <button
                     key={league.id}

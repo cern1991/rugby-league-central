@@ -70,9 +70,10 @@ interface TableResult {
 
 interface Props {
   className?: string;
+  onResultSelect?: () => void;
 }
 
-export function GlobalSearch({ className }: Props) {
+export function GlobalSearch({ className, onResultSelect }: Props) {
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [isFocused, setIsFocused] = useState(false);
@@ -171,7 +172,8 @@ export function GlobalSearch({ className }: Props) {
                   {results.teams.map((team) => (
                     <Link
                       key={team.id}
-                      href={`/team/${team.id}`}
+                      href={team.id ? `/team/${encodeURIComponent(team.id)}` : "/teams"}
+                      onClick={onResultSelect}
                       className="flex items-center gap-3 rounded-lg border border-border/60 bg-background/80 px-3 py-2 hover:border-primary/60 transition-colors"
                     >
                       {team.logo ? (
@@ -198,6 +200,7 @@ export function GlobalSearch({ className }: Props) {
                     <Link
                       key={player.id}
                       href={`/player/${encodeURIComponent(player.id)}`}
+                      onClick={onResultSelect}
                       className="flex items-center gap-3 rounded-lg border border-border/60 bg-background/80 px-3 py-2 hover:border-primary/60 transition-colors"
                     >
                       <img
@@ -223,6 +226,7 @@ export function GlobalSearch({ className }: Props) {
                     <Link
                       key={game.id}
                       href={`/match/${encodeURIComponent(game.id)}`}
+                      onClick={onResultSelect}
                       className="rounded-2xl border border-border/40 bg-card/80 px-4 py-3 hover:border-primary/60 transition-colors shadow-sm grid gap-1 text-sm"
                     >
                       <div className="font-semibold text-base text-foreground">
@@ -252,6 +256,7 @@ export function GlobalSearch({ className }: Props) {
                         href={href}
                         target="_blank"
                         rel="noopener noreferrer"
+                        onClick={onResultSelect}
                         className="flex gap-3 rounded-lg border border-border/60 bg-background/80 hover:border-primary/60 transition-colors"
                       >
                         <div className="w-16 h-16 flex-shrink-0 overflow-hidden rounded-l-lg bg-muted flex items-center justify-center">
@@ -277,7 +282,10 @@ export function GlobalSearch({ className }: Props) {
                       key={table.id}
                       href="/tables"
                       className="flex items-center justify-between rounded-lg border border-border/60 bg-background/80 px-3 py-2 hover:border-primary/60 transition-colors"
-                      onClick={() => setSelectedLeague(table.id)}
+                      onClick={() => {
+                        setSelectedLeague(table.id);
+                        onResultSelect?.();
+                      }}
                     >
                       <div>
                         <p className="font-medium text-sm">{table.name}</p>

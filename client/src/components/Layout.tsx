@@ -126,7 +126,7 @@ export function Layout({ children }: LayoutProps) {
           <DialogHeader>
             <DialogTitle>Search Rugby League Central</DialogTitle>
           </DialogHeader>
-          <GlobalSearch />
+          <GlobalSearch onResultSelect={() => setIsSearchOpen(false)} />
         </DialogContent>
       </Dialog>
       

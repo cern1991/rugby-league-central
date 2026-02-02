@@ -1,5 +1,4 @@
 import { Layout } from "@/components/Layout";
-import { GlobalSearch } from "@/components/GlobalSearch";
 import LeagueFilter from "@/components/LeagueFilter";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
@@ -53,9 +52,6 @@ export default function Teams() {
             <p className="text-muted-foreground mt-1">Browse teams from {displayLeagueName}</p>
           </div>
 
-          <div className="w-full max-w-md">
-            <GlobalSearch />
-          </div>
         </div>
 
         {/* League Filter Buttons - Always Visible */}

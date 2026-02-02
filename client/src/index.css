@@ -87,6 +87,79 @@
   --chart-5: 344 60% 60%;
 }
 
+[data-theme="nrl"] {
+  --background: 150 14% 6%;
+  --foreground: 140 18% 90%;
+
+  --card: 150 12% 9%;
+  --card-foreground: 140 18% 90%;
+
+  --popover: 150 12% 8%;
+  --popover-foreground: 140 18% 90%;
+
+  --primary: 145 60% 58%;
+  --primary-foreground: 150 40% 12%;
+
+  --secondary: 150 10% 13%;
+  --secondary-foreground: 140 18% 88%;
+
+  --muted: 150 10% 13%;
+  --muted-foreground: 140 10% 64%;
+
+  --accent: 150 12% 14%;
+  --accent-foreground: 140 18% 88%;
+
+  --destructive: 0 70% 38%;
+  --destructive-foreground: 210 30% 96%;
+
+  --border: 150 10% 16%;
+  --input: 150 10% 16%;
+  --ring: 145 70% 60%;
+
+  --chart-1: 145 60% 55%;
+  --chart-2: 110 35% 50%;
+  --chart-3: 35 65% 50%;
+  --chart-4: 170 30% 48%;
+  --chart-5: 210 30% 55%;
+}
+
+[data-theme="super-league"] {
+  --background: 350 16% 6%;
+  --foreground: 0 0% 90%;
+
+  --card: 350 12% 9%;
+  --card-foreground: 0 0% 90%;
+
+  --popover: 350 12% 8%;
+  --popover-foreground: 0 0% 90%;
+
+  --primary: 0 70% 58%;
+  --primary-foreground: 0 0% 98%;
+
+  --secondary: 350 12% 13%;
+  --secondary-foreground: 0 0% 88%;
+
+  --muted: 350 10% 13%;
+  --muted-foreground: 0 0% 64%;
+
+  --accent: 350 12% 14%;
+  --accent-foreground: 0 0% 88%;
+
+  --destructive: 0 70% 38%;
+  --destructive-foreground: 210 30% 96%;
+
+  --border: 350 10% 16%;
+  --input: 350 10% 16%;
+  --ring: 0 75% 60%;
+
+  --chart-1: 0 70% 55%;
+  --chart-2: 30 60% 52%;
+  --chart-3: 210 30% 55%;
+  --chart-4: 320 30% 52%;
+  --chart-5: 15 50% 52%;
+}
+
+
 /* ========== NRL TEAMS ========== */
 
 /* Brisbane Broncos - Maroon/Gold */
@@ -654,6 +727,7 @@ body {
   color: hsl(var(--foreground));
   font-family: var(--font-sans);
 }
+
 
 @layer utilities {
   .font-display {
