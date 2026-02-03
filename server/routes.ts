@@ -529,6 +529,41 @@ export async function registerRoutes(
     return results;
   }
 
+  function extractPositionFromSummary(summary?: string | null) {
+    if (!summary) return null;
+    const lower = summary.toLowerCase();
+    const hints: string[] = [];
+    const addIf = (cond: boolean, label: string) => {
+      if (cond && !hints.includes(label)) hints.push(label);
+    };
+    addIf(lower.includes("fullback"), "Fullback");
+    addIf(lower.includes("winger") || lower.includes("wing"), "Wing");
+    addIf(lower.includes("centre") || lower.includes("center"), "Centre");
+    addIf(lower.includes("five-eighth") || lower.includes("five eighth") || lower.includes("stand-off") || lower.includes("stand off"), "Stand-off");
+    addIf(lower.includes("halfback") || lower.includes("half-back") || lower.includes("scrum-half") || lower.includes("half back"), "Halfback");
+    addIf(lower.includes("hooker") || lower.includes("dummy half"), "Hooker");
+    addIf(lower.includes("prop") || lower.includes("front row") || lower.includes("front-row"), "Prop");
+    addIf(lower.includes("second-row") || lower.includes("second row") || lower.includes("back-row") || lower.includes("back row") || lower.includes("edge"), "Second-row");
+    addIf(lower.includes("lock") || lower.includes("loose forward"), "Loose forward");
+    addIf(lower.includes("utility"), "Utility");
+    if (hints.length === 0) return null;
+    const order = [
+      "Fullback",
+      "Wing",
+      "Centre",
+      "Stand-off",
+      "Halfback",
+      "Prop",
+      "Hooker",
+      "Second-row",
+      "Loose forward",
+      "Utility",
+    ];
+    const rank = new Map(order.map((pos, index) => [pos, index]));
+    hints.sort((a, b) => (rank.get(a) ?? 999) - (rank.get(b) ?? 999));
+    return hints.join(" / ");
+  }
+
   async function getWikipediaPlayerProfile(subject?: string | null) {
     if (!subject) return null;
     const normalized = subject.trim();
@@ -562,14 +597,20 @@ export async function registerRoutes(
       const position = extractPositionFromWikipediaHtml(html);
       const payload = {
         ...baseProfile,
-        position: position ? formatPositions(position) || position : null,
+        position:
+          position
+            ? formatPositions(position) || position
+            : extractPositionFromSummary(baseProfile.summary) || null,
         expires: Date.now() + WIKIPEDIA_CACHE_TTL,
       };
       wikipediaProfileCache.set(cacheKey, payload);
       return payload;
     } catch (error) {
       console.error("Wikipedia position fetch failed:", error);
-      return baseProfile;
+      return {
+        ...baseProfile,
+        position: extractPositionFromSummary(baseProfile.summary) || baseProfile.position || null,
+      };
     }
   }
 
@@ -1179,23 +1220,46 @@ export async function registerRoutes(
       const squad =
         squads.find((entry) => entry.season === parseInt(CURRENT_SEASON, 10)) ||
         squads[0];
-      if (squad && squad.players && squad.players.length > 0) {
-        const match = squad.players.find((player, index) => {
+      const findByNumber = (squadList: SuperLeagueSquad[], ownerTeamId: string) => {
+        const active =
+          squadList.find((entry) => entry.season === parseInt(CURRENT_SEASON, 10)) ||
+          squadList[0];
+        if (!active || !active.players || active.players.length === 0) return null;
+        const match = active.players.find((player, index) => {
           const number = player.squad_number ?? index + 1;
           return String(number) === rawNumber;
         });
-        if (match) {
-          return {
-            id: playerId,
-            name: match.name,
-            position: match.position || "",
-            teamId,
-            teamName: teamInfo?.name || squad.team_name,
-            league: teamInfo?.league || "Super League",
-            country: teamInfo?.country,
-            stats: generatePlayerStats(match.name),
-          };
+        if (!match) return null;
+        const ownerInfo = findLocalTeamById(ownerTeamId);
+        return {
+          id: playerId,
+          name: match.name,
+          position: match.position || "",
+          teamId: ownerTeamId,
+          teamName: ownerInfo?.name || active.team_name,
+          league: ownerInfo?.league || "Super League",
+          country: ownerInfo?.country,
+          stats: generatePlayerStats(match.name),
+        };
+      };
+
+      const directMatch = findByNumber(squads, teamId);
+      if (directMatch) {
+        return directMatch;
+      }
+
+      let fallbackMatch: ReturnType<typeof findByNumber> | null = null;
+      for (const [fallbackTeamId, fallbackSquads] of Object.entries(SUPER_LEAGUE_SQUADS_BY_TEAM_ID)) {
+        const candidate = findByNumber(fallbackSquads, fallbackTeamId);
+        if (!candidate) continue;
+        if (fallbackMatch && fallbackMatch.teamId !== candidate.teamId) {
+          fallbackMatch = null;
+          break;
         }
+        fallbackMatch = candidate;
+      }
+      if (fallbackMatch) {
+        return fallbackMatch;
       }
     }
 
@@ -1527,7 +1591,7 @@ export async function registerRoutes(
               formatPositions(positionLookup.get(player.name.toLowerCase())) ||
               player.position ||
               positionLookup.get(player.name.toLowerCase()) ||
-              "";
+              "Utility";
             const description =
               wikiProfile?.summary ||
               (normalizedPosition
@@ -1558,6 +1622,7 @@ export async function registerRoutes(
           superLeagueSquads.find((entry) => entry.season === seasonFilter) ||
           superLeagueSquads[0];
         if (!squad || !squad.players || squad.players.length === 0) return null;
+        const idForTeam = resolvedTeamId || id;
         return Promise.all(
           squad.players
             .filter((player) => isPlayerAssignedToTeam(player.name, resolvedTeamId))
@@ -1565,9 +1630,9 @@ export async function registerRoutes(
           const wikiProfile = await getWikipediaPlayerProfile(player.name);
           const avatar = wikiProfile?.image || getFallbackPlayerImage(player.name);
           const normalizedPosition =
-            wikiProfile?.position || formatPositions(player.position) || player.position || "";
+            wikiProfile?.position || formatPositions(player.position) || player.position || "Utility";
           return {
-            id: `SL-${id}-${player.squad_number ?? index + 1}`,
+            id: `SL-${idForTeam}-${player.squad_number ?? index + 1}`,
             name: player.name,
             position: normalizedPosition,
             nationality: player.nationality || teamInfo?.country?.name || "England",
@@ -1653,7 +1718,7 @@ export async function registerRoutes(
             .map((player, index) => ({
               id: `SL-${team.id}-${player.squad_number ?? index + 1}`,
               name: player.name,
-              position: formatPositions(player.position) || player.position || "",
+              position: formatPositions(player.position) || player.position || "Utility",
               teamId: String(team.id),
               teamName: team.name,
               league: team.league,
@@ -1667,7 +1732,7 @@ export async function registerRoutes(
             const wikiProfile = await getWikipediaPlayerProfile(player.name);
             return {
               ...player,
-              position: wikiProfile?.position || player.position || "",
+              position: wikiProfile?.position || player.position || "Utility",
               image: wikiProfile?.image || player.image,
             };
           });
@@ -1686,7 +1751,7 @@ export async function registerRoutes(
               .map((player, index) => ({
                 id: `SL-${teamId}-${player.squad_number ?? index + 1}`,
                 name: player.name,
-                position: formatPositions(player.position) || player.position || "",
+                position: formatPositions(player.position) || player.position || "Utility",
                 teamId,
                 teamName: teamInfo?.name || squad.team_name,
                 league: teamInfo?.league || "Super League",
@@ -1701,7 +1766,7 @@ export async function registerRoutes(
           const wikiProfile = await getWikipediaPlayerProfile(player.name);
           return {
             ...player,
-            position: wikiProfile?.position || player.position || "",
+            position: wikiProfile?.position || player.position || "Utility",
             image: wikiProfile?.image || player.image,
           };
         });
@@ -1715,7 +1780,7 @@ export async function registerRoutes(
           const players = (roster && roster.length > 0 ? roster : fallback).map((player) => ({
             id: player.id,
             name: player.name,
-            position: formatPositions(player.position) || player.position || "",
+            position: formatPositions(player.position) || player.position || "Utility",
             teamId: String(team.id),
             teamName: team.name,
             league: team.league,
@@ -1732,7 +1797,7 @@ export async function registerRoutes(
         const wikiProfile = await getWikipediaPlayerProfile(player.name);
         return {
           ...player,
-          position: wikiProfile?.position || player.position || "",
+          position: wikiProfile?.position || player.position || "Utility",
           image: wikiProfile?.image || player.image,
         };
       });
@@ -1754,7 +1819,7 @@ export async function registerRoutes(
       if (localPlayer) {
         const wikiProfile = await getWikipediaPlayerProfile(localPlayer.name);
         const normalizedPosition =
-          wikiProfile?.position || formatPositions(localPlayer.position) || localPlayer.position || "";
+          wikiProfile?.position || formatPositions(localPlayer.position) || localPlayer.position || "Utility";
         const avatar = wikiProfile?.image || getFallbackPlayerImage(localPlayer.name);
         return res.json({
           response: {
