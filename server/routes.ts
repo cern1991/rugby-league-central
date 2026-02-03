@@ -1172,6 +1172,33 @@ export async function registerRoutes(
       }
     }
 
+    if (playerId.startsWith("SL-")) {
+      const [, teamId, rawNumber] = playerId.split("-");
+      const teamInfo = findLocalTeamById(teamId);
+      const squads = SUPER_LEAGUE_SQUADS_BY_TEAM_ID[teamId] || [];
+      const squad =
+        squads.find((entry) => entry.season === parseInt(CURRENT_SEASON, 10)) ||
+        squads[0];
+      if (squad && squad.players && squad.players.length > 0) {
+        const match = squad.players.find((player, index) => {
+          const number = player.squad_number ?? index + 1;
+          return String(number) === rawNumber;
+        });
+        if (match) {
+          return {
+            id: playerId,
+            name: match.name,
+            position: match.position || "",
+            teamId,
+            teamName: teamInfo?.name || squad.team_name,
+            league: teamInfo?.league || "Super League",
+            country: teamInfo?.country,
+            stats: generatePlayerStats(match.name),
+          };
+        }
+      }
+    }
+
     const teamSlug = SORTED_TEAM_SLUGS.find((slug) => playerId.startsWith(`${slug}-`));
     if (!teamSlug) return null;
     const teamId = TEAM_ID_BY_SLUG[teamSlug];
