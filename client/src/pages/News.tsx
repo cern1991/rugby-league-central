@@ -62,7 +62,7 @@ export default function News() {
         <div className="bg-card border border-border rounded-lg p-3 sm:p-4">
           <h3 className="font-bold mb-2 text-sm">Auto-Refresh</h3>
           <p className="text-sm text-muted-foreground">
-            News is automatically updated every 5 minutes. Click refresh to get the latest articles now.
+            News is automatically updated about every 30 minutes. Click refresh to get the latest articles now.
           </p>
         </div>
 

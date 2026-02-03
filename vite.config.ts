@@ -2,8 +2,11 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
+import { fileURLToPath } from "url";
 import { metaImagesPlugin } from "./vite-plugin-meta-images";
 import { visualizer } from "rollup-plugin-visualizer";
+
+const rootDir = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   plugins: [
@@ -12,7 +15,7 @@ export default defineConfig({
     metaImagesPlugin(),
     process.env.ANALYZE
       ? visualizer({
-          filename: path.resolve(import.meta.dirname, "dist", "bundle-report.html"),
+          filename: path.resolve(rootDir, "dist", "bundle-report.html"),
           open: false,
           gzipSize: true,
           brotliSize: true,
@@ -21,9 +24,9 @@ export default defineConfig({
   ].filter(Boolean),
   resolve: {
     alias: {
-      "@": path.resolve(import.meta.dirname, "client", "src"),
-      "@shared": path.resolve(import.meta.dirname, "shared"),
-      "@assets": path.resolve(import.meta.dirname, "attached_assets"),
+      "@": path.resolve(rootDir, "client", "src"),
+      "@shared": path.resolve(rootDir, "shared"),
+      "@assets": path.resolve(rootDir, "attached_assets"),
     },
   },
   css: {
@@ -31,9 +34,9 @@ export default defineConfig({
       plugins: [],
     },
   },
-  root: path.resolve(import.meta.dirname, "client"),
+  root: path.resolve(rootDir, "client"),
   build: {
-    outDir: path.resolve(import.meta.dirname, "dist/public"),
+    outDir: path.resolve(rootDir, "dist/public"),
     emptyOutDir: true,
     rollupOptions: {
       output: {

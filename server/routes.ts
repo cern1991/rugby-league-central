@@ -1595,7 +1595,87 @@ export async function registerRoutes(
     return mapNewsItemsWithBranding(matches, query);
   }
 
-  // Get rugby news - using Google News RSS
+  const NEWSDATA_API_KEY = process.env.NEWSDATA_API_KEY;
+  const NEWS_CACHE_TTL_MS = 30 * 60 * 1000;
+  const newsCache = new Map<string, { expiresAt: number; items: any[] }>();
+
+  const getCachedNews = (cacheKey: string) => {
+    const cached = newsCache.get(cacheKey);
+    if (!cached) return null;
+    if (Date.now() > cached.expiresAt) {
+      newsCache.delete(cacheKey);
+      return null;
+    }
+    return cached.items;
+  };
+
+  const setCachedNews = (cacheKey: string, items: any[]) => {
+    newsCache.set(cacheKey, { expiresAt: Date.now() + NEWS_CACHE_TTL_MS, items });
+  };
+
+  async function fetchNewsDataLatest(league?: string) {
+    if (!NEWSDATA_API_KEY) return null;
+
+    let query = "rugby league";
+    let country = "au,nz";
+    if (league) {
+      const leagueLower = league.toLowerCase();
+      if (leagueLower.includes("super")) {
+        query = "Super League rugby";
+        country = "gb,fr";
+      } else if (leagueLower.includes("nrl") || leagueLower.includes("national")) {
+        query = "NRL rugby league";
+        country = "au,nz";
+      }
+    }
+
+    const params = new URLSearchParams({
+      apikey: NEWSDATA_API_KEY,
+      q: query,
+      language: "en",
+      country,
+      category: "sports",
+    });
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), ARTICLE_FETCH_TIMEOUT_MS);
+
+    try {
+      const response = await fetch(`https://newsdata.io/api/1/latest?${params.toString()}`, {
+        headers: ARTICLE_IMAGE_HEADERS,
+        signal: controller.signal,
+      });
+      if (!response.ok) {
+        return null;
+      }
+      const data = await response.json();
+      const results = Array.isArray(data?.results) ? data.results : [];
+      if (results.length === 0) return [];
+
+      const items = results.slice(0, 10).map((item: any) => {
+        const link = item.link || item.url || "";
+        const title = decodeHtmlEntities(item.title || item.description || "Rugby League update");
+        return {
+          id: Buffer.from(link || title).toString("base64").slice(0, 20),
+          title,
+          link,
+          pubDate: item.pubDate || item.pubDateTZ || item.published_at || new Date().toISOString(),
+          source: item.source_id || item.source_name || item.source || "NewsData.io",
+          league: league || query,
+          image: item.image_url || item.image || null,
+        };
+      }).filter((item: any) => item.title && item.link);
+
+      return items;
+    } catch (error) {
+      console.error("NewsData fetch error:", error);
+      return null;
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  // Get rugby news - using NewsData.io (with Google News RSS fallback)
   app.get("/api/rugby/news", async (req, res) => {
     const { league } = req.query as { league?: string };
     const fallbackNews = getLocalNewsFallback(league);
@@ -1610,6 +1690,18 @@ export async function registerRoutes(
         } else if (leagueLower.includes("nrl") || leagueLower.includes("national")) {
           searchQuery = "NRL rugby league";
         }
+      }
+
+      const cacheKey = league || searchQuery;
+      const cachedNews = getCachedNews(cacheKey);
+      if (cachedNews?.length) {
+        return res.json({ response: mapNewsItemsWithBranding(cachedNews, league || searchQuery) });
+      }
+
+      const newsDataItems = await fetchNewsDataLatest(league);
+      if (Array.isArray(newsDataItems) && newsDataItems.length > 0) {
+        setCachedNews(cacheKey, newsDataItems);
+        return res.json({ response: mapNewsItemsWithBranding(newsDataItems, league || searchQuery) });
       }
 
       const encodedQuery = encodeURIComponent(searchQuery);
