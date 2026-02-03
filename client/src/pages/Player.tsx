@@ -37,6 +37,15 @@ interface PlayerStats {
 export default function PlayerPage() {
   const [, params] = useRoute("/player/:id");
   const playerId = params?.id ?? "";
+  let backLink = "/teams";
+  try {
+    const lastTeamId = sessionStorage.getItem("rlc-last-team-id");
+    if (lastTeamId) {
+      backLink = `/team/${encodeURIComponent(lastTeamId)}`;
+    }
+  } catch {
+    // Ignore storage errors
+  }
 
   const { data, isLoading, isError } = useQuery<{ response: PlayerProfile }>({
     queryKey: ["player", playerId],
@@ -55,9 +64,9 @@ export default function PlayerPage() {
     <Layout>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <Link href="/teams" className="inline-flex items-center gap-2 text-sm text-primary hover:underline">
+          <Link href={backLink} className="inline-flex items-center gap-2 text-sm text-primary hover:underline">
             <ArrowLeft className="w-4 h-4" />
-            Back to teams
+            Back to team
           </Link>
         </div>
 

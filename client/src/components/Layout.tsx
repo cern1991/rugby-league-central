@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
-import { Menu, Home, X, Zap, Newspaper, Users, BarChart3, Search } from "lucide-react";
-import { useState } from "react";
+import { Menu, Home, X, Calendar, Newspaper, Users, Trophy, Search, MoreHorizontal } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { ThemeCustomizer } from "@/components/ThemeCustomizer";
 import { GlobalSearch } from "@/components/GlobalSearch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -14,14 +14,73 @@ export function Layout({ children }: LayoutProps) {
   const [location] = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [visibleNavCount, setVisibleNavCount] = useState(0);
+  const [isMoreOpen, setIsMoreOpen] = useState(false);
+  const navRef = useRef<HTMLDivElement | null>(null);
+  const measureRef = useRef<HTMLDivElement | null>(null);
+  const moreButtonRef = useRef<HTMLButtonElement | null>(null);
 
   const navItems = [
     { label: "Home", icon: Home, href: "/" },
-    { label: "Fixtures", icon: Zap, href: "/live" },
-    { label: "News", icon: Newspaper, href: "/news" },
-    { label: "Tables", icon: BarChart3, href: "/tables" },
     { label: "Teams", icon: Users, href: "/teams" },
+    { label: "Fixtures", icon: Calendar, href: "/live" },
+    { label: "Tables", icon: Trophy, href: "/tables" },
+    { label: "News", icon: Newspaper, href: "/news" },
   ];
+
+  useEffect(() => {
+    const updateVisibleItems = () => {
+      if (!navRef.current || !measureRef.current) return;
+      const containerWidth = navRef.current.clientWidth;
+      if (!containerWidth) return;
+
+      const itemNodes = Array.from(measureRef.current.querySelectorAll<HTMLElement>("[data-measure=\"item\"]"));
+      const moreNode = measureRef.current.querySelector<HTMLElement>("[data-measure=\"more\"]");
+      const itemWidths = itemNodes.map((node) => node.getBoundingClientRect().width);
+      const moreWidth = moreNode?.getBoundingClientRect().width ?? 0;
+
+      let total = 0;
+      let count = 0;
+      for (let i = 0; i < itemWidths.length; i += 1) {
+        const remaining = itemWidths.length - (i + 1);
+        const reserve = remaining > 0 ? moreWidth : 0;
+        if (total + itemWidths[i] + reserve <= containerWidth) {
+          total += itemWidths[i];
+          count += 1;
+        } else {
+          break;
+        }
+      }
+      setVisibleNavCount(count);
+    };
+
+    const handleResize = () => updateVisibleItems();
+    updateVisibleItems();
+
+    const observer = new ResizeObserver(handleResize);
+    if (navRef.current) observer.observe(navRef.current);
+    if (measureRef.current) observer.observe(measureRef.current);
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", handleResize);
+    };
+  }, [navItems.length]);
+
+  useEffect(() => {
+    if (!isMoreOpen) return;
+    const handleClick = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (moreButtonRef.current?.contains(target)) return;
+      setIsMoreOpen(false);
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [isMoreOpen]);
+
+  const visibleNavItems = navItems.slice(0, visibleNavCount || navItems.length);
+  const overflowNavItems = navItems.slice(visibleNavItems.length);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -40,21 +99,81 @@ export function Layout({ children }: LayoutProps) {
             </Link>
 
             {/* Desktop Navigation */}
-            <nav className="hidden lg:flex items-center gap-1 text-sm">
-              {navItems.map((item) => (
-                <Link key={item.href} href={item.href}>
-                  <div className={cn(
-                    "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer",
-                    location === item.href 
-                      ? "bg-primary/10 text-primary" 
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                  )}>
-                    <item.icon className="w-4 h-4" />
-                    {item.label}
+            <div className="hidden md:flex flex-1 justify-center">
+              <nav ref={navRef} className="flex items-center gap-1 text-sm max-w-full">
+                {visibleNavItems.map((item) => (
+                  <Link key={item.href} href={item.href}>
+                    <div className={cn(
+                      "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap",
+                      location === item.href
+                        ? "bg-primary/10 text-primary"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                    )}>
+                      <item.icon className="w-4 h-4" />
+                      {item.label}
+                    </div>
+                  </Link>
+                ))}
+                {overflowNavItems.length > 0 && (
+                  <div className="relative">
+                    <button
+                      ref={moreButtonRef}
+                      onClick={() => setIsMoreOpen((prev) => !prev)}
+                      className={cn(
+                        "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors border border-transparent",
+                        isMoreOpen ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                      )}
+                      aria-expanded={isMoreOpen}
+                      aria-haspopup="menu"
+                    >
+                      <MoreHorizontal className="w-4 h-4" />
+                      More
+                    </button>
+                    {isMoreOpen && (
+                      <div className="absolute right-0 mt-2 w-44 rounded-xl border border-border bg-card shadow-xl py-2 z-50">
+                        {overflowNavItems.map((item) => (
+                          <Link key={item.href} href={item.href}>
+                            <div
+                              className={cn(
+                                "flex items-center gap-2 px-3 py-2 text-sm font-medium transition-colors cursor-pointer",
+                                location === item.href
+                                  ? "bg-primary/10 text-primary"
+                                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                              )}
+                              onClick={() => setIsMoreOpen(false)}
+                            >
+                              <item.icon className="w-4 h-4" />
+                              {item.label}
+                            </div>
+                          </Link>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                </Link>
+                )}
+              </nav>
+            </div>
+
+            <div
+              ref={measureRef}
+              className="absolute -left-[9999px] top-0 flex items-center gap-1 text-sm opacity-0 pointer-events-none"
+              aria-hidden="true"
+            >
+              {navItems.map((item) => (
+                <div
+                  key={item.href}
+                  data-measure="item"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap"
+                >
+                  <item.icon className="w-4 h-4" />
+                  {item.label}
+                </div>
               ))}
-            </nav>
+              <div data-measure="more" className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap">
+                <MoreHorizontal className="w-4 h-4" />
+                More
+              </div>
+            </div>
 
             {/* Right Side */}
             <div className="flex items-center gap-3">

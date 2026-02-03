@@ -142,6 +142,36 @@ export default function TeamPage() {
   const resolvedTeamId = fallbackTeam ? String(fallbackTeam.id) : routeTeamId;
   const teamIdKey = useMemo(() => (resolvedTeamId ? String(resolvedTeamId) : null), [resolvedTeamId]);
 
+  useEffect(() => {
+    if (!resolvedTeamId) return;
+    try {
+      sessionStorage.setItem("rlc-last-team-id", String(resolvedTeamId));
+    } catch {
+      // Ignore storage errors
+    }
+  }, [resolvedTeamId]);
+
+  useEffect(() => {
+    if (!resolvedTeamId) return;
+    try {
+      const storedTab = sessionStorage.getItem(`rlc-team-tab-${resolvedTeamId}`);
+      if (storedTab === "fixtures" || storedTab === "players") {
+        setActiveTab(storedTab);
+      }
+    } catch {
+      // Ignore storage errors
+    }
+  }, [resolvedTeamId]);
+
+  useEffect(() => {
+    if (!resolvedTeamId) return;
+    try {
+      sessionStorage.setItem(`rlc-team-tab-${resolvedTeamId}`, activeTab);
+    } catch {
+      // Ignore storage errors
+    }
+  }, [activeTab, resolvedTeamId]);
+
   const { data: teamData, isLoading: teamLoading, error: teamError } = useQuery<ApiResponse<Team[]>>({
     queryKey: ["team", resolvedTeamId],
     queryFn: async () => {

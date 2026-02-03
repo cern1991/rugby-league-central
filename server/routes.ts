@@ -264,8 +264,86 @@ export async function registerRoutes(
   const WIKIPEDIA_CACHE_TTL = 1000 * 60 * 60 * 12;
   const wikipediaProfileCache = new Map<
     string,
-    { summary: string | null; image: string | null; expires: number }
+    { summary: string | null; image: string | null; position: string | null; expires: number }
   >();
+  const WIKIPEDIA_ROSTER_CACHE_TTL = 1000 * 60 * 60 * 12;
+  const wikipediaRosterCache = new Map<
+    string,
+    { players: Array<{ id: string; name: string; position: string }>; expires: number }
+  >();
+  const ZERO_TACKLE_CACHE_TTL = 1000 * 60 * 60 * 6;
+  const zeroTackleRosterCache = new Map<
+    string,
+    { players: Array<{ id: string; name: string; position: string }>; expires: number }
+  >();
+
+  const normalizeSlug = (value: string) =>
+    value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+
+  const TEAM_SLUG_BY_ID = LOCAL_TEAMS.reduce<Record<string, string>>((acc, team) => {
+    acc[String(team.id)] = normalizeSlug(team.name);
+    return acc;
+  }, {});
+
+  const TEAM_ID_BY_SLUG = Object.entries(TEAM_SLUG_BY_ID).reduce<Record<string, string>>(
+    (acc, [id, slug]) => {
+      acc[slug] = id;
+      return acc;
+    },
+    {}
+  );
+
+  const SORTED_TEAM_SLUGS = Object.keys(TEAM_ID_BY_SLUG).sort(
+    (a, b) => b.length - a.length
+  );
+
+  const makePlayerId = (teamId: string, name: string) => {
+    const teamSlug = TEAM_SLUG_BY_ID[String(teamId)] || normalizeSlug(teamId);
+    return `${teamSlug}-${normalizeSlug(name)}`;
+  };
+
+  const NRL_WIKI_SEASON_PAGE_BY_TEAM_ID: Record<string, string> = {
+    "135191": "2026_Brisbane_Broncos_season",
+    "135186": "2026_Canberra_Raiders_season",
+    "135187": "2026_Canterbury-Bankstown_Bulldogs_season",
+    "135184": "2026_Cronulla-Sutherland_Sharks_season",
+    "140097": "2026_Dolphins_(NRL)_season",
+    "135194": "2026_Gold_Coast_Titans_season",
+    "135188": "2026_Manly_Warringah_Sea_Eagles_season",
+    "135190": "2026_Melbourne_Storm_season",
+    "135198": "2026_Newcastle_Knights_season",
+    "135193": "2026_New_Zealand_Warriors_season",
+    "135196": "2026_North_Queensland_Cowboys_season",
+    "135183": "2026_Parramatta_Eels_season",
+    "135197": "2026_Penrith_Panthers_season",
+    "135185": "2026_South_Sydney_Rabbitohs_season",
+    "135195": "2026_St._George_Illawarra_Dragons_season",
+    "135192": "2026_Sydney_Roosters_season",
+    "135189": "2026_Wests_Tigers_season",
+  };
+
+  const ZERO_TACKLE_BASE_URL =
+    "https://www.zerotackle.com/nrl-2026-every-clubs-current-full-squad-best-17-ins-and-outs-off-contract-players-3-217909";
+
+  const ZERO_TACKLE_PAGE_BY_TEAM_ID: Record<string, number> = {
+    "135191": 1, // Brisbane Broncos
+    "135186": 2, // Canberra Raiders
+    "135187": 3, // Canterbury Bulldogs
+    "135184": 4, // Cronulla Sharks
+    "135194": 5, // Gold Coast Titans
+    "135188": 6, // Manly Sea Eagles
+    "135190": 7, // Melbourne Storm
+    "135193": 8, // New Zealand Warriors
+    "135198": 9, // Newcastle Knights
+    "135196": 10, // North Queensland Cowboys
+    "135183": 11, // Parramatta Eels
+    "135197": 12, // Penrith Panthers
+    "135185": 13, // South Sydney Rabbitohs
+    "135195": 14, // St George Illawarra Dragons
+    "135192": 15, // Sydney Roosters
+    "140097": 16, // Dolphins
+    "135189": 17, // Wests Tigers
+  };
 
   function sanitizePlayerSummary(summary?: string | null) {
     if (!summary) return null;
@@ -314,12 +392,340 @@ export async function registerRoutes(
       const payload = {
         summary: summary || null,
         image,
+        position: null,
         expires: Date.now() + WIKIPEDIA_CACHE_TTL,
       };
       wikipediaProfileCache.set(cacheKey, payload);
       return payload;
     } catch (error) {
       console.error("Wikipedia profile fetch failed:", error);
+      return null;
+    }
+  }
+
+  function normalizePosition(value?: string | null) {
+    if (!value) return null;
+    const lower = value.toLowerCase();
+    const has = (needle: string) => lower.includes(needle);
+    if (has("fullback")) return "Fullback";
+    if (has("wing")) return "Wing";
+    if (has("centre") || has("center")) return "Centre";
+    if (has("five-eighth") || has("five eighth") || has("stand-off") || has("stand off")) {
+      return "Stand-off";
+    }
+    if (has("halfback") || has("half-back") || has("scrum-half") || has("half back")) {
+      return "Halfback";
+    }
+    if (has("hooker") || has("dummy half")) return "Hooker";
+    if (has("prop") || has("front row") || has("middle forward") || has("front-row")) return "Prop";
+    if (has("second row") || has("second-row") || has("back row") || has("edge")) {
+      return "Second-row";
+    }
+    if (has("lock") || has("loose forward")) return "Loose forward";
+    if (has("utility") || has("interchange") || has("bench")) return "Utility";
+    return null;
+  }
+
+  function normalizePositions(value?: string | null) {
+    if (!value) return null;
+    const tokens = value
+      .split(/[,/]| and /i)
+      .map((token) => token.trim())
+      .filter(Boolean);
+    const normalized: string[] = [];
+    tokens.forEach((token) => {
+      const mapped = normalizePosition(token) || normalizePosition(value);
+      if (mapped && !normalized.includes(mapped)) {
+        normalized.push(mapped);
+      }
+    });
+    if (normalized.length === 0) {
+      const mapped = normalizePosition(value);
+      return mapped ? [mapped] : null;
+    }
+    const order = [
+      "Fullback",
+      "Wing",
+      "Centre",
+      "Stand-off",
+      "Halfback",
+      "Prop",
+      "Hooker",
+      "Second-row",
+      "Loose forward",
+      "Utility",
+    ];
+    const rank = new Map(order.map((pos, index) => [pos, index]));
+    normalized.sort((a, b) => (rank.get(a) ?? 999) - (rank.get(b) ?? 999));
+    return normalized;
+  }
+
+  function formatPositions(value?: string | null) {
+    const normalized = normalizePositions(value);
+    if (!normalized || normalized.length === 0) return null;
+    return normalized.join(" / ");
+  }
+
+  function extractPositionFromWikipediaHtml(html: string) {
+    const match = html.match(
+      /<th[^>]*>\s*Position(?:s)?\s*<\/th>\s*<td[^>]*>([\s\S]*?)<\/td>/i
+    );
+    if (!match) return null;
+    const text = stripTags(match[1]);
+    if (!text) return null;
+    return formatPositions(text) || text;
+  }
+
+  async function getWikipediaPlayerProfile(subject?: string | null) {
+    if (!subject) return null;
+    const normalized = subject.trim();
+    if (!normalized) return null;
+    const cacheKey = normalized.toLowerCase();
+    const cached = wikipediaProfileCache.get(cacheKey);
+    if (cached && cached.expires > Date.now() && cached.position !== undefined) {
+      return cached;
+    }
+
+    const baseProfile = await getWikipediaProfile(normalized);
+    if (!baseProfile) return null;
+    if (!baseProfile.summary) {
+      return baseProfile;
+    }
+
+    if (baseProfile.position) {
+      return baseProfile;
+    }
+
+    const slug = encodeURIComponent(normalized.replace(/\s+/g, "_"));
+    const url = `https://en.wikipedia.org/api/rest_v1/page/html/${slug}`;
+    try {
+      const response = await fetch(url, {
+        headers: { ...WIKIPEDIA_HEADERS, Accept: "text/html" },
+      });
+      if (!response.ok) {
+        return baseProfile;
+      }
+      const html = await response.text();
+      const position = extractPositionFromWikipediaHtml(html);
+      const payload = {
+        ...baseProfile,
+        position: position ? formatPositions(position) || position : null,
+        expires: Date.now() + WIKIPEDIA_CACHE_TTL,
+      };
+      wikipediaProfileCache.set(cacheKey, payload);
+      return payload;
+    } catch (error) {
+      console.error("Wikipedia position fetch failed:", error);
+      return baseProfile;
+    }
+  }
+
+  function decodeHtmlEntities(value: string) {
+    return value
+      .replace(/&nbsp;/gi, " ")
+      .replace(/&amp;/gi, "&")
+      .replace(/&quot;/gi, "\"")
+      .replace(/&#39;/gi, "'")
+      .replace(/&ndash;|&mdash;/gi, "-")
+      .replace(/&#(\d+);/g, (_, code) => {
+        const parsed = Number.parseInt(code, 10);
+        return Number.isNaN(parsed) ? "" : String.fromCharCode(parsed);
+      });
+  }
+
+  function stripTags(value: string) {
+    return decodeHtmlEntities(value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim());
+  }
+
+  function cleanPlayerName(value: string) {
+    return value
+      .replace(/\[[^\]]*]/g, "")
+      .replace(/\s*\([^)]*\)\s*/g, " ")
+      .replace(/\s+/g, " ")
+      .replace(/[^a-zA-Z0-9\s.'-]/g, "")
+      .trim();
+  }
+
+  function htmlToTextLines(html: string) {
+    const withoutScripts = html
+      .replace(/<script[\s\S]*?<\/script>/gi, " ")
+      .replace(/<style[\s\S]*?<\/style>/gi, " ");
+    const withBreaks = withoutScripts
+      .replace(/<br\s*\/?>/gi, "\n")
+      .replace(/<\/p>/gi, "\n")
+      .replace(/<\/li>/gi, "\n")
+      .replace(/<\/h\d>/gi, "\n")
+      .replace(/<\/tr>/gi, "\n");
+    return decodeHtmlEntities(withBreaks.replace(/<[^>]*>/g, " "))
+      .split("\n")
+      .map((line) => line.replace(/\s+/g, " ").trim())
+      .filter(Boolean);
+  }
+
+  function extractPlayerNameFromLine(line: string) {
+    const cleaned = line
+      .replace(/\*/g, "")
+      .replace(/\s{2,}/g, " ")
+      .trim();
+    const name = cleanPlayerName(cleaned);
+    if (!name) return null;
+    if (/no player signed/i.test(name)) return null;
+    return name;
+  }
+
+  function parseZeroTackleRoster(html: string, teamId: string) {
+    const lines = htmlToTextLines(html);
+    const players: Array<{ id: string; name: string; position: string }> = [];
+    const seen = new Set<string>();
+    let inSquadSection = false;
+    let inDevSection = false;
+
+    for (const rawLine of lines) {
+      const line = rawLine.trim();
+      if (!line) continue;
+
+      const lower = line.toLowerCase();
+      if (lower.includes("best 17 and full squad")) {
+        inSquadSection = true;
+        inDevSection = false;
+        continue;
+      }
+      if (lower.includes("2026 development list")) {
+        inDevSection = true;
+        inSquadSection = false;
+        continue;
+      }
+      if (lower.startsWith("roster spots open") || lower.startsWith("back")) {
+        inSquadSection = false;
+        continue;
+      }
+      if (!inSquadSection && !inDevSection) continue;
+
+      const numbered = line.match(/^\d+\.\s*(.+)$/);
+      if (!numbered) continue;
+      const name = extractPlayerNameFromLine(numbered[1]);
+      if (!name) continue;
+      const key = name.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      players.push({
+        id: makePlayerId(teamId, name),
+        name,
+        position: "",
+      });
+    }
+
+    return players;
+  }
+
+  async function getZeroTackleRosterForTeam(teamId: string) {
+    const page = ZERO_TACKLE_PAGE_BY_TEAM_ID[teamId];
+    if (!page) return null;
+    const cacheKey = `${teamId}-${page}`;
+    const cached = zeroTackleRosterCache.get(cacheKey);
+    if (cached && cached.expires > Date.now()) {
+      return cached.players;
+    }
+    const url = page === 1 ? `${ZERO_TACKLE_BASE_URL}/` : `${ZERO_TACKLE_BASE_URL}/${page}/`;
+    try {
+      const response = await fetch(url, {
+        headers: { ...WIKIPEDIA_HEADERS, Accept: "text/html" },
+      });
+      if (!response.ok) return null;
+      const html = await response.text();
+      const roster = parseZeroTackleRoster(html, teamId);
+      if (!roster || roster.length === 0) return null;
+      zeroTackleRosterCache.set(cacheKey, {
+        players: roster,
+        expires: Date.now() + ZERO_TACKLE_CACHE_TTL,
+      });
+      return roster;
+    } catch (error) {
+      console.error("Zero Tackle roster fetch failed:", error);
+      return null;
+    }
+  }
+
+  function extractTableHtmlForSquad(html: string) {
+    const squadAnchor = html.search(/id="2026_squad"/i);
+    if (squadAnchor === -1) return null;
+    const tableStart = html.indexOf("<table", squadAnchor);
+    if (tableStart === -1) return null;
+    const tableEnd = html.indexOf("</table>", tableStart);
+    if (tableEnd === -1) return null;
+    return html.slice(tableStart, tableEnd + "</table>".length);
+  }
+
+  function parseSquadTable(tableHtml: string, teamId: string) {
+    const rows = tableHtml.match(/<tr[\s\S]*?<\/tr>/gi) ?? [];
+    if (rows.length === 0) return [];
+
+    let nameIndex = -1;
+    let positionIndex = -1;
+    let startRowIndex = 0;
+
+    for (let i = 0; i < rows.length; i += 1) {
+      if (!rows[i].includes("<th")) continue;
+      const headerCells =
+        rows[i].match(/<t[hd][^>]*>[\s\S]*?<\/t[hd]>/gi) ?? [];
+      const labels = headerCells.map((cell) => stripTags(cell).toLowerCase());
+      nameIndex = labels.findIndex((label) => label.includes("name") || label.includes("player"));
+      positionIndex = labels.findIndex((label) => label.includes("position") || label === "pos" || label.includes("pos."));
+      if (nameIndex !== -1) {
+        startRowIndex = i + 1;
+        break;
+      }
+    }
+
+    if (nameIndex === -1) return [];
+    const players: Array<{ id: string; name: string; position: string }> = [];
+
+    for (let i = startRowIndex; i < rows.length; i += 1) {
+      const cellMatches =
+        rows[i].match(/<t[hd][^>]*>[\s\S]*?<\/t[hd]>/gi) ?? [];
+      if (cellMatches.length === 0) continue;
+      const cells = cellMatches.map((cell) => stripTags(cell));
+      const rawName = cells[nameIndex] || "";
+      const name = cleanPlayerName(rawName);
+      if (!name) continue;
+      const position = positionIndex !== -1 ? (cells[positionIndex] || "").trim() : "";
+      players.push({
+        id: makePlayerId(teamId, name),
+        name,
+        position,
+      });
+    }
+
+    return players;
+  }
+
+  async function getWikipediaRosterForTeam(teamId: string) {
+    const page = NRL_WIKI_SEASON_PAGE_BY_TEAM_ID[teamId];
+    if (!page) return null;
+    const cacheKey = page.toLowerCase();
+    const cached = wikipediaRosterCache.get(cacheKey);
+    if (cached && cached.expires > Date.now()) {
+      return cached.players;
+    }
+
+    const url = `https://en.wikipedia.org/api/rest_v1/page/html/${encodeURIComponent(page)}`;
+    try {
+      const response = await fetch(url, {
+        headers: { ...WIKIPEDIA_HEADERS, Accept: "text/html" },
+      });
+      if (!response.ok) return null;
+      const html = await response.text();
+      const tableHtml = extractTableHtmlForSquad(html);
+      if (!tableHtml) return null;
+      const players = parseSquadTable(tableHtml, teamId);
+      if (players.length === 0) return null;
+      wikipediaRosterCache.set(cacheKey, {
+        players,
+        expires: Date.now() + WIKIPEDIA_ROSTER_CACHE_TTL,
+      });
+      return players;
+    } catch (error) {
+      console.error("Wikipedia roster fetch failed:", error);
       return null;
     }
   }
@@ -691,7 +1097,7 @@ export async function registerRoutes(
     }));
   }
 
-  function getLocalPlayerById(playerId: string) {
+  async function getLocalPlayerById(playerId: string) {
     for (const [teamId, roster] of Object.entries(LOCAL_TEAM_ROSTERS)) {
       const match = roster.find((player) => player.id === playerId);
       if (match) {
@@ -706,7 +1112,28 @@ export async function registerRoutes(
         };
       }
     }
-    return null;
+
+    const teamSlug = SORTED_TEAM_SLUGS.find((slug) => playerId.startsWith(`${slug}-`));
+    if (!teamSlug) return null;
+    const teamId = TEAM_ID_BY_SLUG[teamSlug];
+    if (!teamId) return null;
+    const teamInfo = findLocalTeamById(teamId);
+    if (!teamInfo || teamInfo.league !== "NRL") return null;
+    const zeroTackleRoster = await getZeroTackleRosterForTeam(teamId);
+    let match = zeroTackleRoster?.find((player) => player.id === playerId) || null;
+    if (!match) {
+      const wikipediaRoster = await getWikipediaRosterForTeam(teamId);
+      match = wikipediaRoster?.find((player) => player.id === playerId) || null;
+    }
+    if (!match) return null;
+    return {
+      ...match,
+      teamId,
+      teamName: teamInfo?.name,
+      league: teamInfo?.league,
+      country: teamInfo?.country,
+      stats: generatePlayerStats(match.name),
+    };
   }
 
   async function searchTeamsByName(name: string) {
@@ -758,7 +1185,7 @@ export async function registerRoutes(
     return searchLocalPlayers(name).map((player) => ({
       id: player.id,
       name: player.name,
-      position: player.position,
+      position: formatPositions(player.position) || player.position,
       team: player.teamName,
       league: player.league,
       image: getFallbackPlayerImage(player.name),
@@ -998,36 +1425,60 @@ export async function registerRoutes(
       const teamInfo = resolvedTeamId ? findLocalTeamMeta(resolvedTeamId) : undefined;
       const superLeagueSquads = resolvedTeamId ? SUPER_LEAGUE_SQUADS_BY_TEAM_ID[resolvedTeamId] || [] : [];
 
-      const buildLocalRosterPlayers = () => {
-        if (!localRoster || localRoster.length === 0) return null;
-        return localRoster.map((player) => ({
-          id: player.id,
-          name: player.name,
-          position: player.position,
-          nationality: teamInfo?.country?.name || "Australia",
-          birthDate: null,
-          height: null,
-          weight: null,
-          photo: getFallbackPlayerImage(player.name),
-          thumbnail: getFallbackPlayerImage(player.name),
-          number: null,
-          description: `${player.name} plays ${player.position} for ${teamInfo?.name || "the club"}.`,
-          stats: generatePlayerStats(player.name),
-        }));
+      const buildLocalRosterPlayers = async (roster: Array<{ id: string; name: string; position: string }>) => {
+        if (!roster || roster.length === 0) return null;
+        const positionLookup = new Map(
+          localRoster.map((player) => [player.name.toLowerCase(), player.position])
+        );
+        const players = await Promise.all(
+          roster.map(async (player) => {
+            const wikiProfile = await getWikipediaPlayerProfile(player.name);
+            const normalizedPosition =
+              wikiProfile?.position ||
+              formatPositions(player.position) ||
+              formatPositions(positionLookup.get(player.name.toLowerCase())) ||
+              player.position ||
+              positionLookup.get(player.name.toLowerCase()) ||
+              "";
+            const description =
+              wikiProfile?.summary ||
+              (normalizedPosition
+                ? `${player.name} plays ${normalizedPosition} for ${teamInfo?.name || "the club"}.`
+                : `${player.name} plays for ${teamInfo?.name || "the club"}.`);
+            return {
+              id: player.id,
+              name: player.name,
+              position: normalizedPosition,
+              nationality: teamInfo?.country?.name || "Australia",
+              birthDate: null,
+              height: null,
+              weight: null,
+              photo: wikiProfile?.image || getFallbackPlayerImage(player.name),
+              thumbnail: wikiProfile?.image || getFallbackPlayerImage(player.name),
+              number: null,
+              description,
+              stats: generatePlayerStats(player.name),
+            };
+          })
+        );
+        return players;
       };
 
-      const buildSuperLeaguePlayers = () => {
+      const buildSuperLeaguePlayers = async () => {
         if (!superLeagueSquads || superLeagueSquads.length === 0) return null;
         const squad =
           superLeagueSquads.find((entry) => entry.season === seasonFilter) ||
           superLeagueSquads[0];
         if (!squad || !squad.players || squad.players.length === 0) return null;
-        return squad.players.map((player, index) => {
-          const avatar = getFallbackPlayerImage(player.name);
+        return Promise.all(squad.players.map(async (player, index) => {
+          const wikiProfile = await getWikipediaPlayerProfile(player.name);
+          const avatar = wikiProfile?.image || getFallbackPlayerImage(player.name);
+          const normalizedPosition =
+            wikiProfile?.position || formatPositions(player.position) || player.position || "";
           return {
             id: `SL-${id}-${player.squad_number ?? index + 1}`,
             name: player.name,
-            position: player.position,
+            position: normalizedPosition,
             nationality: player.nationality || teamInfo?.country?.name || "England",
             birthDate: player.dob || null,
             height: player.height_cm ? `${player.height_cm} cm` : null,
@@ -1036,20 +1487,34 @@ export async function registerRoutes(
             thumbnail: avatar,
             number: player.squad_number ? String(player.squad_number) : null,
             description:
-              player.position && squad.source_note
-                ? `${player.name} (${player.position}) - ${squad.source_note}`
-                : squad.source_note || `${player.name} is part of ${squad.team_name}'s ${squad.season} squad.`,
+              wikiProfile?.summary ||
+              (normalizedPosition && squad.source_note
+                ? `${player.name} (${normalizedPosition}) - ${squad.source_note}`
+                : squad.source_note || `${player.name} is part of ${squad.team_name}'s ${squad.season} squad.`),
             stats: generatePlayerStats(player.name),
           };
-        });
+        }));
       };
 
-      const localPlayers = buildLocalRosterPlayers();
+      let rosterToUse = localRoster;
+      if (teamInfo?.league === "NRL" && resolvedTeamId) {
+        const zeroTackleRoster = await getZeroTackleRosterForTeam(resolvedTeamId);
+        if (zeroTackleRoster && zeroTackleRoster.length > 0) {
+          rosterToUse = zeroTackleRoster;
+        } else {
+          const wikipediaRoster = await getWikipediaRosterForTeam(resolvedTeamId);
+          if (wikipediaRoster && wikipediaRoster.length > 0) {
+            rosterToUse = wikipediaRoster;
+          }
+        }
+      }
+
+      const localPlayers = await buildLocalRosterPlayers(rosterToUse);
       if (localPlayers) {
         return res.json({ response: localPlayers });
       }
 
-      const superLeaguePlayers = buildSuperLeaguePlayers();
+      const superLeaguePlayers = await buildSuperLeaguePlayers();
       if (superLeaguePlayers) {
         return res.json({ response: superLeaguePlayers });
       }
@@ -1068,22 +1533,26 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Player ID is required" });
       }
 
-      const localPlayer = getLocalPlayerById(id);
+      const localPlayer = await getLocalPlayerById(id);
       if (localPlayer) {
-        const wikiProfile = await getWikipediaProfile(localPlayer.name);
+        const wikiProfile = await getWikipediaPlayerProfile(localPlayer.name);
+        const normalizedPosition =
+          wikiProfile?.position || formatPositions(localPlayer.position) || localPlayer.position || "";
         const avatar = wikiProfile?.image || getFallbackPlayerImage(localPlayer.name);
         return res.json({
           response: {
             id: localPlayer.id,
             name: localPlayer.name,
-            position: localPlayer.position,
+            position: normalizedPosition,
             team: localPlayer.teamName,
             league: localPlayer.league,
             nationality: localPlayer.country?.name || "Australia",
             image: avatar,
             description:
               wikiProfile?.summary ||
-              `${localPlayer.name} plays ${localPlayer.position} for ${localPlayer.teamName || "their club"}.`,
+              (normalizedPosition
+                ? `${localPlayer.name} plays ${normalizedPosition} for ${localPlayer.teamName || "their club"}.`
+                : `${localPlayer.name} plays for ${localPlayer.teamName || "their club"}.`),
             socials: {},
             stats: localPlayer.stats || generatePlayerStats(localPlayer.name),
           },
