@@ -1,7 +1,7 @@
 import { useRoute, Link } from "wouter";
 import { Layout } from "@/components/Layout";
 import { useQuery } from "@tanstack/react-query";
-import { cn } from "@/lib/utils";
+import { cn, formatTime } from "@/lib/utils";
 import { useMemo } from "react";
 import { ArrowLeft, MapPin, Calendar, Clock } from "lucide-react";
 import { format, parseISO } from "date-fns";
@@ -176,7 +176,7 @@ export default function MatchDetail() {
               {game.time && (
                 <div className="flex items-center gap-1">
                   <Clock className="w-3.5 h-3.5" />
-                  <span>{game.time}</span>
+                  <span>{formatTime(game.time)}</span>
                 </div>
               )}
             </div>

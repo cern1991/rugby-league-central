@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { Search, Loader2, Users, UserCircle2, Newspaper, CalendarDays, Trophy } from "lucide-react";
 import { usePreferredLeague } from "@/hooks/usePreferredLeague";
 import { resolveNewsThumbnail } from "@/lib/branding";
+import { formatTime } from "@/lib/utils";
 
 const MIN_QUERY_LENGTH = 2;
 const TRENDING_SEARCHES = [
@@ -237,7 +238,7 @@ export function GlobalSearch({ className, onResultSelect }: Props) {
                       </div>
                       <div className="text-xs text-muted-foreground">
                         {game.date}
-                        {game.time && ` · ${game.time}`}
+                        {game.time && ` · ${formatTime(game.time)}`}
                         {game.venue && ` · ${game.venue}`}
                       </div>
                     </Link>

@@ -1,7 +1,7 @@
 import { Layout } from "@/components/Layout";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { cn, dedupeGames } from "@/lib/utils";
+import { cn, dedupeGames, formatTime } from "@/lib/utils";
 import { Link } from "wouter";
 import { 
   Trophy, 
@@ -219,7 +219,13 @@ export default function Home() {
                 <div className="space-y-3">
                   {roundFixtures.map((game) => {
                     const gameDate = game.date ? parseISO(game.date) : null;
-                    const kickoffText = gameDate ? format(gameDate, "EEE d MMM • p") : "Time TBC";
+                    const kickoffTime = formatTime(game.time);
+                    const kickoffDateTime = game.date && kickoffTime
+                      ? parseISO(`${game.date}T${kickoffTime}`)
+                      : gameDate;
+                    const kickoffText = kickoffDateTime
+                      ? `${format(kickoffDateTime, "EEE d MMM")} • ${kickoffTime || "TBC"}`
+                      : "Time TBC";
                     const statusLabel = game.status.long || game.status.short || "Not started";
                     return (
                       <Link
@@ -732,10 +738,4 @@ function GameCard({ game }: { game: Game }) {
       </div>
     </Link>
   );
-}
-
-function formatTime(value: string) {
-  const trimmed = value.trim();
-  const match = trimmed.match(/\b(\d{1,2}:\d{2})\b/);
-  return match ? match[1] : trimmed;
 }

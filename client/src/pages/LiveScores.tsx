@@ -1,7 +1,7 @@
 import { Layout } from "@/components/Layout";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { cn, dedupeGames } from "@/lib/utils";
+import { cn, dedupeGames, formatTime } from "@/lib/utils";
 import { Link } from "wouter";
 import { Zap, Clock, CheckCircle, Calendar } from "lucide-react";
 import LeagueFilter from "@/components/LeagueFilter";
@@ -256,10 +256,4 @@ function GameCard({ game, isLive }: { game: Game; isLive?: boolean }) {
       </div>
     </Link>
   );
-}
-
-function formatTime(value: string) {
-  const trimmed = value.trim();
-  const match = trimmed.match(/\b(\d{1,2}:\d{2})\b/);
-  return match ? match[1] : trimmed;
 }

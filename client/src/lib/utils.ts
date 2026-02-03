@@ -6,6 +6,17 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export function formatTime(value?: string | null) {
+  if (!value) return "";
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  const match = trimmed.match(/(\d{1,2}):(\d{2})/);
+  if (!match) return trimmed;
+  const hour = match[1].padStart(2, "0");
+  const minute = match[2];
+  return `${hour}:${minute}`;
+}
+
 const normalizeName = (value?: string | null) =>
   (value || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
 

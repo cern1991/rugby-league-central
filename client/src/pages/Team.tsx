@@ -1,7 +1,7 @@
 import { useRoute, Link } from "wouter";
 import { Layout } from "@/components/Layout";
 import { useQuery } from "@tanstack/react-query";
-import { cn } from "@/lib/utils";
+import { cn, formatTime } from "@/lib/utils";
 import { ArrowLeft, Calendar, Users, Trophy, MapPin, Clock, ChevronRight } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { format, parseISO, isPast, isFuture, isToday } from "date-fns";
@@ -723,7 +723,7 @@ function GameCard({ game, teamId }: { game: Game; teamId: string }) {
                 </div>
                 {!isFinished && game.time && (
                   <div className="text-xs text-muted-foreground">
-                    {game.time}
+                    {formatTime(game.time)}
                   </div>
                 )}
               </>
