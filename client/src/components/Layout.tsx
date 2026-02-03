@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
-import { Menu, Home, X, Calendar, Newspaper, Users, Trophy, Search, MoreHorizontal } from "lucide-react";
+import { Menu, Home, X, Calendar, Newspaper, Users, Trophy, Search, MoreHorizontal, UserRound } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { ThemeCustomizer } from "@/components/ThemeCustomizer";
 import { GlobalSearch } from "@/components/GlobalSearch";
@@ -23,6 +23,7 @@ export function Layout({ children }: LayoutProps) {
   const navItems = [
     { label: "Home", icon: Home, href: "/" },
     { label: "Teams", icon: Users, href: "/teams" },
+    { label: "Players", icon: UserRound, href: "/players" },
     { label: "Fixtures", icon: Calendar, href: "/live" },
     { label: "Tables", icon: Trophy, href: "/tables" },
     { label: "News", icon: Newspaper, href: "/news" },

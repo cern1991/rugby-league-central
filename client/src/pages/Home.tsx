@@ -11,7 +11,8 @@ import {
   TrendingUp,
   Clock,
   CheckCircle,
-  Newspaper
+  Newspaper,
+  Users
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import LeagueFilter from "@/components/LeagueFilter";
@@ -339,6 +340,42 @@ export default function Home() {
               </div>
 
             {/* Tab Navigation */}
+            <div className="grid gap-3 sm:grid-cols-3">
+              <Link href="/teams">
+                <div className="rounded-xl border border-border bg-card p-4 hover:border-primary/50 hover:shadow-lg transition-all cursor-pointer">
+                  <div className="flex items-center gap-3">
+                    <Trophy className="w-5 h-5 text-primary" />
+                    <div>
+                      <p className="font-semibold">Teams</p>
+                      <p className="text-xs text-muted-foreground">Browse clubs</p>
+                    </div>
+                  </div>
+                </div>
+              </Link>
+              <Link href="/players">
+                <div className="rounded-xl border border-border bg-card p-4 hover:border-primary/50 hover:shadow-lg transition-all cursor-pointer">
+                  <div className="flex items-center gap-3">
+                    <Users className="w-5 h-5 text-primary" />
+                    <div>
+                      <p className="font-semibold">Players</p>
+                      <p className="text-xs text-muted-foreground">Find profiles</p>
+                    </div>
+                  </div>
+                </div>
+              </Link>
+              <Link href="/live">
+                <div className="rounded-xl border border-border bg-card p-4 hover:border-primary/50 hover:shadow-lg transition-all cursor-pointer">
+                  <div className="flex items-center gap-3">
+                    <Calendar className="w-5 h-5 text-primary" />
+                    <div>
+                      <p className="font-semibold">Fixtures</p>
+                      <p className="text-xs text-muted-foreground">Live & upcoming</p>
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            </div>
+
             <div className="flex items-center gap-1 border-b border-border">
               <button 
                 onClick={() => setActiveTab("teams")}

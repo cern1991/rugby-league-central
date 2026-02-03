@@ -345,7 +345,39 @@ export async function registerRoutes(
     "135189": 17, // Wests Tigers
   };
 
-  function sanitizePlayerSummary(summary?: string | null) {
+  const INJURY_REDACT_NAMES = new Set([
+    "Cameron McInnes",
+    "Ronaldo Mulitalo",
+    "Eliesa Katoa",
+    "Eli Katoa",
+  ]);
+
+  function stripInjuryNotes(summary: string, subject?: string | null) {
+    if (!subject || !INJURY_REDACT_NAMES.has(subject)) return summary;
+    if (/ruled out|acl|injury/i.test(summary) && summary.length < 140) {
+      return "";
+    }
+    const sentences = summary.split(/(?<=[.!?])\s+/);
+    const filtered = sentences.filter(
+      (sentence) => !/acl|injury|ruled out|season/i.test(sentence)
+    );
+    const cleaned = filtered.join(" ").trim();
+    return cleaned || summary;
+  }
+
+  const PLAYER_TEAM_OVERRIDES = new Map<string, string>([
+    ["Jaeman Salmon", "135187"],
+    ["Nathan Brown", "135188"],
+  ]);
+
+  function isPlayerAssignedToTeam(name: string, teamId?: string | null) {
+    if (!teamId) return true;
+    const overrideTeam = PLAYER_TEAM_OVERRIDES.get(name);
+    if (!overrideTeam) return true;
+    return overrideTeam === String(teamId);
+  }
+
+  function sanitizePlayerSummary(summary?: string | null, subject?: string | null) {
     if (!summary) return null;
     const normalized = summary.toLowerCase();
     const mentionsRugby = normalized.includes("rugby");
@@ -354,7 +386,7 @@ export async function registerRoutes(
     if (!mentionsRugby && (mentionsAssociationFootball || mentionsFootballer)) {
       return null;
     }
-    return summary;
+    return stripInjuryNotes(summary, subject);
   }
 
   async function getWikipediaProfile(subject?: string | null) {
@@ -384,7 +416,7 @@ export async function registerRoutes(
         data?.extract || data?.description || null;
       let summary =
         extract && extract.length > 900 ? `${extract.slice(0, 900)}…` : extract;
-      summary = sanitizePlayerSummary(summary);
+      summary = sanitizePlayerSummary(summary, normalized);
       const image: string | null =
         data?.originalimage?.source ||
         data?.thumbnail?.source ||
@@ -474,6 +506,27 @@ export async function registerRoutes(
     const text = stripTags(match[1]);
     if (!text) return null;
     return formatPositions(text) || text;
+  }
+
+  async function mapWithConcurrency<T, R>(
+    items: T[],
+    limit: number,
+    mapper: (item: T, index: number) => Promise<R>
+  ) {
+    const results: R[] = new Array(items.length);
+    let currentIndex = 0;
+
+    const worker = async () => {
+      while (true) {
+        const index = currentIndex++;
+        if (index >= items.length) break;
+        results[index] = await mapper(items[index], index);
+      }
+    };
+
+    const workers = Array.from({ length: Math.min(limit, items.length) }, worker);
+    await Promise.all(workers);
+    return results;
   }
 
   async function getWikipediaPlayerProfile(subject?: string | null) {
@@ -567,7 +620,13 @@ export async function registerRoutes(
       .replace(/\*/g, "")
       .replace(/\s{2,}/g, " ")
       .trim();
-    const name = cleanPlayerName(cleaned);
+    const withoutNotes = cleaned
+      .replace(/ruled out.*$/i, "")
+      .replace(/acl.*$/i, "")
+      .replace(/injury.*$/i, "")
+      .replace(/\s*—\s*$/g, "")
+      .trim();
+    const name = cleanPlayerName(withoutNotes);
     if (!name) return null;
     if (/no player signed/i.test(name)) return null;
     return name;
@@ -1431,7 +1490,9 @@ export async function registerRoutes(
           localRoster.map((player) => [player.name.toLowerCase(), player.position])
         );
         const players = await Promise.all(
-          roster.map(async (player) => {
+          roster
+            .filter((player) => isPlayerAssignedToTeam(player.name, resolvedTeamId))
+            .map(async (player) => {
             const wikiProfile = await getWikipediaPlayerProfile(player.name);
             const normalizedPosition =
               wikiProfile?.position ||
@@ -1470,7 +1531,10 @@ export async function registerRoutes(
           superLeagueSquads.find((entry) => entry.season === seasonFilter) ||
           superLeagueSquads[0];
         if (!squad || !squad.players || squad.players.length === 0) return null;
-        return Promise.all(squad.players.map(async (player, index) => {
+        return Promise.all(
+          squad.players
+            .filter((player) => isPlayerAssignedToTeam(player.name, resolvedTeamId))
+            .map(async (player, index) => {
           const wikiProfile = await getWikipediaPlayerProfile(player.name);
           const avatar = wikiProfile?.image || getFallbackPlayerImage(player.name);
           const normalizedPosition =
@@ -1493,7 +1557,8 @@ export async function registerRoutes(
                 : squad.source_note || `${player.name} is part of ${squad.team_name}'s ${squad.season} squad.`),
             stats: generatePlayerStats(player.name),
           };
-        }));
+        })
+        );
       };
 
       let rosterToUse = localRoster;
@@ -1509,20 +1574,145 @@ export async function registerRoutes(
         }
       }
 
+      const isSuperLeagueTeam =
+        teamInfo?.league === "Super League" ||
+        (resolvedTeamId ? SUPER_LEAGUE_TEAM_IDS.has(String(resolvedTeamId)) : false);
+
+      if (isSuperLeagueTeam) {
+        const superLeaguePlayers = await buildSuperLeaguePlayers();
+        if (superLeaguePlayers) {
+          return res.json({ response: superLeaguePlayers });
+        }
+      }
+
       const localPlayers = await buildLocalRosterPlayers(rosterToUse);
       if (localPlayers) {
         return res.json({ response: localPlayers });
       }
 
-      const superLeaguePlayers = await buildSuperLeaguePlayers();
-      if (superLeaguePlayers) {
-        return res.json({ response: superLeaguePlayers });
+      if (!isSuperLeagueTeam) {
+        const superLeaguePlayers = await buildSuperLeaguePlayers();
+        if (superLeaguePlayers) {
+          return res.json({ response: superLeaguePlayers });
+        }
       }
       
       res.json({ response: [] });
     } catch (error: any) {
       console.error("Team players fetch error:", error);
       res.status(500).json({ message: error.message || "Failed to fetch team players" });
+    }
+  });
+
+  app.get("/api/rugby/players", async (req, res) => {
+    try {
+      const { league, season } = req.query as { league?: string; season?: string };
+      const leagueName = league || "NRL";
+      const leagueLower = leagueName.toLowerCase();
+      const defaultSeason = parseInt(CURRENT_SEASON, 10);
+      const requestedSeason = season ? parseInt(season, 10) : defaultSeason;
+      const seasonFilter = Number.isNaN(requestedSeason) ? defaultSeason : requestedSeason;
+      const teams = getLocalTeams(leagueName);
+
+      if (leagueLower.includes("super")) {
+        const players = teams.flatMap((team) => {
+          const squads = SUPER_LEAGUE_SQUADS_BY_TEAM_ID[String(team.id)] || [];
+          const squad =
+            squads.find((entry) => entry.season === seasonFilter) ||
+            squads[0];
+          if (!squad || !squad.players || squad.players.length === 0) return [];
+          return squad.players
+            .filter((player) => isPlayerAssignedToTeam(player.name, team.id))
+            .map((player, index) => ({
+              id: `SL-${team.id}-${player.squad_number ?? index + 1}`,
+              name: player.name,
+              position: formatPositions(player.position) || player.position || "",
+              teamId: String(team.id),
+              teamName: team.name,
+              league: team.league,
+              number: player.squad_number ? String(player.squad_number) : null,
+              image: getFallbackPlayerImage(player.name),
+            }));
+        });
+        if (players.length > 0) {
+          const enriched = await mapWithConcurrency(players, 6, async (player, index) => {
+            if (player.position) return player;
+            const wikiProfile = await getWikipediaPlayerProfile(player.name);
+            return {
+              ...player,
+              position: wikiProfile?.position || player.position || "",
+              image: wikiProfile?.image || player.image,
+            };
+          });
+          return res.json({ response: enriched });
+        }
+
+        const fallbackPlayers = Object.entries(SUPER_LEAGUE_SQUADS_BY_TEAM_ID).flatMap(
+          ([teamId, squads]) => {
+            const teamInfo = findLocalTeamMeta(teamId);
+            const squad =
+              squads.find((entry) => entry.season === seasonFilter) ||
+              squads[0];
+            if (!squad || !squad.players || squad.players.length === 0) return [];
+            return squad.players
+              .filter((player) => isPlayerAssignedToTeam(player.name, teamId))
+              .map((player, index) => ({
+                id: `SL-${teamId}-${player.squad_number ?? index + 1}`,
+                name: player.name,
+                position: formatPositions(player.position) || player.position || "",
+                teamId,
+                teamName: teamInfo?.name || squad.team_name,
+                league: teamInfo?.league || "Super League",
+                number: player.squad_number ? String(player.squad_number) : null,
+                image: getFallbackPlayerImage(player.name),
+              }));
+          }
+        );
+
+        const enrichedFallback = await mapWithConcurrency(fallbackPlayers, 6, async (player, index) => {
+          if (player.position) return player;
+          const wikiProfile = await getWikipediaPlayerProfile(player.name);
+          return {
+            ...player,
+            position: wikiProfile?.position || player.position || "",
+            image: wikiProfile?.image || player.image,
+          };
+        });
+        return res.json({ response: enrichedFallback });
+      }
+
+      const rosterResults = await Promise.all(
+        teams.map(async (team) => {
+          const roster = await getZeroTackleRosterForTeam(String(team.id));
+          const fallback = LOCAL_TEAM_ROSTERS[String(team.id)] || [];
+          const players = (roster && roster.length > 0 ? roster : fallback).map((player) => ({
+            id: player.id,
+            name: player.name,
+            position: formatPositions(player.position) || player.position || "",
+            teamId: String(team.id),
+            teamName: team.name,
+            league: team.league,
+            number: null,
+            image: getFallbackPlayerImage(player.name),
+          }));
+          return players;
+        })
+      );
+
+      const rosterPlayers = rosterResults.flat();
+      const enrichedRoster = await mapWithConcurrency(rosterPlayers, 6, async (player, index) => {
+        if (player.position) return player;
+        const wikiProfile = await getWikipediaPlayerProfile(player.name);
+        return {
+          ...player,
+          position: wikiProfile?.position || player.position || "",
+          image: wikiProfile?.image || player.image,
+        };
+      });
+      res.json({ response: enrichedRoster });
+    } catch (error: any) {
+      console.error("Players list fetch error:", error);
+      res.status(500).json({ message: error.message || "Failed to fetch players" });
     }
   });
 
