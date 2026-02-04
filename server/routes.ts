@@ -432,7 +432,7 @@ export async function registerRoutes(
     let summary = extract && extract.length > 1400 ? `${extract.slice(0, 1400)}…` : extract;
     summary = sanitizePlayerSummary(summary, title);
     const image: string | null = data?.originalimage?.source || data?.thumbnail?.source || null;
-    return { summary: summary || null, image };
+    return { summary: summary || null, image, clubHistory: null };
   }
 
   async function fetchWikipediaExtract(subject: string, sentences = 4) {
@@ -544,6 +544,7 @@ export async function registerRoutes(
         image,
         position: null,
         nationality: extractNationalityFromSummary(summary),
+        clubHistory: summaryData.clubHistory || null,
         expires: Date.now() + WIKIPEDIA_CACHE_TTL,
       };
       wikipediaProfileCache.set(cacheKey, payload);
@@ -659,6 +660,33 @@ export async function registerRoutes(
     return formatPositions(text) || text;
   }
 
+  function extractClubHistoryFromHtml(html: string) {
+    const headerMatch = html.match(
+      /<tr[^>]*>\s*<th[^>]*>\s*(Senior career|Club career)\s*<\/th>[\s\S]*?<\/tr>/i
+    );
+    if (!headerMatch) return null;
+    const startIndex = headerMatch.index ?? 0;
+    const tableSection = html.slice(startIndex);
+    const rows = tableSection.match(/<tr[\s\S]*?<\/tr>/gi) || [];
+    const results: Array<{ years: string; club: string }> = [];
+    for (const row of rows) {
+      if (row.match(/Senior career|Club career|Representative career|National team/i)) {
+        continue;
+      }
+      const headerCell = row.match(/<th[^>]*>([\s\S]*?)<\/th>/i)?.[1];
+      const dataCells = row.match(/<td[^>]*>([\s\S]*?)<\/td>/gi) || [];
+      if (!headerCell || dataCells.length === 0) {
+        continue;
+      }
+      const years = decodeHtmlEntities(stripTags(headerCell).trim());
+      const clubRaw = decodeHtmlEntities(stripTags(dataCells[0]).trim());
+      const club = clubRaw.replace(/\s*\([^)]*\)/g, "").trim();
+      if (!years || !club) continue;
+      results.push({ years, club });
+    }
+    return results.length > 0 ? results : null;
+  }
+
   async function mapWithConcurrency<T, R>(
     items: T[],
     limit: number,
@@ -749,14 +777,16 @@ export async function registerRoutes(
       }
       const html = await response.text();
       const position = extractPositionFromWikipediaHtml(html);
-      const payload = {
-        ...baseProfile,
-        position:
-          position
-            ? formatPositions(position) || position
-            : extractPositionFromSummary(baseProfile.summary) || null,
-        expires: Date.now() + WIKIPEDIA_CACHE_TTL,
-      };
+    const clubHistory = extractClubHistoryFromHtml(html);
+    const payload = {
+      ...baseProfile,
+      position:
+        position
+          ? formatPositions(position) || position
+          : extractPositionFromSummary(baseProfile.summary) || null,
+      clubHistory: clubHistory || baseProfile.clubHistory || null,
+      expires: Date.now() + WIKIPEDIA_CACHE_TTL,
+    };
       wikipediaProfileCache.set(cacheKey, payload);
       return payload;
     } catch (error) {
@@ -2024,6 +2054,7 @@ export async function registerRoutes(
               (normalizedPosition
                 ? `${localPlayer.name} plays ${normalizedPosition} for ${localPlayer.teamName || "their club"}.`
                 : `${localPlayer.name} plays for ${localPlayer.teamName || "their club"}.`),
+            clubHistory: wikiProfile?.clubHistory || null,
             socials: {},
             stats: localPlayer.stats || generatePlayerStats(localPlayer.name),
           },

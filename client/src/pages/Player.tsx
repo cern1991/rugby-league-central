@@ -3,7 +3,7 @@ import { useMemo } from "react";
 import { Layout } from "@/components/Layout";
 import { useRoute, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Users, Activity, MapPin, Ruler, Dumbbell, Share2 } from "lucide-react";
+import { ArrowLeft, Users, Share2 } from "lucide-react";
 import { getDisplayTeamName } from "@/lib/teamDisplay";
 
 interface PlayerProfile {
@@ -21,6 +21,7 @@ interface PlayerProfile {
   image?: string;
   teamLogo?: string;
   signing?: string;
+  clubHistory?: Array<{ years: string; club: string }>;
   socials?: {
     twitter?: string;
     instagram?: string;
@@ -217,6 +218,29 @@ export default function PlayerPage() {
                 </p>
               )}
             </div>
+
+            {player.clubHistory && player.clubHistory.length > 0 && (
+              <div className="rounded-2xl border border-border bg-card p-4 lg:p-6">
+                <h2 className="text-xs uppercase tracking-wide text-muted-foreground mb-4">Club history</h2>
+                <div className="grid gap-2">
+                  <div className="grid grid-cols-[120px,1fr] text-xs uppercase tracking-wide text-muted-foreground">
+                    <span>Years</span>
+                    <span>Club</span>
+                  </div>
+                  <div className="space-y-2">
+                    {player.clubHistory.map((entry, index) => (
+                      <div
+                        key={`${entry.years}-${entry.club}-${index}`}
+                        className="grid grid-cols-[120px,1fr] text-sm"
+                      >
+                        <span className="text-muted-foreground">{entry.years}</span>
+                        <span className="font-medium">{entry.club}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

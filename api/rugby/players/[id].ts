@@ -32,6 +32,48 @@ const WIKIPEDIA_HEADERS = {
   Accept: "application/json",
 };
 
+const decodeHtmlEntities = (value: string) =>
+  value
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&quot;/gi, "\"")
+    .replace(/&#39;/gi, "'")
+    .replace(/&ndash;|&mdash;/gi, "-")
+    .replace(/&#(\d+);/g, (_, code) => {
+      const parsed = Number.parseInt(code, 10);
+      return Number.isNaN(parsed) ? "" : String.fromCharCode(parsed);
+    });
+
+const stripTags = (value: string) =>
+  decodeHtmlEntities(value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim());
+
+const extractClubHistoryFromHtml = (html: string) => {
+  const headerMatch = html.match(
+    /<tr[^>]*>\s*<th[^>]*>\s*(Senior career|Club career)\s*<\/th>[\s\S]*?<\/tr>/i
+  );
+  if (!headerMatch) return null;
+  const startIndex = headerMatch.index ?? 0;
+  const tableSection = html.slice(startIndex);
+  const rows = tableSection.match(/<tr[\s\S]*?<\/tr>/gi) || [];
+  const results: Array<{ years: string; club: string }> = [];
+  for (const row of rows) {
+    if (row.match(/Senior career|Club career|Representative career|National team/i)) {
+      continue;
+    }
+    const headerCell = row.match(/<th[^>]*>([\s\S]*?)<\/th>/i)?.[1];
+    const dataCells = row.match(/<td[^>]*>([\s\S]*?)<\/td>/gi) || [];
+    if (!headerCell || dataCells.length === 0) {
+      continue;
+    }
+    const years = decodeHtmlEntities(stripTags(headerCell).trim());
+    const clubRaw = decodeHtmlEntities(stripTags(dataCells[0]).trim());
+    const club = clubRaw.replace(/\s*\([^)]*\)/g, "").trim();
+    if (!years || !club) continue;
+    results.push({ years, club });
+  }
+  return results.length > 0 ? results : null;
+};
+
 const fetchWikipediaSummary = async (name: string) => {
   if (typeof fetch !== "function") return null;
   try {
@@ -43,8 +85,9 @@ const fetchWikipediaSummary = async (name: string) => {
     if (data?.type === "disambiguation") return null;
     const extract: string | null = data?.extract || data?.description || null;
     if (!extract) return null;
-    const summary = extract.length > 1200 ? `${extract.slice(0, 1200)}…` : extract;
+    let summary = extract.length > 1200 ? `${extract.slice(0, 1200)}…` : extract;
 
+    let clubHistory: Array<{ years: string; club: string }> | null = null;
     if (summary.length < 600) {
       const params = new URLSearchParams({
         action: "query",
@@ -65,13 +108,20 @@ const fetchWikipediaSummary = async (name: string) => {
         if (page?.extract) {
           const expanded = page.extract.length > 1600 ? `${page.extract.slice(0, 1600)}…` : page.extract;
           if (expanded.length > summary.length) {
-            return expanded;
+            summary = expanded;
           }
         }
       }
     }
-
-    return summary;
+    const htmlUrl = `https://en.wikipedia.org/api/rest_v1/page/html/${slug}`;
+    const htmlResponse = await fetch(htmlUrl, {
+      headers: { ...WIKIPEDIA_HEADERS, Accept: "text/html" },
+    });
+    if (htmlResponse.ok) {
+      const html = await htmlResponse.text();
+      clubHistory = extractClubHistoryFromHtml(html);
+    }
+    return { summary, clubHistory };
   } catch {
     return null;
   }
@@ -143,7 +193,7 @@ export default async function handler(req: RequestLike, res: ResponseLike) {
           match.position ||
           fallbackPositionFromNumber(rawNumber) ||
           "Utility";
-        const summary = await fetchWikipediaSummary(match.name);
+        const wiki = await fetchWikipediaSummary(match.name);
         return res.status(200).json({
           response: {
             id,
@@ -156,8 +206,9 @@ export default async function handler(req: RequestLike, res: ResponseLike) {
             nationality: match.nationality || team?.country?.name || "England",
             image: getFallbackPlayerImage(match.name),
             description:
-              summary ||
+              wiki?.summary ||
               `${match.name} plays ${position} for ${team?.name || squad?.team_name || "their club"}.`,
+            clubHistory: wiki?.clubHistory || null,
             socials: {},
             stats: {},
           },
@@ -169,7 +220,7 @@ export default async function handler(req: RequestLike, res: ResponseLike) {
       const match = roster.find((player) => player.id === id);
       if (match) {
         const team = findTeamById(teamId);
-        const summary = await fetchWikipediaSummary(match.name);
+        const wiki = await fetchWikipediaSummary(match.name);
         return res.status(200).json({
           response: {
             id,
@@ -182,8 +233,9 @@ export default async function handler(req: RequestLike, res: ResponseLike) {
             nationality: team?.country?.name || "Australia",
             image: getFallbackPlayerImage(match.name),
             description:
-              summary ||
+              wiki?.summary ||
               `${match.name} plays ${match.position || "Utility"} for ${team?.name || "their club"}.`,
+            clubHistory: wiki?.clubHistory || null,
             socials: {},
             stats: {},
           },
