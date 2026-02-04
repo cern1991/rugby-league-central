@@ -240,9 +240,9 @@ export default function Home() {
                           <span>{kickoffText}</span>
                         </div>
                         <div className="mt-4 flex flex-col md:flex-row items-center justify-center gap-6">
-                          <TeamBlip team={game.teams.home} score={game.scores.home} />
+                          <TeamBlip team={game.teams.home} score={game.scores.home} leagueName={displayLeagueName} />
                           <div className="text-2xl font-bold text-muted-foreground/70">vs</div>
-                          <TeamBlip team={game.teams.away} score={game.scores.away} />
+                          <TeamBlip team={game.teams.away} score={game.scores.away} leagueName={displayLeagueName} />
                         </div>
                       </Link>
                     );
@@ -693,82 +693,56 @@ export default function Home() {
     </Layout>
   );
 }
-const TEAM_LOGO_BY_NAME = LOCAL_TEAMS.reduce<Record<string, string | null>>((acc, team) => {
-  acc[team.name.toLowerCase()] = team.logo || null;
-  const normalized = team.name.toLowerCase().replace(/[^a-z0-9]+/g, "");
-  acc[normalized] = team.logo || null;
-  if (team.name.toLowerCase().includes("sea eagles")) {
-    acc["manly"] = team.logo || null;
-    acc["sea eagles"] = team.logo || null;
+const TEAM_LOGO_BY_LEAGUE = LOCAL_TEAMS.reduce<Record<string, Record<string, string | null>>>((acc, team) => {
+  const leagueKey = team.league.toLowerCase().includes("super") ? "super" : "nrl";
+  if (!acc[leagueKey]) acc[leagueKey] = {};
+  const bucket = acc[leagueKey];
+  const nameKey = team.name.toLowerCase();
+  const normalized = nameKey.replace(/[^a-z0-9]+/g, "");
+  bucket[nameKey] = team.logo || null;
+  bucket[normalized] = team.logo || null;
+  if (nameKey.includes("sea eagles")) {
+    bucket["manly"] = team.logo || null;
+    bucket["seaeagles"] = team.logo || null;
   }
-  if (team.name.toLowerCase().includes("warriors")) {
-    acc["warriors"] = team.logo || null;
+  if (nameKey.includes("warriors")) bucket["warriors"] = team.logo || null;
+  if (nameKey.includes("roosters")) bucket["roosters"] = team.logo || null;
+  if (nameKey.includes("rabbitohs")) bucket["rabbitohs"] = team.logo || null;
+  if (nameKey.includes("panthers")) bucket["panthers"] = team.logo || null;
+  if (nameKey.includes("tigers")) bucket["tigers"] = team.logo || null;
+  if (nameKey.includes("knights")) bucket["knights"] = team.logo || null;
+  if (nameKey.includes("bulldogs")) bucket["bulldogs"] = team.logo || null;
+  if (nameKey.includes("cowboys")) bucket["cowboys"] = team.logo || null;
+  if (nameKey.includes("sharks")) bucket["sharks"] = team.logo || null;
+  if (nameKey.includes("storm")) bucket["storm"] = team.logo || null;
+  if (nameKey.includes("titans")) bucket["titans"] = team.logo || null;
+  if (nameKey.includes("dolphins")) bucket["dolphins"] = team.logo || null;
+  if (nameKey.includes("dragons")) bucket["dragons"] = team.logo || null;
+  if (nameKey.includes("eels")) bucket["eels"] = team.logo || null;
+  if (nameKey.includes("raiders")) bucket["raiders"] = team.logo || null;
+  if (nameKey.includes("broncos")) bucket["broncos"] = team.logo || null;
+  if (nameKey.includes("hull fc")) {
+    bucket["hull fc"] = team.logo || null;
+    bucket["hull"] = team.logo || null;
   }
-  if (team.name.toLowerCase().includes("roosters")) {
-    acc["roosters"] = team.logo || null;
-  }
-  if (team.name.toLowerCase().includes("rabbitohs")) {
-    acc["rabbitohs"] = team.logo || null;
-  }
-  if (team.name.toLowerCase().includes("panthers")) {
-    acc["panthers"] = team.logo || null;
-  }
-  if (team.name.toLowerCase().includes("tigers")) {
-    acc["tigers"] = team.logo || null;
-  }
-  if (team.name.toLowerCase().includes("knights")) {
-    acc["knights"] = team.logo || null;
-  }
-  if (team.name.toLowerCase().includes("bulldogs")) {
-    acc["bulldogs"] = team.logo || null;
-  }
-  if (team.name.toLowerCase().includes("cowboys")) {
-    acc["cowboys"] = team.logo || null;
-  }
-  if (team.name.toLowerCase().includes("sharks")) {
-    acc["sharks"] = team.logo || null;
-  }
-  if (team.name.toLowerCase().includes("storm")) {
-    acc["storm"] = team.logo || null;
-  }
-  if (team.name.toLowerCase().includes("titans")) {
-    acc["titans"] = team.logo || null;
-  }
-  if (team.name.toLowerCase().includes("dolphins")) {
-    acc["dolphins"] = team.logo || null;
-  }
-  if (team.name.toLowerCase().includes("dragons")) {
-    acc["dragons"] = team.logo || null;
-  }
-  if (team.name.toLowerCase().includes("eels")) {
-    acc["eels"] = team.logo || null;
-  }
-  if (team.name.toLowerCase().includes("raiders")) {
-    acc["raiders"] = team.logo || null;
-  }
-  if (team.name.toLowerCase().includes("broncos")) {
-    acc["broncos"] = team.logo || null;
-  }
-  if (team.name.toLowerCase().includes("hull fc")) {
-    acc["hull fc"] = team.logo || null;
-    acc["hull"] = team.logo || null;
-  }
-  if (team.name.toLowerCase().includes("hull kr") || team.name.toLowerCase().includes("hull kingston rovers")) {
-    acc["hull kr"] = team.logo || null;
-    acc["hkr"] = team.logo || null;
+  if (nameKey.includes("hull kr") || nameKey.includes("hull kingston rovers")) {
+    bucket["hull kr"] = team.logo || null;
+    bucket["hkr"] = team.logo || null;
   }
   return acc;
 }, {});
 
-function resolveTeamLogo(team: Game["teams"]["home"]) {
+function resolveTeamLogo(team: Game["teams"]["home"], leagueName?: string) {
   if (team.logo) return team.logo;
   const key = team.name.toLowerCase();
   const normalized = key.replace(/[^a-z0-9]+/g, "");
-  return TEAM_LOGO_BY_NAME[key] || TEAM_LOGO_BY_NAME[normalized] || null;
+  const leagueKey = leagueName?.toLowerCase().includes("super") ? "super" : "nrl";
+  const bucket = TEAM_LOGO_BY_LEAGUE[leagueKey] || {};
+  return bucket[key] || bucket[normalized] || null;
 }
 
-function TeamBlip({ team, score }: { team: Game["teams"]["home"]; score: number | null }) {
-  const logo = resolveTeamLogo(team);
+function TeamBlip({ team, score, leagueName }: { team: Game["teams"]["home"]; score: number | null; leagueName?: string }) {
+  const logo = resolveTeamLogo(team, leagueName);
   return (
     <div className="flex flex-col items-center text-center gap-2 min-w-[140px]">
       {logo ? (
