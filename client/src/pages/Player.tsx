@@ -151,8 +151,8 @@ export default function PlayerPage() {
         ) : (
           <div className="space-y-6">
             <div className="rounded-2xl border border-border bg-card overflow-hidden">
-              <div className="flex flex-col lg:flex-row">
-                <div className="lg:w-64 bg-muted/20 flex items-center justify-center p-6">
+              <div className="grid gap-6 lg:grid-cols-[220px,1fr] p-4 lg:p-6">
+                <div className="bg-muted/20 rounded-2xl flex items-center justify-center p-6">
                   {resolvedTeamLogo ? (
                     <img
                       src={resolvedTeamLogo}
@@ -161,22 +161,26 @@ export default function PlayerPage() {
                       loading="lazy"
                     />
                   ) : (
-                    <div className="w-full h-40 bg-muted flex items-center justify-center">
+                    <div className="w-full h-40 bg-muted flex items-center justify-center rounded-xl">
                       <Users className="w-10 h-10 text-muted-foreground" />
                     </div>
                   )}
                 </div>
-                <div className="flex-1 p-4 lg:p-6 space-y-5">
-                  <div className="space-y-1">
-                    <h1 className="font-display text-3xl font-bold">{player.name}</h1>
-                    <p className="text-sm text-muted-foreground">
-                      {player.position || "Player"} · {getDisplayTeamName(player.teamId, player.team, player.league)}
-                    </p>
+                <div className="flex-1 space-y-4">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <h1 className="font-display text-3xl font-bold">{player.name}</h1>
+                      <p className="text-sm text-muted-foreground">
+                        {player.position || "Player"} · {getDisplayTeamName(player.teamId, player.team, player.league)}
+                      </p>
+                    </div>
+                    <div className="inline-flex items-center gap-2 rounded-full border border-border bg-background/60 px-3 py-1 text-xs uppercase tracking-wide text-muted-foreground">
+                      {player.league || "Rugby League"}
+                    </div>
                   </div>
 
                   <div className="grid gap-3 sm:grid-cols-2 text-sm">
                     <InfoPair label="Team" value={getDisplayTeamName(player.teamId, player.team, player.league)} />
-                    <InfoPair label="League" value={player.league || "Rugby League"} />
                     <div className="flex items-center justify-between gap-4">
                       <span className="text-muted-foreground">Nationality</span>
                       <span className="flex items-center gap-2 font-medium">
@@ -196,22 +200,22 @@ export default function PlayerPage() {
                     {player.signing && <InfoPair label="Contract" value={player.signing} />}
                   </div>
 
-                  <div className="rounded-xl border border-border bg-background/40 p-4">
-                    <h2 className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Bio</h2>
-                    {player.description ? (
-                      <p className="text-sm leading-relaxed text-muted-foreground whitespace-pre-line">
-                        {player.description}
-                      </p>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">
-                        Detailed biography information will appear here when available.
-                      </p>
-                    )}
-                  </div>
-
                   {renderSocialLinks(player.socials)}
                 </div>
               </div>
+            </div>
+
+            <div className="rounded-2xl border border-border bg-card p-4 lg:p-6">
+              <h2 className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Bio</h2>
+              {player.description ? (
+                <p className="text-sm leading-relaxed text-muted-foreground whitespace-pre-line">
+                  {player.description}
+                </p>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Detailed biography information will appear here when available.
+                </p>
+              )}
             </div>
           </div>
         )}
