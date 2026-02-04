@@ -633,10 +633,6 @@ export default function TeamPage() {
                             </div>
                             <div className="space-y-1 text-xs text-muted-foreground">
                               <div className="flex items-center justify-between gap-3">
-                                <span className="uppercase tracking-wide">Squad #</span>
-                                <span className="font-semibold text-foreground">{player.number ?? "—"}</span>
-                              </div>
-                              <div className="flex items-center justify-between gap-3">
                                 <span className="uppercase tracking-wide">Position</span>
                                 <span className="font-semibold text-foreground truncate">
                                   {player.position || fallbackPositionFromNumber(player.number) || "Utility"}

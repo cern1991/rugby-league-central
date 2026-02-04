@@ -191,8 +191,15 @@ export default function PlayerPage() {
                         {player.position || "Player"} · {getDisplayTeamName(player.teamId, player.team, player.league)}
                       </p>
                     </div>
-                    <div className="inline-flex items-center gap-2 rounded-full border border-border bg-background/60 px-3 py-1 text-xs uppercase tracking-wide text-muted-foreground">
-                      {player.league || "Rugby League"}
+                    <div className="flex items-center gap-2">
+                      {player.number && (
+                        <span className="w-10 h-10 rounded-full border border-primary/30 bg-primary/10 flex items-center justify-center text-xs font-semibold text-primary">
+                          {player.number}
+                        </span>
+                      )}
+                      <div className="inline-flex items-center gap-2 rounded-full border border-border bg-background/60 px-3 py-1 text-xs uppercase tracking-wide text-muted-foreground">
+                        {player.league || "Rugby League"}
+                      </div>
                     </div>
                   </div>
 
