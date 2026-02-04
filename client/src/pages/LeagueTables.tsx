@@ -81,8 +81,8 @@ export default function LeagueTables() {
                       <th className="text-center py-4 px-2 font-semibold text-sm text-muted-foreground w-12">W</th>
                       <th className="text-center py-4 px-2 font-semibold text-sm text-muted-foreground w-12">D</th>
                       <th className="text-center py-4 px-2 font-semibold text-sm text-muted-foreground w-12">L</th>
-                      <th className="text-center py-4 px-2 font-semibold text-sm text-muted-foreground w-16">PF</th>
-                      <th className="text-center py-4 px-2 font-semibold text-sm text-muted-foreground w-16">PA</th>
+                      <th className="text-center py-4 px-2 font-semibold text-sm text-muted-foreground w-16 hidden md:table-cell">PF</th>
+                      <th className="text-center py-4 px-2 font-semibold text-sm text-muted-foreground w-16 hidden md:table-cell">PA</th>
                       <th className="text-center py-4 px-2 font-semibold text-sm text-muted-foreground w-16">+/-</th>
                       <th className="text-center py-4 px-4 font-semibold text-sm text-muted-foreground w-16">PTS</th>
                       <th className="text-center py-4 px-4 font-semibold text-sm text-muted-foreground w-24 hidden md:table-cell">Form</th>
@@ -122,8 +122,8 @@ export default function LeagueTables() {
                         <td className="py-4 px-2 text-center font-medium text-green-500">{row.games?.win ?? 0}</td>
                         <td className="py-4 px-2 text-center font-medium text-muted-foreground">{row.games?.draw ?? 0}</td>
                         <td className="py-4 px-2 text-center font-medium text-red-500">{row.games?.lose ?? 0}</td>
-                        <td className="py-4 px-2 text-center">{row.points?.for ?? 0}</td>
-                        <td className="py-4 px-2 text-center">{row.points?.against ?? 0}</td>
+                        <td className="py-4 px-2 text-center hidden md:table-cell">{row.points?.for ?? 0}</td>
+                        <td className="py-4 px-2 text-center hidden md:table-cell">{row.points?.against ?? 0}</td>
                         <td className={cn(
                           "py-4 px-2 text-center font-medium",
                           (row.points?.difference ?? 0) > 0 ? "text-green-500" : 

@@ -1424,6 +1424,8 @@ export async function registerRoutes(
           teamName: ownerInfo?.name || active.team_name,
           league: ownerInfo?.league || "Super League",
           country: ownerInfo?.country,
+          nationality: match.nationality,
+          nationalitySecondary: match.nationality_secondary,
           stats: generatePlayerStats(match.name),
         };
       };
@@ -1831,7 +1833,8 @@ export async function registerRoutes(
             id: `SL-${idForTeam}-${player.squad_number ?? index + 1}`,
             name: player.name,
             position: normalizedPosition,
-            nationality: wikiProfile?.nationality || player.nationality || teamInfo?.country?.name || "England",
+            nationality: player.nationality || wikiProfile?.nationality || teamInfo?.country?.name || "England",
+            nationalitySecondary: player.nationality_secondary || null,
             birthDate: player.dob || null,
             height: player.height_cm ? `${player.height_cm} cm` : null,
             weight: player.weight_kg ? `${player.weight_kg} kg` : null,
@@ -2047,7 +2050,8 @@ export async function registerRoutes(
             teamId: localPlayer.teamId,
             teamLogo,
             league: localPlayer.league,
-            nationality: wikiProfile?.nationality || localPlayer.country?.name || "Australia",
+            nationality: localPlayer.nationality || wikiProfile?.nationality || localPlayer.country?.name || "Australia",
+            nationalitySecondary: localPlayer.nationalitySecondary || null,
             image: avatar,
             description:
               wikiProfile?.summary ||
@@ -2606,6 +2610,7 @@ export async function registerRoutes(
       language: "en",
       country,
       category: "sports",
+      size: "10",
     });
 
     const controller = new AbortController();
@@ -2623,7 +2628,7 @@ export async function registerRoutes(
       const results = Array.isArray(data?.results) ? data.results : [];
       if (results.length === 0) return [];
 
-      const items = results.slice(0, 10).map((item: any) => {
+      const items = results.map((item: any) => {
         const link = item.link || item.url || "";
         const title = decodeHtmlEntities(item.title || item.description || "Rugby League update");
         return {
@@ -2640,6 +2645,76 @@ export async function registerRoutes(
       return items;
     } catch (error) {
       console.error("NewsData fetch error:", error);
+      return null;
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  async function fetchNewsDataArchive(league?: string) {
+    if (!NEWSDATA_API_KEY) return null;
+
+    let query = "rugby league";
+    let country = "au,nz";
+    if (league) {
+      const leagueLower = league.toLowerCase();
+      if (leagueLower.includes("super")) {
+        query = "Super League rugby";
+        country = "gb,fr";
+      } else if (leagueLower.includes("nrl") || leagueLower.includes("national")) {
+        query = "NRL rugby league";
+        country = "au,nz";
+      }
+    }
+
+    const now = new Date();
+    const fromDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const from = fromDate.toISOString().split("T")[0];
+    const to = now.toISOString().split("T")[0];
+
+    const params = new URLSearchParams({
+      apikey: NEWSDATA_API_KEY,
+      q: query,
+      language: "en",
+      country,
+      category: "sports",
+      from_date: from,
+      to_date: to,
+      size: "10",
+    });
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), ARTICLE_FETCH_TIMEOUT_MS);
+
+    try {
+      const response = await fetch(`https://newsdata.io/api/1/archive?${params.toString()}`, {
+        headers: ARTICLE_IMAGE_HEADERS,
+        signal: controller.signal,
+      });
+      if (!response.ok) {
+        return null;
+      }
+      const data = await response.json();
+      const results = Array.isArray(data?.results) ? data.results : [];
+      if (results.length === 0) return [];
+
+      const items = results.map((item: any) => {
+        const link = item.link || item.url || "";
+        const title = decodeHtmlEntities(item.title || item.description || "Rugby League update");
+        return {
+          id: Buffer.from(link || title).toString("base64").slice(0, 20),
+          title,
+          link,
+          pubDate: item.pubDate || item.pubDateTZ || item.published_at || new Date().toISOString(),
+          source: item.source_id || item.source_name || item.source || "NewsData.io",
+          league: league || query,
+          image: item.image_url || item.image || null,
+        };
+      }).filter((item: any) => item.title && item.link);
+
+      return items;
+    } catch (error) {
+      console.error("NewsData archive fetch error:", error);
       return null;
     } finally {
       clearTimeout(timeout);
@@ -2669,10 +2744,30 @@ export async function registerRoutes(
         return res.json({ response: mapNewsItemsWithBranding(cachedNews, league || searchQuery) });
       }
 
-      const newsDataItems = await fetchNewsDataLatest(league);
-      if (Array.isArray(newsDataItems) && newsDataItems.length > 0) {
-        setCachedNews(cacheKey, newsDataItems);
-        return res.json({ response: mapNewsItemsWithBranding(newsDataItems, league || searchQuery) });
+      const [latestNews, archiveNews] = await Promise.all([
+        fetchNewsDataLatest(league),
+        fetchNewsDataArchive(league),
+      ]);
+
+      const mergedNews = [...(latestNews || []), ...(archiveNews || [])]
+        .filter(Boolean)
+        .reduce((acc: any[], item: any) => {
+          const key = item.link || item.id;
+          if (!key || acc.find((existing) => existing.link === key || existing.id === item.id)) {
+            return acc;
+          }
+          acc.push(item);
+          return acc;
+        }, [])
+        .sort((a, b) => {
+          const aTime = a.pubDate ? Date.parse(a.pubDate) : 0;
+          const bTime = b.pubDate ? Date.parse(b.pubDate) : 0;
+          return bTime - aTime;
+        });
+
+      if (mergedNews.length > 0) {
+        setCachedNews(cacheKey, mergedNews);
+        return res.json({ response: mapNewsItemsWithBranding(mergedNews, league || searchQuery) });
       }
 
       const encodedQuery = encodeURIComponent(searchQuery);
@@ -2700,7 +2795,7 @@ export async function registerRoutes(
       const items: any[] = [];
       const itemMatches = rssText.match(/<item>([\s\S]*?)<\/item>/g) || [];
 
-      for (const itemXml of itemMatches.slice(0, 10)) {
+      for (const itemXml of itemMatches.slice(0, 30)) {
         const rawTitle = itemXml.match(/<title>([\s\S]*?)<\/title>/)?.[1]?.replace(/<!\[CDATA\[|\]\]>/g, '').trim() || "";
         const link = itemXml.match(/<link>([\s\S]*?)<\/link>/)?.[1]?.trim() || "";
         const pubDate = itemXml.match(/<pubDate>([\s\S]*?)<\/pubDate>/)?.[1]?.trim() || "";

@@ -14,6 +14,7 @@ interface PlayerProfile {
   teamId?: string;
   league?: string;
   nationality?: string;
+  nationalitySecondary?: string | null;
   birthDate?: string;
   height?: string;
   weight?: string;
@@ -87,12 +88,11 @@ export default function PlayerPage() {
     return byName?.logo || null;
   }, [player, teamData]);
 
-  const nationalityFlag = useMemo(() => {
-    const nationality = player?.nationality?.trim().toLowerCase();
-    if (!nationality) return null;
+  const nationalityFlags = useMemo(() => {
     const map: Record<string, string> = {
       australia: "au",
       "new zealand": "nz",
+      "cook islands": "ck",
       england: "gb-eng",
       "united kingdom": "gb",
       wales: "gb-wls",
@@ -106,16 +106,32 @@ export default function PlayerPage() {
       "papua new guinea": "pg",
       "united states": "us",
       italy: "it",
+      lebanon: "lb",
+      brazil: "br",
+      turkey: "tr",
       serbia: "rs",
       "czech republic": "cz",
       croatia: "hr",
       "south africa": "za",
       zimbabwe: "zw",
     };
-    const code = map[nationality];
-    if (!code) return null;
-    return `https://flagcdn.com/w40/${code}.png`;
-  }, [player?.nationality]);
+    const primary = player?.nationality?.trim().toLowerCase();
+    const secondary = player?.nationalitySecondary?.trim().toLowerCase();
+    const flags: string[] = [];
+    if (primary && map[primary]) {
+      flags.push(`https://flagcdn.com/w40/${map[primary]}.png`);
+    }
+    if (secondary && secondary !== primary && map[secondary]) {
+      const url = `https://flagcdn.com/w40/${map[secondary]}.png`;
+      if (!flags.includes(url)) flags.push(url);
+    }
+    return flags;
+  }, [player?.nationality, player?.nationalitySecondary]);
+
+  const nationalityLabel = useMemo(() => {
+    const parts = [player?.nationality, player?.nationalitySecondary].filter(Boolean) as string[];
+    return parts.length > 0 ? parts.join(" / ") : "—";
+  }, [player?.nationality, player?.nationalitySecondary]);
 
   return (
     <Layout>
@@ -185,17 +201,20 @@ export default function PlayerPage() {
                     <div className="flex items-center justify-between gap-4">
                       <span className="text-muted-foreground">Nationality</span>
                       <span className="flex items-center gap-2 font-medium">
-                        {nationalityFlag ? (
-                          <img
-                            src={nationalityFlag}
-                            alt={player.nationality || "Flag"}
-                            className="w-6 h-4 object-cover rounded-sm"
-                            loading="lazy"
-                          />
+                        {nationalityFlags.length > 0 ? (
+                          nationalityFlags.map((flagUrl, index) => (
+                            <img
+                              key={flagUrl || index}
+                              src={flagUrl}
+                              alt={player.nationality || "Flag"}
+                              className="w-6 h-4 object-cover rounded-sm"
+                              loading="lazy"
+                            />
+                          ))
                         ) : (
                           <span className="text-muted-foreground">—</span>
                         )}
-                        <span className="text-right">{player.nationality || "—"}</span>
+                        <span className="text-right">{nationalityLabel}</span>
                       </span>
                     </div>
                     {player.signing && <InfoPair label="Contract" value={player.signing} />}

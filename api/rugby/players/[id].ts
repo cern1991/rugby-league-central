@@ -204,6 +204,7 @@ export default async function handler(req: RequestLike, res: ResponseLike) {
             teamLogo: team?.logo || null,
             league: team?.league || "Super League",
             nationality: match.nationality || team?.country?.name || "England",
+            nationalitySecondary: match.nationality_secondary || null,
             image: getFallbackPlayerImage(match.name),
             description:
               wiki?.summary ||
@@ -231,6 +232,7 @@ export default async function handler(req: RequestLike, res: ResponseLike) {
             teamLogo: team?.logo || null,
             league: team?.league || "NRL",
             nationality: team?.country?.name || "Australia",
+            nationalitySecondary: null,
             image: getFallbackPlayerImage(match.name),
             description:
               wiki?.summary ||

@@ -7,6 +7,7 @@ import LeagueFilter from "@/components/LeagueFilter";
 import { useMemo } from "react";
 import { usePreferredLeague } from "@/hooks/usePreferredLeague";
 import { resolveNewsThumbnail } from "@/lib/branding";
+import { format } from "date-fns";
 
 export default function News() {
   const { selectedLeague, setSelectedLeague } = usePreferredLeague();
@@ -30,6 +31,13 @@ export default function News() {
     });
   }, [newsData]);
   const displayLeagueName = FEATURED_LEAGUES.find(l => l.id === selectedLeague)?.name || selectedLeague;
+
+  const formatPubDate = (value?: string | null) => {
+    if (!value) return null;
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return format(date, "d MMM yyyy • HH:mm");
+  };
 
   return (
     <Layout>
@@ -99,7 +107,7 @@ export default function News() {
                           />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h2 className="font-semibold text-lg line-clamp-3 mb-2">
+                          <h2 className="font-semibold text-lg line-clamp-none sm:line-clamp-3 mb-2 break-words">
                             {item.title}
                           </h2>
                           <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
@@ -107,13 +115,10 @@ export default function News() {
                             {item.pubDate && (
                               <>
                                 <span className="w-1 h-1 rounded-full bg-muted-foreground/50" />
-                                <span>{item.pubDate}</span>
+                                <span>{formatPubDate(item.pubDate)}</span>
                               </>
                             )}
                           </div>
-                          {item.league && (
-                            <p className="text-xs text-muted-foreground mt-2 uppercase tracking-wide">{item.league}</p>
-                          )}
                         </div>
                       </div>
                     </article>

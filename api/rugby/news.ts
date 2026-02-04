@@ -76,7 +76,7 @@ const fetchGoogleNewsRss = async (query: string) => {
   const rssText = await response.text();
   const itemMatches = rssText.match(/<item>([\s\S]*?)<\/item>/g) || [];
   const items = [];
-  for (const itemXml of itemMatches.slice(0, 12)) {
+  for (const itemXml of itemMatches.slice(0, 30)) {
     const rawTitle = itemXml.match(/<title>([\s\S]*?)<\/title>/)?.[1]?.replace(/<!\[CDATA\[|\]\]>/g, "").trim() || "";
     const link = itemXml.match(/<link>([\s\S]*?)<\/link>/)?.[1]?.trim() || "";
     const pubDate = itemXml.match(/<pubDate>([\s\S]*?)<\/pubDate>/)?.[1]?.trim() || "";
@@ -93,6 +93,68 @@ const fetchGoogleNewsRss = async (query: string) => {
     });
   }
   return items;
+};
+
+const fetchNewsDataLatest = async (apiKey: string, searchQuery: string) => {
+  const params = new URLSearchParams({
+    apikey: apiKey,
+    q: searchQuery,
+    language: "en",
+    country: "au,gb,fr,nz",
+    category: "sports",
+    size: "10",
+  });
+  const response = await fetch(`https://newsdata.io/api/1/latest?${params.toString()}`);
+  if (!response.ok) return null;
+  const data = await response.json();
+  const results = Array.isArray(data?.results) ? data.results : [];
+  return results.map((item: any) => {
+    const link = normalizeNewsArticleUrl(item.link || item.url || "");
+    const title = decodeHtmlEntities(item.title || item.description || "Rugby League update");
+    return {
+      id: Buffer.from(link || title).toString("base64").slice(0, 20),
+      title,
+      link,
+      pubDate: item.pubDate || item.pubDateTZ || item.published_at || new Date().toISOString(),
+      source: item.source_id || item.source_name || item.source || "News",
+      league: searchQuery,
+      image: item.image_url || item.image || null,
+    };
+  }).filter((item: any) => item.title && item.link);
+};
+
+const fetchNewsDataArchive = async (apiKey: string, searchQuery: string) => {
+  const now = new Date();
+  const fromDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const from = fromDate.toISOString().split("T")[0];
+  const to = now.toISOString().split("T")[0];
+  const params = new URLSearchParams({
+    apikey: apiKey,
+    q: searchQuery,
+    language: "en",
+    country: "au,gb,fr,nz",
+    category: "sports",
+    from_date: from,
+    to_date: to,
+    size: "10",
+  });
+  const response = await fetch(`https://newsdata.io/api/1/archive?${params.toString()}`);
+  if (!response.ok) return null;
+  const data = await response.json();
+  const results = Array.isArray(data?.results) ? data.results : [];
+  return results.map((item: any) => {
+    const link = normalizeNewsArticleUrl(item.link || item.url || "");
+    const title = decodeHtmlEntities(item.title || item.description || "Rugby League update");
+    return {
+      id: Buffer.from(link || title).toString("base64").slice(0, 20),
+      title,
+      link,
+      pubDate: item.pubDate || item.pubDateTZ || item.published_at || new Date().toISOString(),
+      source: item.source_id || item.source_name || item.source || "News",
+      league: searchQuery,
+      image: item.image_url || item.image || null,
+    };
+  }).filter((item: any) => item.title && item.link);
 };
 
 export default async function handler(req: RequestLike, res: ResponseLike) {
@@ -113,37 +175,27 @@ export default async function handler(req: RequestLike, res: ResponseLike) {
       "";
 
     if (apiKey) {
-      const params = new URLSearchParams({
-        apikey: apiKey,
-        q: searchQuery,
-        language: "en",
-        country: "au,gb,fr,nz",
-        category: "sports",
-      });
-
-      const response = await fetch(`https://newsdata.io/api/1/latest?${params.toString()}`);
-      if (response.ok) {
-        const data = await response.json();
-        const results = Array.isArray(data?.results) ? data.results : [];
-        const items = results
-          .slice(0, 10)
-          .map((item: any) => {
-            const link = normalizeNewsArticleUrl(item.link || item.url || "");
-            const title = decodeHtmlEntities(item.title || item.description || "Rugby League update");
-            return {
-              id: Buffer.from(link || title).toString("base64").slice(0, 20),
-              title,
-              link,
-              pubDate: item.pubDate || item.pubDateTZ || item.published_at || new Date().toISOString(),
-              source: item.source_id || item.source_name || item.source || "News",
-              league,
-              image: item.image_url || item.image || null,
-            };
-          })
-          .filter((item: any) => item.title && item.link);
-        if (items.length > 0) {
-          return res.status(200).json({ response: items });
-        }
+      const [latestNews, archiveNews] = await Promise.all([
+        fetchNewsDataLatest(apiKey, searchQuery),
+        fetchNewsDataArchive(apiKey, searchQuery),
+      ]);
+      const mergedNews = [...(latestNews || []), ...(archiveNews || [])]
+        .filter(Boolean)
+        .reduce((acc: any[], item: any) => {
+          const key = item.link || item.id;
+          if (!key || acc.find((existing) => existing.link === key || existing.id === item.id)) {
+            return acc;
+          }
+          acc.push(item);
+          return acc;
+        }, [])
+        .sort((a, b) => {
+          const aTime = a.pubDate ? Date.parse(a.pubDate) : 0;
+          const bTime = b.pubDate ? Date.parse(b.pubDate) : 0;
+          return bTime - aTime;
+        });
+      if (mergedNews.length > 0) {
+        return res.status(200).json({ response: mergedNews });
       }
     }
 

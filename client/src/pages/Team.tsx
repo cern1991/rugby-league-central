@@ -87,14 +87,15 @@ interface PlayerStats {
 interface Player {
   id: string;
   name: string;
-  nationality: string;
-  position: string;
-  number: string;
-  dateOfBirth: string;
-  height: string;
-  weight: string;
-  thumbnail: string | null;
-  description: string;
+  nationality?: string;
+  nationalitySecondary?: string | null;
+  position?: string;
+  number?: string;
+  dateOfBirth?: string;
+  height?: string;
+  weight?: string;
+  thumbnail?: string | null;
+  description?: string;
   stats?: PlayerStats;
 }
 
@@ -643,16 +644,25 @@ export default function TeamPage() {
                               </div>
                             </div>
                             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              {getFlagUrl(player.nationality, team.country?.flag) ? (
-                                <img
-                                  src={getFlagUrl(player.nationality, team.country?.flag) as string}
-                                  alt={player.nationality || team.country?.name || "Flag"}
-                                  className="w-6 h-4 object-cover rounded-sm"
-                                  loading="lazy"
-                                />
-                              ) : (
-                                <span>—</span>
-                              )}
+                              {(() => {
+                                const flags = getFlagUrls(
+                                  player.nationality,
+                                  player.nationalitySecondary,
+                                  team.country?.flag
+                                );
+                                if (flags.length === 0) {
+                                  return <span>—</span>;
+                                }
+                                return flags.map((flagUrl, index) => (
+                                  <img
+                                    key={flagUrl || index}
+                                    src={flagUrl}
+                                    alt={player.nationality || team.country?.name || "Flag"}
+                                    className="w-6 h-4 object-cover rounded-sm"
+                                    loading="lazy"
+                                  />
+                                ));
+                              })()}
                             </div>
                           </div>
                         </div>
@@ -743,6 +753,7 @@ function getFlagUrl(nationality?: string | null, fallbackFlag?: string | null) {
   const map: Record<string, string> = {
     australia: "au",
     "new zealand": "nz",
+    "cook islands": "ck",
     england: "gb-eng",
     "united kingdom": "gb",
     wales: "gb-wls",
@@ -756,6 +767,9 @@ function getFlagUrl(nationality?: string | null, fallbackFlag?: string | null) {
     "papua new guinea": "pg",
     "united states": "us",
     italy: "it",
+    lebanon: "lb",
+    brazil: "br",
+    turkey: "tr",
     serbia: "rs",
     "czech republic": "cz",
     croatia: "hr",
@@ -765,6 +779,25 @@ function getFlagUrl(nationality?: string | null, fallbackFlag?: string | null) {
   const code = map[key];
   if (!code) return fallbackFlag || null;
   return `https://flagcdn.com/w40/${code}.png`;
+}
+
+function getFlagUrls(
+  nationality?: string | null,
+  secondary?: string | null,
+  fallbackFlag?: string | null
+) {
+  const flags: string[] = [];
+  const primaryFlag = getFlagUrl(nationality, fallbackFlag);
+  if (primaryFlag) flags.push(primaryFlag);
+  const normalizedPrimary = nationality?.trim().toLowerCase();
+  const normalizedSecondary = secondary?.trim().toLowerCase();
+  if (normalizedSecondary && normalizedSecondary !== normalizedPrimary) {
+    const secondaryFlag = getFlagUrl(secondary, null);
+    if (secondaryFlag && secondaryFlag !== primaryFlag) {
+      flags.push(secondaryFlag);
+    }
+  }
+  return flags.length ? flags : [];
 }
 
 function InfoRow({ label, value }: { label: string; value: string }) {
