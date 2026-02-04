@@ -1,5 +1,3 @@
-import { LOCAL_TEAMS } from "../../shared/localTeams";
-
 type RequestLike = {
   query: Record<string, string | string[]>;
 };
@@ -12,22 +10,23 @@ type ResponseLike = {
 const getQueryValue = (value?: string | string[]) =>
   Array.isArray(value) ? value[0] : value;
 
-const getLocalTeams = (league?: string) => {
-  if (!league) return LOCAL_TEAMS;
+const getLocalTeams = (teams: Array<{ league: string }>, league?: string) => {
+  if (!league) return teams;
   const leagueLower = league.toLowerCase();
   if (leagueLower.includes("super")) {
-    return LOCAL_TEAMS.filter((team) => team.league === "Super League");
+    return teams.filter((team) => team.league === "Super League");
   }
   if (leagueLower.includes("nrl") || leagueLower.includes("national")) {
-    return LOCAL_TEAMS.filter((team) => team.league === "NRL");
+    return teams.filter((team) => team.league === "NRL");
   }
-  return LOCAL_TEAMS.filter((team) => team.league === league);
+  return teams.filter((team) => team.league === league);
 };
 
-export default function handler(req: RequestLike, res: ResponseLike) {
+export default async function handler(req: RequestLike, res: ResponseLike) {
   try {
+    const { LOCAL_TEAMS } = await import("../../shared/localTeams");
     const league = getQueryValue(req.query.league);
-    const teams = getLocalTeams(league);
+    const teams = getLocalTeams(LOCAL_TEAMS, league);
     return res.status(200).json({ response: teams });
   } catch (error: any) {
     console.error("Serverless teams error:", error);

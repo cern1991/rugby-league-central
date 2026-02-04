@@ -1,11 +1,3 @@
-import { LOCAL_TEAMS } from "../../shared/localTeams";
-import { LOCAL_TEAM_ROSTERS } from "../../server/data/localRosters";
-import {
-  SUPER_LEAGUE_SQUADS,
-  type SuperLeaguePlayer,
-} from "../../server/data/localSuperLeagueSquads";
-import { SUPER_LEAGUE_TEAM_ID_BY_CODE } from "../../shared/localSuperLeagueFixtures";
-
 type RequestLike = {
   query: Record<string, string | string[]>;
 };
@@ -23,16 +15,16 @@ const getFallbackPlayerImage = (name: string) => {
   return `https://ui-avatars.com/api/?name=${encoded}&background=random&color=ffffff`;
 };
 
-const getLocalTeams = (league?: string) => {
-  if (!league) return LOCAL_TEAMS;
+const getLocalTeams = (teams: Array<{ league: string }>, league?: string) => {
+  if (!league) return teams;
   const leagueLower = league.toLowerCase();
   if (leagueLower.includes("super")) {
-    return LOCAL_TEAMS.filter((team) => team.league === "Super League");
+    return teams.filter((team) => team.league === "Super League");
   }
   if (leagueLower.includes("nrl") || leagueLower.includes("national")) {
-    return LOCAL_TEAMS.filter((team) => team.league === "NRL");
+    return teams.filter((team) => team.league === "NRL");
   }
-  return LOCAL_TEAMS.filter((team) => team.league === league);
+  return teams.filter((team) => team.league === league);
 };
 
 const fallbackPositionFromNumber = (raw?: number | string | null) => {
@@ -67,24 +59,25 @@ const fallbackPositionFromNumber = (raw?: number | string | null) => {
   }
 };
 
-const SUPER_LEAGUE_SQUADS_BY_TEAM_ID = Object.entries(SUPER_LEAGUE_SQUADS).reduce<
-  Record<string, { season: number; players: SuperLeaguePlayer[]; team_code: string; team_name: string }[]>
->((
-  acc,
-  [code, squads]
-) => {
-  const teamId = SUPER_LEAGUE_TEAM_ID_BY_CODE[code];
-  if (teamId) {
-    acc[teamId] = squads as any;
-  }
-  return acc;
-}, {});
-
-export default function handler(req: RequestLike, res: ResponseLike) {
+export default async function handler(req: RequestLike, res: ResponseLike) {
   try {
+    const { LOCAL_TEAMS } = await import("../../shared/localTeams");
+    const { LOCAL_TEAM_ROSTERS } = await import("../../server/data/localRosters");
+    const { SUPER_LEAGUE_SQUADS } = await import("../../server/data/localSuperLeagueSquads");
+    const { SUPER_LEAGUE_TEAM_ID_BY_CODE } = await import("../../shared/localSuperLeagueFixtures");
+    const SUPER_LEAGUE_SQUADS_BY_TEAM_ID = Object.entries(SUPER_LEAGUE_SQUADS).reduce<
+      Record<string, { season: number; players: any[]; team_code: string; team_name: string }[]>
+    >((acc, [code, squads]) => {
+      const teamId = SUPER_LEAGUE_TEAM_ID_BY_CODE[code];
+      if (teamId) {
+        acc[teamId] = squads as any;
+      }
+      return acc;
+    }, {});
+
     const league = getQueryValue(req.query.league) || "NRL";
     const leagueLower = league.toLowerCase();
-    const teams = getLocalTeams(league);
+    const teams = getLocalTeams(LOCAL_TEAMS, league);
 
     if (leagueLower.includes("super")) {
       const players = teams.flatMap((team) => {
