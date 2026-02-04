@@ -43,7 +43,35 @@ const fetchWikipediaSummary = async (name: string) => {
     if (data?.type === "disambiguation") return null;
     const extract: string | null = data?.extract || data?.description || null;
     if (!extract) return null;
-    return extract.length > 1200 ? `${extract.slice(0, 1200)}…` : extract;
+    const summary = extract.length > 1200 ? `${extract.slice(0, 1200)}…` : extract;
+
+    if (summary.length < 600) {
+      const params = new URLSearchParams({
+        action: "query",
+        prop: "extracts",
+        exintro: "1",
+        explaintext: "1",
+        exsentences: "4",
+        redirects: "1",
+        format: "json",
+        titles: name,
+      });
+      const extractUrl = `https://en.wikipedia.org/w/api.php?${params.toString()}`;
+      const extractResponse = await fetch(extractUrl, { headers: WIKIPEDIA_HEADERS });
+      if (extractResponse.ok) {
+        const extractData = await extractResponse.json();
+        const pages = extractData?.query?.pages || {};
+        const page = Object.values(pages)[0] as any;
+        if (page?.extract) {
+          const expanded = page.extract.length > 1600 ? `${page.extract.slice(0, 1600)}…` : page.extract;
+          if (expanded.length > summary.length) {
+            return expanded;
+          }
+        }
+      }
+    }
+
+    return summary;
   } catch {
     return null;
   }

@@ -435,6 +435,32 @@ export async function registerRoutes(
     return { summary: summary || null, image };
   }
 
+  async function fetchWikipediaExtract(subject: string, sentences = 4) {
+    try {
+      const params = new URLSearchParams({
+        action: "query",
+        prop: "extracts",
+        exintro: "1",
+        explaintext: "1",
+        exsentences: String(sentences),
+        redirects: "1",
+        format: "json",
+        titles: subject,
+      });
+      const url = `https://en.wikipedia.org/w/api.php?${params.toString()}`;
+      const response = await fetch(url, { headers: WIKIPEDIA_HEADERS });
+      if (!response.ok) return null;
+      const data = await response.json();
+      const pages = data?.query?.pages || {};
+      const page = Object.values(pages)[0] as any;
+      if (!page?.extract) return null;
+      const extract = sanitizePlayerSummary(page.extract, subject);
+      return extract || null;
+    } catch {
+      return null;
+    }
+  }
+
   function isLikelyRugbyLeagueSummary(summary?: string | null) {
     if (!summary) return false;
     const lower = summary.toLowerCase();
@@ -505,7 +531,13 @@ export async function registerRoutes(
         return null;
       }
 
-      const summary = summaryData.summary;
+      let summary = summaryData.summary;
+      if (summary && summary.length < 600) {
+        const enriched = await fetchWikipediaExtract(normalized, 4);
+        if (enriched && enriched.length > summary.length) {
+          summary = enriched.length > 1600 ? `${enriched.slice(0, 1600)}…` : enriched;
+        }
+      }
       const image = summaryData.image;
       const payload = {
         summary: summary || null,
