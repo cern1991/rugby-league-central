@@ -1,5 +1,5 @@
 import { SUPER_LEAGUE_TEAM_ID_BY_CODE } from "../../shared/localSuperLeagueFixtures.js";
-import { SUPER_LEAGUE_SQUADS } from "./localSuperLeagueSquads";
+import { SUPER_LEAGUE_SQUADS } from "./localSuperLeagueSquads.js";
 import { LOCAL_TEAMS } from "../../shared/localTeams.js";
 
 export interface LocalPlayer {
