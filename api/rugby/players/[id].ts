@@ -94,7 +94,7 @@ const SUPER_LEAGUE_SQUADS_BY_TEAM_ID = Object.entries(SUPER_LEAGUE_SQUADS).reduc
   return acc;
 }, {});
 
-export default function handler(req: RequestLike, res: ResponseLike) {
+export default async function handler(req: RequestLike, res: ResponseLike) {
   try {
     const id = getQueryValue(req.query.id);
     if (!id) {
