@@ -118,6 +118,8 @@ const namesMatch = (a: string, b: string) => {
 function mapLocalFixtureToGame(fixture: LocalFixture, leagueName: string, leagueId: string): LocalGame {
   const homeTeam = findTeamMetaByName(fixture.homeTeam);
   const awayTeam = findTeamMetaByName(fixture.awayTeam);
+  const homeName = homeTeam?.name || fixture.homeTeam;
+  const awayName = awayTeam?.name || fixture.awayTeam;
   const datePart = fixture.dateUtc.split("T")[0];
   const timePart = fixture.dateUtc.split("T")[1] || "";
   const timestamp = Date.parse(fixture.dateUtc) || undefined;
@@ -140,12 +142,12 @@ function mapLocalFixtureToGame(fixture: LocalFixture, leagueName: string, league
     teams: {
       home: {
         id: homeTeam ? String(homeTeam.id) : fixture.homeTeam,
-        name: fixture.homeTeam,
+        name: homeName,
         logo: homeTeam?.logo || null,
       },
       away: {
         id: awayTeam ? String(awayTeam.id) : fixture.awayTeam,
-        name: fixture.awayTeam,
+        name: awayName,
         logo: awayTeam?.logo || null,
       },
     },

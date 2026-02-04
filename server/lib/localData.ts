@@ -89,6 +89,8 @@ const mapLocalFixtureToGame = (fixture: LocalFixture, leagueName: string, league
 } => {
   const homeTeam = findLocalTeamMeta(fixture.homeTeam);
   const awayTeam = findLocalTeamMeta(fixture.awayTeam);
+  const homeName = homeTeam?.name || fixture.homeTeam;
+  const awayName = awayTeam?.name || fixture.awayTeam;
   const encodedId = createLocalMatchId(leagueName, fixture.matchNumber, fixture.homeTeam, fixture.awayTeam);
 
   return {
@@ -111,12 +113,12 @@ const mapLocalFixtureToGame = (fixture: LocalFixture, leagueName: string, league
     teams: {
       home: {
         id: homeTeam ? String(homeTeam.id) : fixture.homeTeam,
-        name: fixture.homeTeam,
+        name: homeName,
         logo: homeTeam?.logo || null,
       },
       away: {
         id: awayTeam ? String(awayTeam.id) : fixture.awayTeam,
-        name: fixture.awayTeam,
+        name: awayName,
         logo: awayTeam?.logo || null,
       },
     },
