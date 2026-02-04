@@ -75,7 +75,7 @@ export default function handler(req: RequestLike, res: ResponseLike) {
     const teamInfo = findLocalTeamMeta(resolvedId);
 
     const localRoster = LOCAL_TEAM_ROSTERS[resolvedId] || [];
-    if (localRoster.length > 0) {
+    if (teamInfo?.league !== "Super League" && localRoster.length > 0) {
       const players = localRoster.map((player) => {
         const avatar = getFallbackPlayerImage(player.name);
         return {
