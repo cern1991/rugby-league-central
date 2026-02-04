@@ -429,7 +429,7 @@ export async function registerRoutes(
       return null;
     }
     const extract: string | null = data?.extract || data?.description || null;
-    let summary = extract && extract.length > 900 ? `${extract.slice(0, 900)}…` : extract;
+    let summary = extract && extract.length > 1400 ? `${extract.slice(0, 1400)}…` : extract;
     summary = sanitizePlayerSummary(summary, title);
     const image: string | null = data?.originalimage?.source || data?.thumbnail?.source || null;
     return { summary: summary || null, image };

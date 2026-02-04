@@ -27,6 +27,23 @@ const getFallbackPlayerImage = (name: string) => {
   return `https://ui-avatars.com/api/?name=${encoded}&background=random&color=ffffff`;
 };
 
+const WIKIPEDIA_HEADERS = {
+  "User-Agent": "RugbyLeagueCentral/1.0 (rugbyleaguecentral.com)",
+  Accept: "application/json",
+};
+
+const fetchWikipediaSummary = async (name: string) => {
+  const slug = encodeURIComponent(name.replace(/\s+/g, "_"));
+  const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${slug}`;
+  const response = await fetch(url, { headers: WIKIPEDIA_HEADERS });
+  if (!response.ok) return null;
+  const data = await response.json();
+  if (data?.type === "disambiguation") return null;
+  const extract: string | null = data?.extract || data?.description || null;
+  if (!extract) return null;
+  return extract.length > 1200 ? `${extract.slice(0, 1200)}…` : extract;
+};
+
 const fallbackPositionFromNumber = (raw?: number | string | null) => {
   if (raw === null || raw === undefined) return null;
   const num = typeof raw === "string" ? parseInt(raw, 10) : raw;
@@ -93,6 +110,7 @@ export default function handler(req: RequestLike, res: ResponseLike) {
           match.position ||
           fallbackPositionFromNumber(rawNumber) ||
           "Utility";
+        const summary = await fetchWikipediaSummary(match.name);
         return res.status(200).json({
           response: {
             id,
@@ -104,7 +122,9 @@ export default function handler(req: RequestLike, res: ResponseLike) {
             league: team?.league || "Super League",
             nationality: match.nationality || team?.country?.name || "England",
             image: getFallbackPlayerImage(match.name),
-            description: `${match.name} plays ${position} for ${team?.name || squad?.team_name || "their club"}.`,
+            description:
+              summary ||
+              `${match.name} plays ${position} for ${team?.name || squad?.team_name || "their club"}.`,
             socials: {},
             stats: {},
           },
@@ -116,6 +136,7 @@ export default function handler(req: RequestLike, res: ResponseLike) {
       const match = roster.find((player) => player.id === id);
       if (match) {
         const team = findTeamById(teamId);
+        const summary = await fetchWikipediaSummary(match.name);
         return res.status(200).json({
           response: {
             id,
@@ -127,7 +148,9 @@ export default function handler(req: RequestLike, res: ResponseLike) {
             league: team?.league || "NRL",
             nationality: team?.country?.name || "Australia",
             image: getFallbackPlayerImage(match.name),
-            description: `${match.name} plays ${match.position || "Utility"} for ${team?.name || "their club"}.`,
+            description:
+              summary ||
+              `${match.name} plays ${match.position || "Utility"} for ${team?.name || "their club"}.`,
             socials: {},
             stats: {},
           },
