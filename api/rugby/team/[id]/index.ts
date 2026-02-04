@@ -1,4 +1,4 @@
-import { findLocalTeamMeta } from "../../../../server/lib/localData";
+import { findLocalTeamMeta } from "../../../../server/lib/localData.js";
 
 export const config = {
   runtime: "nodejs",

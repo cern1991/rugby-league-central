@@ -5,7 +5,7 @@ import {
   getLocalFixturesForTeam,
   mapLocalFixtureToGame,
   resolveTeamIdentifier,
-} from "../../../../server/lib/localData";
+} from "../../../../server/lib/localData.js";
 
 export const config = {
   runtime: "nodejs",

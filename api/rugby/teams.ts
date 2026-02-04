@@ -1,4 +1,4 @@
-import { LOCAL_TEAMS } from "../../shared/localTeams";
+import { LOCAL_TEAMS } from "../../shared/localTeams.js";
 
 export const config = {
   runtime: "nodejs",

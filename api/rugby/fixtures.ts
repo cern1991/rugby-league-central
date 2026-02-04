@@ -2,7 +2,7 @@ import {
   buildNrlFixturesFromLocalData,
   buildSuperLeagueFixturesFromLocalData,
   CURRENT_SEASON,
-} from "../../server/lib/localData";
+} from "../../server/lib/localData.js";
 
 export const config = {
   runtime: "nodejs",

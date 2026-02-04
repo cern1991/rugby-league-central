@@ -1,10 +1,10 @@
-import { LOCAL_TEAMS, type LocalTeamInfo } from "../../shared/localTeams";
-import { LOCAL_TEAM_ROSTERS } from "../../server/data/localRosters";
+import { LOCAL_TEAMS, type LocalTeamInfo } from "../../shared/localTeams.js";
+import { LOCAL_TEAM_ROSTERS } from "../../server/data/localRosters.js";
 import {
   SUPER_LEAGUE_SQUADS,
   type SuperLeaguePlayer,
-} from "../../server/data/localSuperLeagueSquads";
-import { SUPER_LEAGUE_TEAM_ID_BY_CODE } from "../../shared/localSuperLeagueFixtures";
+} from "../../server/data/localSuperLeagueSquads.js";
+import { SUPER_LEAGUE_TEAM_ID_BY_CODE } from "../../shared/localSuperLeagueFixtures.js";
 
 export const config = {
   runtime: "nodejs",

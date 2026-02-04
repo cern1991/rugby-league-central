@@ -1,7 +1,7 @@
 import {
   LEAGUE_IDS,
   findLocalGameById,
-} from "../../../server/lib/localData";
+} from "../../../server/lib/localData.js";
 
 export const config = {
   runtime: "nodejs",
