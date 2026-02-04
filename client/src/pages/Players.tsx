@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { UserRound, Search } from "lucide-react";
 import { usePreferredLeague } from "@/hooks/usePreferredLeague";
 import { cn } from "@/lib/utils";
+import { getDisplayTeamName, normalizeLeagueKey } from "@/lib/teamDisplay";
 
 interface PlayerListItem {
   id: string;
@@ -110,11 +111,15 @@ export default function Players() {
   });
 
   const players = useMemo(() => {
-    return (data?.response || []).map((player) => ({
-      ...player,
-      teamLogo: player.teamLogo || (player.teamId ? teamLogoById.get(String(player.teamId)) || null : null),
-    }));
-  }, [data, teamLogoById]);
+    const leagueKey = normalizeLeagueKey(selectedLeague);
+    return (data?.response || [])
+      .filter((player) => normalizeLeagueKey(player.league || selectedLeague) === leagueKey)
+      .map((player) => ({
+        ...player,
+        teamName: getDisplayTeamName(player.teamId, player.teamName, player.league),
+        teamLogo: player.teamLogo || (player.teamId ? teamLogoById.get(String(player.teamId)) || null : null),
+      }));
+  }, [data, teamLogoById, selectedLeague]);
 
   const teamOptions = useMemo(() => {
     const map = new Map<string, string>();

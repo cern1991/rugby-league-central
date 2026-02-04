@@ -4,6 +4,7 @@ import { Layout } from "@/components/Layout";
 import { useRoute, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Users, Activity, MapPin, Ruler, Dumbbell, Share2 } from "lucide-react";
+import { getDisplayTeamName } from "@/lib/teamDisplay";
 
 interface PlayerProfile {
   id: string;
@@ -169,12 +170,12 @@ export default function PlayerPage() {
                   <div className="space-y-1">
                     <h1 className="font-display text-3xl font-bold">{player.name}</h1>
                     <p className="text-sm text-muted-foreground">
-                      {player.position || "Player"} · {player.team || player.league}
+                      {player.position || "Player"} · {getDisplayTeamName(player.teamId, player.team, player.league)}
                     </p>
                   </div>
 
                   <div className="grid gap-3 sm:grid-cols-2 text-sm">
-                    <InfoPair label="Team" value={player.team || "Rugby League"} />
+                    <InfoPair label="Team" value={getDisplayTeamName(player.teamId, player.team, player.league)} />
                     <InfoPair label="League" value={player.league || "Rugby League"} />
                     <div className="flex items-center justify-between gap-4">
                       <span className="text-muted-foreground">Nationality</span>
