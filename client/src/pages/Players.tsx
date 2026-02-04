@@ -3,7 +3,7 @@ import LeagueFilter from "@/components/LeagueFilter";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { useEffect, useMemo, useState } from "react";
-import { Users, Search } from "lucide-react";
+import { UserRound, Search } from "lucide-react";
 import { usePreferredLeague } from "@/hooks/usePreferredLeague";
 import { cn } from "@/lib/utils";
 
@@ -15,6 +15,7 @@ interface PlayerListItem {
   teamName?: string | null;
   league?: string | null;
   number?: string | null;
+  teamLogo?: string | null;
   image?: string | null;
 }
 
@@ -48,16 +49,72 @@ export default function Players() {
     }
   }, [selectedLeague, teamFilter, positionFilter, sortMode]);
 
-  const { data, isLoading } = useQuery<{ response: PlayerListItem[] }>({
-    queryKey: ["players", selectedLeague],
+  const { data: teamsData } = useQuery<{ response: Array<{ id: string; name: string; logo?: string | null }> }>({
+    queryKey: ["teams", "players", selectedLeague],
     queryFn: async () => {
-      const res = await fetch(`/api/rugby/players?league=${encodeURIComponent(selectedLeague)}`);
-      if (!res.ok) throw new Error("Failed to fetch players");
+      const res = await fetch(`/api/rugby/teams?league=${encodeURIComponent(selectedLeague)}`);
+      if (!res.ok) throw new Error("Failed to fetch teams for players");
       return res.json();
     },
   });
 
-  const players = data?.response || [];
+  const teamLogoById = useMemo(() => {
+    const map = new Map<string, string>();
+    (teamsData?.response || []).forEach((team) => {
+      if (team?.id && team?.logo) {
+        map.set(String(team.id), team.logo);
+      }
+    });
+    return map;
+  }, [teamsData]);
+
+  const { data, isLoading } = useQuery<{ response: PlayerListItem[] }>({
+    queryKey: ["players", selectedLeague],
+    queryFn: async () => {
+      const res = await fetch(`/api/rugby/players?league=${encodeURIComponent(selectedLeague)}`);
+      if (res.ok) {
+        return res.json();
+      }
+      if (res.status !== 404) {
+        throw new Error("Failed to fetch players");
+      }
+
+      const teams = teamsData?.response || [];
+      if (!teams.length) {
+        return { response: [] };
+      }
+
+      const playerResponses = await Promise.all(
+        teams.map(async (team: { id: string; name: string; league?: string }) => {
+          const teamRes = await fetch(`/api/rugby/team/${encodeURIComponent(team.id)}/players`);
+          if (!teamRes.ok) return [];
+          const data = await teamRes.json();
+          const response = data?.response || [];
+          return response.map((player: any) => ({
+            id: player.id,
+            name: player.name,
+            position: player.position || "",
+            teamId: String(team.id),
+            teamName: team.name,
+            league: team.league || selectedLeague,
+            number: player.number || null,
+            teamLogo: teamLogoById.get(String(team.id)) || null,
+            image: player.thumbnail || player.photo || null,
+          }));
+        })
+      );
+
+      return { response: playerResponses.flat() };
+    },
+    enabled: !!teamsData,
+  });
+
+  const players = useMemo(() => {
+    return (data?.response || []).map((player) => ({
+      ...player,
+      teamLogo: player.teamLogo || (player.teamId ? teamLogoById.get(String(player.teamId)) || null : null),
+    }));
+  }, [data, teamLogoById]);
 
   const teamOptions = useMemo(() => {
     const map = new Map<string, string>();
@@ -117,7 +174,7 @@ export default function Players() {
         <div className="flex items-start justify-between gap-6">
           <div>
             <h1 className="font-display text-3xl font-bold flex items-center gap-3" data-testid="text-page-title">
-              <Users className="w-8 h-8 text-primary" />
+              <UserRound className="w-8 h-8 text-primary" />
               Players
             </h1>
             <p className="text-muted-foreground mt-1">Browse player profiles across the league</p>
@@ -211,7 +268,13 @@ export default function Players() {
                   data-testid={`card-player-${player.id}`}
                 >
                   <div className="flex items-center gap-4">
-                    {player.image ? (
+                    {player.teamLogo ? (
+                      <img
+                        src={player.teamLogo}
+                        alt={player.name}
+                        className="w-14 h-14 object-contain"
+                      />
+                    ) : player.image ? (
                       <img
                         src={player.image}
                         alt={player.name}
@@ -250,7 +313,7 @@ export default function Players() {
           </div>
         ) : (
           <div className="text-center py-12 text-muted-foreground border border-dashed border-border rounded-xl">
-            <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
+            <UserRound className="w-12 h-12 mx-auto mb-4 opacity-50" />
             <p>No players found</p>
             <p className="text-sm mt-2">Try adjusting your filters</p>
           </div>

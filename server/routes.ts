@@ -389,6 +389,36 @@ export async function registerRoutes(
     return stripInjuryNotes(summary, subject);
   }
 
+  function extractNationalityFromSummary(summary?: string | null) {
+    if (!summary) return null;
+    const patterns: Array<{ regex: RegExp; country: string }> = [
+      { regex: /\bAustralian\b/i, country: "Australia" },
+      { regex: /\bEnglish\b/i, country: "England" },
+      { regex: /\bBritish\b/i, country: "United Kingdom" },
+      { regex: /\bNew\s+Zealand(?:er)?\b/i, country: "New Zealand" },
+      { regex: /\bFrench\b/i, country: "France" },
+      { regex: /\bFijian\b/i, country: "Fiji" },
+      { regex: /\bTongan\b/i, country: "Tonga" },
+      { regex: /\bSamoan\b/i, country: "Samoa" },
+      { regex: /\bPapua\s+New\s+Guinean\b/i, country: "Papua New Guinea" },
+      { regex: /\bScottish\b/i, country: "Scotland" },
+      { regex: /\bWelsh\b/i, country: "Wales" },
+      { regex: /\bIrish\b/i, country: "Ireland" },
+      { regex: /\bJamaican\b/i, country: "Jamaica" },
+      { regex: /\bItalian\b/i, country: "Italy" },
+      { regex: /\bSerbian\b/i, country: "Serbia" },
+      { regex: /\bCroatian\b/i, country: "Croatia" },
+      { regex: /\bCzech\b/i, country: "Czech Republic" },
+      { regex: /\bAmerican\b/i, country: "United States" },
+      { regex: /\bSouth\s+African\b/i, country: "South Africa" },
+      { regex: /\bZimbabwean\b/i, country: "Zimbabwe" },
+    ];
+    for (const pattern of patterns) {
+      if (pattern.regex.test(summary)) return pattern.country;
+    }
+    return null;
+  }
+
   async function getWikipediaProfile(subject?: string | null) {
     if (!subject) return null;
     const normalized = subject.trim();
@@ -396,6 +426,9 @@ export async function registerRoutes(
     const cacheKey = normalized.toLowerCase();
     const cached = wikipediaProfileCache.get(cacheKey);
     if (cached && cached.expires > Date.now()) {
+      if (cached.nationality === undefined) {
+        cached.nationality = extractNationalityFromSummary(cached.summary);
+      }
       return cached;
     }
 
@@ -425,6 +458,7 @@ export async function registerRoutes(
         summary: summary || null,
         image,
         position: null,
+        nationality: extractNationalityFromSummary(summary),
         expires: Date.now() + WIKIPEDIA_CACHE_TTL,
       };
       wikipediaProfileCache.set(cacheKey, payload);
@@ -496,6 +530,38 @@ export async function registerRoutes(
     const normalized = normalizePositions(value);
     if (!normalized || normalized.length === 0) return null;
     return normalized.join(" / ");
+  }
+
+  function fallbackPositionFromNumber(raw?: number | string | null) {
+    if (raw === null || raw === undefined) return null;
+    const num = typeof raw === "string" ? parseInt(raw, 10) : raw;
+    if (!Number.isFinite(num)) return null;
+    switch (num) {
+      case 1:
+        return "Fullback";
+      case 2:
+      case 5:
+        return "Wing";
+      case 3:
+      case 4:
+        return "Centre";
+      case 6:
+        return "Stand-off";
+      case 7:
+        return "Halfback";
+      case 8:
+      case 10:
+        return "Prop";
+      case 9:
+        return "Hooker";
+      case 11:
+      case 12:
+        return "Second-row";
+      case 13:
+        return "Loose forward";
+      default:
+        return null;
+    }
   }
 
   function extractPositionFromWikipediaHtml(html: string) {
@@ -1231,10 +1297,11 @@ export async function registerRoutes(
         });
         if (!match) return null;
         const ownerInfo = findLocalTeamById(ownerTeamId);
+        const fallbackPosition = fallbackPositionFromNumber(rawNumber);
         return {
           id: playerId,
           name: match.name,
-          position: match.position || "",
+          position: formatPositions(match.position) || match.position || fallbackPosition || "",
           teamId: ownerTeamId,
           teamName: ownerInfo?.name || active.team_name,
           league: ownerInfo?.league || "Super League",
@@ -1601,7 +1668,7 @@ export async function registerRoutes(
               id: player.id,
               name: player.name,
               position: normalizedPosition,
-              nationality: teamInfo?.country?.name || "Australia",
+              nationality: wikiProfile?.nationality || teamInfo?.country?.name || "Australia",
               birthDate: null,
               height: null,
               weight: null,
@@ -1629,13 +1696,18 @@ export async function registerRoutes(
             .map(async (player, index) => {
           const wikiProfile = await getWikipediaPlayerProfile(player.name);
           const avatar = wikiProfile?.image || getFallbackPlayerImage(player.name);
+          const fallbackPosition = fallbackPositionFromNumber(player.squad_number);
           const normalizedPosition =
-            wikiProfile?.position || formatPositions(player.position) || player.position || "Utility";
+            wikiProfile?.position ||
+            formatPositions(player.position) ||
+            player.position ||
+            fallbackPosition ||
+            "Utility";
           return {
             id: `SL-${idForTeam}-${player.squad_number ?? index + 1}`,
             name: player.name,
             position: normalizedPosition,
-            nationality: player.nationality || teamInfo?.country?.name || "England",
+            nationality: wikiProfile?.nationality || player.nationality || teamInfo?.country?.name || "England",
             birthDate: player.dob || null,
             height: player.height_cm ? `${player.height_cm} cm` : null,
             weight: player.weight_kg ? `${player.weight_kg} kg` : null,
@@ -1718,7 +1790,11 @@ export async function registerRoutes(
             .map((player, index) => ({
               id: `SL-${team.id}-${player.squad_number ?? index + 1}`,
               name: player.name,
-              position: formatPositions(player.position) || player.position || "Utility",
+              position:
+                formatPositions(player.position) ||
+                player.position ||
+                fallbackPositionFromNumber(player.squad_number) ||
+                "Utility",
               teamId: String(team.id),
               teamName: team.name,
               league: team.league,
@@ -1748,15 +1824,19 @@ export async function registerRoutes(
             if (!squad || !squad.players || squad.players.length === 0) return [];
             return squad.players
               .filter((player) => isPlayerAssignedToTeam(player.name, teamId))
-              .map((player, index) => ({
-                id: `SL-${teamId}-${player.squad_number ?? index + 1}`,
-                name: player.name,
-                position: formatPositions(player.position) || player.position || "Utility",
-                teamId,
-                teamName: teamInfo?.name || squad.team_name,
-                league: teamInfo?.league || "Super League",
-                number: player.squad_number ? String(player.squad_number) : null,
-                image: getFallbackPlayerImage(player.name),
+            .map((player, index) => ({
+              id: `SL-${teamId}-${player.squad_number ?? index + 1}`,
+              name: player.name,
+              position:
+                formatPositions(player.position) ||
+                player.position ||
+                fallbackPositionFromNumber(player.squad_number) ||
+                "Utility",
+              teamId,
+              teamName: teamInfo?.name || squad.team_name,
+              league: teamInfo?.league || "Super League",
+              number: player.squad_number ? String(player.squad_number) : null,
+              image: getFallbackPlayerImage(player.name),
               }));
           }
         );
@@ -1821,14 +1901,17 @@ export async function registerRoutes(
         const normalizedPosition =
           wikiProfile?.position || formatPositions(localPlayer.position) || localPlayer.position || "Utility";
         const avatar = wikiProfile?.image || getFallbackPlayerImage(localPlayer.name);
+        const teamLogo = getLocalTeamLogo(localPlayer.teamId);
         return res.json({
           response: {
             id: localPlayer.id,
             name: localPlayer.name,
             position: normalizedPosition,
             team: localPlayer.teamName,
+            teamId: localPlayer.teamId,
+            teamLogo,
             league: localPlayer.league,
-            nationality: localPlayer.country?.name || "Australia",
+            nationality: wikiProfile?.nationality || localPlayer.country?.name || "Australia",
             image: avatar,
             description:
               wikiProfile?.summary ||

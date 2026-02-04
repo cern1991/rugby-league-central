@@ -608,48 +608,52 @@ export default function TeamPage() {
                   return (
                     <Link key={player.id} href={`/player/${encodeURIComponent(player.id)}`}>
                       <div 
-                        className="p-4 rounded-xl bg-card border border-border hover:border-primary/50 transition-colors cursor-pointer group"
+                        className="p-4 rounded-xl bg-card border border-border hover:border-primary/50 transition-colors cursor-pointer group min-h-[120px]"
                         data-testid={`card-player-${player.id}`}
                       >
                         <div className="flex items-center gap-4">
-                          {player.thumbnail ? (
+                          {team.logo ? (
                             <img 
-                              src={player.thumbnail} 
-                              alt={player.name} 
-                              className="w-16 h-16 rounded-full object-cover object-center"
+                              src={team.logo} 
+                              alt={team.name} 
+                              className="w-16 h-16 object-contain"
                             />
                           ) : (
                             <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center text-lg font-bold">
                               {player.name.slice(0, 2).toUpperCase()}
                             </div>
                           )}
-                          <div className="flex-1 min-w-0">
-                            <div className="font-semibold truncate group-hover:text-primary transition-colors">{player.name}</div>
-                            {player.position && (
-                              <div className="text-sm text-primary">{player.position}</div>
-                            )}
-                            {player.nationality && (
-                              <div className="text-xs text-muted-foreground">{player.nationality}</div>
-                            )}
-                          </div>
-                          {player.number && (
-                            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary">
-                              {player.number}
+                          <div className="flex-1 min-w-0 space-y-1">
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="font-semibold truncate group-hover:text-primary transition-colors">{player.name}</div>
+                              <div className="w-9 h-9 rounded-full border border-primary/30 bg-primary/10 flex items-center justify-center text-xs font-semibold text-primary">
+                                {player.number ?? "—"}
+                              </div>
                             </div>
-                          )}
-                        </div>
-                        <div className="mt-4 grid grid-cols-2 gap-2 text-center text-xs text-muted-foreground">
-                          <div className="rounded-lg bg-muted/30 p-2">
-                            <p className="text-[11px] uppercase tracking-wide">Squad #</p>
-                            <p className="text-base font-semibold text-foreground">
-                              {player.number ?? "—"}
-                            </p>
-                          </div>
-                          <div className="rounded-lg bg-muted/30 p-2">
-                            <p className="text-[11px] uppercase tracking-wide">Position</p>
-                            <p className="text-base font-semibold text-foreground">
-                              {player.position || "—"}
-                            </p>
+                            <div className="space-y-1 text-xs text-muted-foreground">
+                              <div className="flex items-center justify-between gap-3">
+                                <span className="uppercase tracking-wide">Squad #</span>
+                                <span className="font-semibold text-foreground">{player.number ?? "—"}</span>
+                              </div>
+                              <div className="flex items-center justify-between gap-3">
+                                <span className="uppercase tracking-wide">Position</span>
+                                <span className="font-semibold text-foreground truncate">
+                                  {player.position || fallbackPositionFromNumber(player.number) || "Utility"}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              {getFlagUrl(player.nationality, team.country?.flag) ? (
+                                <img
+                                  src={getFlagUrl(player.nationality, team.country?.flag) as string}
+                                  alt={player.nationality || team.country?.name || "Flag"}
+                                  className="w-6 h-4 object-cover rounded-sm"
+                                  loading="lazy"
+                                />
+                              ) : (
+                                <span>—</span>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -699,6 +703,68 @@ function StatCard({
       <p className={cn("mt-2 text-2xl font-bold", accent)}>{formatted}</p>
     </div>
   );
+}
+
+function fallbackPositionFromNumber(raw?: string | number | null) {
+  if (raw === null || raw === undefined) return null;
+  const num = typeof raw === "string" ? parseInt(raw, 10) : raw;
+  if (!Number.isFinite(num)) return null;
+  switch (num) {
+    case 1:
+      return "Fullback";
+    case 2:
+    case 5:
+      return "Wing";
+    case 3:
+    case 4:
+      return "Centre";
+    case 6:
+      return "Stand-off";
+    case 7:
+      return "Halfback";
+    case 8:
+    case 10:
+      return "Prop";
+    case 9:
+      return "Hooker";
+    case 11:
+    case 12:
+      return "Second-row";
+    case 13:
+      return "Loose forward";
+    default:
+      return null;
+  }
+}
+
+function getFlagUrl(nationality?: string | null, fallbackFlag?: string | null) {
+  if (!nationality) return fallbackFlag || null;
+  const key = nationality.trim().toLowerCase();
+  const map: Record<string, string> = {
+    australia: "au",
+    "new zealand": "nz",
+    england: "gb-eng",
+    "united kingdom": "gb",
+    wales: "gb-wls",
+    scotland: "gb-sct",
+    ireland: "ie",
+    france: "fr",
+    jamaica: "jm",
+    fiji: "fj",
+    tonga: "to",
+    samoa: "ws",
+    "papua new guinea": "pg",
+    "united states": "us",
+    italy: "it",
+    serbia: "rs",
+    "czech republic": "cz",
+    croatia: "hr",
+    "south africa": "za",
+    zimbabwe: "zw",
+  };
+  const code = map[key];
+  if (!code) return fallbackFlag || null;
+  return `https://flagcdn.com/w40/${code}.png`;
 }
 
 function InfoRow({ label, value }: { label: string; value: string }) {

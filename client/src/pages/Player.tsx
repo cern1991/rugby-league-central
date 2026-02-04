@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useMemo } from "react";
 import { Layout } from "@/components/Layout";
 import { useRoute, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
@@ -9,6 +10,7 @@ interface PlayerProfile {
   name: string;
   position?: string;
   team?: string;
+  teamId?: string;
   league?: string;
   nationality?: string;
   birthDate?: string;
@@ -16,6 +18,7 @@ interface PlayerProfile {
   weight?: string;
   description?: string;
   image?: string;
+  teamLogo?: string;
   signing?: string;
   socials?: {
     twitter?: string;
@@ -37,11 +40,11 @@ interface PlayerStats {
 export default function PlayerPage() {
   const [, params] = useRoute("/player/:id");
   const playerId = params?.id ?? "";
-  let backLink = "/teams";
+  let teamLink: string | null = null;
   try {
     const lastTeamId = sessionStorage.getItem("rlc-last-team-id");
     if (lastTeamId) {
-      backLink = `/team/${encodeURIComponent(lastTeamId)}`;
+      teamLink = `/team/${encodeURIComponent(lastTeamId)}`;
     }
   } catch {
     // Ignore storage errors
@@ -60,14 +63,74 @@ export default function PlayerPage() {
 
   const player = data?.response;
 
+  const { data: teamData } = useQuery<{ response: Array<{ id: string; name: string; logo?: string | null }> }>({
+    queryKey: ["player-team-logo", player?.league],
+    enabled: Boolean(player?.league),
+    queryFn: async () => {
+      const res = await fetch(`/api/rugby/teams?league=${encodeURIComponent(player?.league || "NRL")}`);
+      if (!res.ok) throw new Error("Failed to fetch team logos");
+      return res.json();
+    },
+  });
+
+  const resolvedTeamLogo = useMemo(() => {
+    if (!player) return null;
+    if (player.teamLogo) return player.teamLogo;
+    const teams = teamData?.response || [];
+    const byId = teams.find((team) => String(team.id) === String(player.teamId));
+    if (byId?.logo) return byId.logo;
+    const byName = teams.find(
+      (team) => team.name.toLowerCase() === (player.team || "").toLowerCase()
+    );
+    return byName?.logo || null;
+  }, [player, teamData]);
+
+  const nationalityFlag = useMemo(() => {
+    const nationality = player?.nationality?.trim().toLowerCase();
+    if (!nationality) return null;
+    const map: Record<string, string> = {
+      australia: "au",
+      "new zealand": "nz",
+      england: "gb-eng",
+      "united kingdom": "gb",
+      wales: "gb-wls",
+      scotland: "gb-sct",
+      ireland: "ie",
+      france: "fr",
+      jamaica: "jm",
+      fiji: "fj",
+      tonga: "to",
+      samoa: "ws",
+      "papua new guinea": "pg",
+      "united states": "us",
+      italy: "it",
+      serbia: "rs",
+      "czech republic": "cz",
+      croatia: "hr",
+      "south africa": "za",
+      zimbabwe: "zw",
+    };
+    const code = map[nationality];
+    if (!code) return null;
+    return `https://flagcdn.com/w40/${code}.png`;
+  }, [player?.nationality]);
+
   return (
     <Layout>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <Link href={backLink} className="inline-flex items-center gap-2 text-sm text-primary hover:underline">
+          <Link href="/players" className="inline-flex items-center gap-2 text-sm text-primary hover:underline">
             <ArrowLeft className="w-4 h-4" />
-            Back to team
+            Back to players
           </Link>
+          {teamLink && (
+            <Link
+              href={teamLink}
+              className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-2 text-xs font-semibold text-primary hover:bg-primary/20 transition"
+            >
+              Go to team
+            </Link>
+          )}
         </div>
 
         {isLoading ? (
@@ -88,56 +151,66 @@ export default function PlayerPage() {
           <div className="space-y-6">
             <div className="rounded-2xl border border-border bg-card overflow-hidden">
               <div className="flex flex-col lg:flex-row">
-                <div className="lg:w-1/2 bg-muted/20">
-                  {player.image ? (
+                <div className="lg:w-64 bg-muted/20 flex items-center justify-center p-6">
+                  {resolvedTeamLogo ? (
                     <img
-                      src={player.image}
-                      alt={player.name}
-                      className="w-full h-64 lg:h-full object-cover object-top"
+                      src={resolvedTeamLogo}
+                      alt={player.team || player.name}
+                      className="max-h-40 w-auto object-contain"
                       loading="lazy"
                     />
                   ) : (
-                    <div className="w-full h-64 lg:h-full bg-muted flex items-center justify-center">
-                      <Users className="w-12 h-12 text-muted-foreground" />
+                    <div className="w-full h-40 bg-muted flex items-center justify-center">
+                      <Users className="w-10 h-10 text-muted-foreground" />
                     </div>
                   )}
                 </div>
-                <div className="lg:w-1/2 p-4 lg:p-6 space-y-3 text-sm">
-                  <h2 className="font-semibold text-base text-foreground">Player Profile</h2>
-                  <InfoPair label="Team" value={player.team || "Rugby League"} />
-                  <InfoPair label="League" value={player.league || "Rugby League"} />
-                  <InfoPair label="Position" value={player.position || "—"} />
-                  <InfoPair label="Nationality" value={player.nationality || "—"} />
-                  <InfoPair label="Birth Date" value={player.birthDate || "—"} />
-                  {player.signing && <InfoPair label="Contract" value={player.signing} />}
+                <div className="flex-1 p-4 lg:p-6 space-y-5">
+                  <div className="space-y-1">
+                    <h1 className="font-display text-3xl font-bold">{player.name}</h1>
+                    <p className="text-sm text-muted-foreground">
+                      {player.position || "Player"} · {player.team || player.league}
+                    </p>
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-2 text-sm">
+                    <InfoPair label="Team" value={player.team || "Rugby League"} />
+                    <InfoPair label="League" value={player.league || "Rugby League"} />
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-muted-foreground">Nationality</span>
+                      <span className="flex items-center gap-2 font-medium">
+                        {nationalityFlag ? (
+                          <img
+                            src={nationalityFlag}
+                            alt={player.nationality || "Flag"}
+                            className="w-6 h-4 object-cover rounded-sm"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                        <span className="text-right">{player.nationality || "—"}</span>
+                      </span>
+                    </div>
+                    {player.signing && <InfoPair label="Contract" value={player.signing} />}
+                  </div>
+
+                  <div className="rounded-xl border border-border bg-background/40 p-4">
+                    <h2 className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Bio</h2>
+                    {player.description ? (
+                      <p className="text-sm leading-relaxed text-muted-foreground whitespace-pre-line">
+                        {player.description}
+                      </p>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        Detailed biography information will appear here when available.
+                      </p>
+                    )}
+                  </div>
+
+                  {renderSocialLinks(player.socials)}
                 </div>
               </div>
-            </div>
-
-            <div className="space-y-5">
-              <div>
-                <h1 className="font-display text-3xl font-bold">{player.name}</h1>
-                <p className="text-muted-foreground mt-1">{player.position || "Player"} · {player.team || player.league}</p>
-              </div>
-
-              {player.description ? (
-                <p className="text-base leading-relaxed text-muted-foreground whitespace-pre-line">
-                  {player.description}
-                </p>
-              ) : (
-                <p className="text-muted-foreground">
-                  Detailed biography information will appear here when available.
-                </p>
-              )}
-
-              <div className="grid sm:grid-cols-2 gap-4">
-                <StatCard icon={<Activity className="w-4 h-4" />} label="Position" value={player.position || "—"} />
-                <StatCard icon={<MapPin className="w-4 h-4" />} label="Team" value={player.team || "TBA"} />
-                <StatCard icon={<Ruler className="w-4 h-4" />} label="Height" value={player.height || "—"} />
-                <StatCard icon={<Dumbbell className="w-4 h-4" />} label="Weight" value={player.weight || "—"} />
-              </div>
-
-              {renderSocialLinks(player.socials)}
             </div>
           </div>
         )}
