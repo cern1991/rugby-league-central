@@ -6,6 +6,10 @@ import {
 } from "../../../server/data/localSuperLeagueSquads";
 import { SUPER_LEAGUE_TEAM_ID_BY_CODE } from "../../../shared/localSuperLeagueFixtures";
 
+export const config = {
+  runtime: "nodejs",
+};
+
 type RequestLike = {
   query: Record<string, string | string[]>;
 };

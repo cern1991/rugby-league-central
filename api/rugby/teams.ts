@@ -1,5 +1,9 @@
 import { LOCAL_TEAMS } from "../../shared/localTeams";
 
+export const config = {
+  runtime: "nodejs",
+};
+
 type RequestLike = {
   query: Record<string, string | string[]>;
 };
