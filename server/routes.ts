@@ -419,11 +419,58 @@ export async function registerRoutes(
     return null;
   }
 
-  async function getWikipediaProfile(subject?: string | null) {
+  async function fetchWikipediaSummaryByTitle(title: string) {
+    const slug = encodeURIComponent(title.replace(/\s+/g, "_"));
+    const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${slug}`;
+    const response = await fetch(url, { headers: WIKIPEDIA_HEADERS });
+    if (!response.ok) return null;
+    const data = await response.json();
+    if (data?.type === "disambiguation") {
+      return null;
+    }
+    const extract: string | null = data?.extract || data?.description || null;
+    let summary = extract && extract.length > 900 ? `${extract.slice(0, 900)}…` : extract;
+    summary = sanitizePlayerSummary(summary, title);
+    const image: string | null = data?.originalimage?.source || data?.thumbnail?.source || null;
+    return { summary: summary || null, image };
+  }
+
+  function isLikelyRugbyLeagueSummary(summary?: string | null) {
+    if (!summary) return false;
+    const lower = summary.toLowerCase();
+    return lower.includes("rugby league");
+  }
+
+  function summaryMentionsContext(summary: string, context?: { teamName?: string | null; league?: string | null }) {
+    if (!context) return true;
+    const lower = summary.toLowerCase();
+    const team = context.teamName?.toLowerCase();
+    const league = context.league?.toLowerCase();
+    if (team && lower.includes(team)) return true;
+    if (league && lower.includes(league)) return true;
+    return !team && !league;
+  }
+
+  async function searchWikipediaTitle(query: string) {
+    const url = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&srlimit=5&format=json`;
+    const response = await fetch(url, { headers: WIKIPEDIA_HEADERS });
+    if (!response.ok) return [];
+    const data = await response.json();
+    return (data?.query?.search || []).map((item: any) => item.title).filter(Boolean);
+  }
+
+  async function getWikipediaProfile(
+    subject?: string | null,
+    context?: { teamName?: string | null; league?: string | null }
+  ) {
     if (!subject) return null;
     const normalized = subject.trim();
     if (!normalized) return null;
-    const cacheKey = normalized.toLowerCase();
+    const cacheKey = [
+      normalized.toLowerCase(),
+      context?.teamName?.toLowerCase() || "",
+      context?.league?.toLowerCase() || "",
+    ].join("|");
     const cached = wikipediaProfileCache.get(cacheKey);
     if (cached && cached.expires > Date.now()) {
       if (cached.nationality === undefined) {
@@ -432,28 +479,34 @@ export async function registerRoutes(
       return cached;
     }
 
-    const slug = encodeURIComponent(normalized.replace(/\s+/g, "_"));
-    const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${slug}`;
     try {
-      const response = await fetch(url, {
-        headers: WIKIPEDIA_HEADERS,
-      });
-      if (!response.ok) {
+      let summaryData = await fetchWikipediaSummaryByTitle(normalized);
+      if (summaryData?.summary && !isLikelyRugbyLeagueSummary(summaryData.summary)) {
+        summaryData = null;
+      }
+      if (summaryData?.summary && !summaryMentionsContext(summaryData.summary, context)) {
+        summaryData = null;
+      }
+
+      if (!summaryData) {
+        const searchQuery = `${normalized} rugby league${context?.teamName ? ` ${context.teamName}` : ""}`;
+        const candidates = await searchWikipediaTitle(searchQuery);
+        for (const title of candidates) {
+          const candidate = await fetchWikipediaSummaryByTitle(title);
+          if (!candidate?.summary) continue;
+          if (!isLikelyRugbyLeagueSummary(candidate.summary)) continue;
+          if (!summaryMentionsContext(candidate.summary, context)) continue;
+          summaryData = candidate;
+          break;
+        }
+      }
+
+      if (!summaryData) {
         return null;
       }
-      const data = await response.json();
-      if (data?.type === "disambiguation") {
-        return null;
-      }
-      const extract: string | null =
-        data?.extract || data?.description || null;
-      let summary =
-        extract && extract.length > 900 ? `${extract.slice(0, 900)}…` : extract;
-      summary = sanitizePlayerSummary(summary, normalized);
-      const image: string | null =
-        data?.originalimage?.source ||
-        data?.thumbnail?.source ||
-        null;
+
+      const summary = summaryData.summary;
+      const image = summaryData.image;
       const payload = {
         summary: summary || null,
         image,
@@ -630,7 +683,10 @@ export async function registerRoutes(
     return hints.join(" / ");
   }
 
-  async function getWikipediaPlayerProfile(subject?: string | null) {
+  async function getWikipediaPlayerProfile(
+    subject?: string | null,
+    context?: { teamName?: string | null; league?: string | null }
+  ) {
     if (!subject) return null;
     const normalized = subject.trim();
     if (!normalized) return null;
@@ -640,7 +696,7 @@ export async function registerRoutes(
       return cached;
     }
 
-    const baseProfile = await getWikipediaProfile(normalized);
+    const baseProfile = await getWikipediaProfile(normalized, context);
     if (!baseProfile) return null;
     if (!baseProfile.summary) {
       return baseProfile;
@@ -1651,7 +1707,10 @@ export async function registerRoutes(
           roster
             .filter((player) => isPlayerAssignedToTeam(player.name, resolvedTeamId))
             .map(async (player) => {
-            const wikiProfile = await getWikipediaPlayerProfile(player.name);
+            const wikiProfile = await getWikipediaPlayerProfile(player.name, {
+              teamName: teamInfo?.name,
+              league: teamInfo?.league,
+            });
             const normalizedPosition =
               wikiProfile?.position ||
               formatPositions(player.position) ||
@@ -1694,7 +1753,10 @@ export async function registerRoutes(
           squad.players
             .filter((player) => isPlayerAssignedToTeam(player.name, resolvedTeamId))
             .map(async (player, index) => {
-          const wikiProfile = await getWikipediaPlayerProfile(player.name);
+          const wikiProfile = await getWikipediaPlayerProfile(player.name, {
+            teamName: teamInfo?.name,
+            league: teamInfo?.league,
+          });
           const avatar = wikiProfile?.image || getFallbackPlayerImage(player.name);
           const fallbackPosition = fallbackPositionFromNumber(player.squad_number);
           const normalizedPosition =
@@ -1805,7 +1867,10 @@ export async function registerRoutes(
         if (players.length > 0) {
           const enriched = await mapWithConcurrency(players, 6, async (player, index) => {
             if (player.position) return player;
-            const wikiProfile = await getWikipediaPlayerProfile(player.name);
+            const wikiProfile = await getWikipediaPlayerProfile(player.name, {
+              teamName: player.teamName,
+              league: player.league,
+            });
             return {
               ...player,
               position: wikiProfile?.position || player.position || "Utility",
@@ -1843,7 +1908,10 @@ export async function registerRoutes(
 
         const enrichedFallback = await mapWithConcurrency(fallbackPlayers, 6, async (player, index) => {
           if (player.position) return player;
-          const wikiProfile = await getWikipediaPlayerProfile(player.name);
+          const wikiProfile = await getWikipediaPlayerProfile(player.name, {
+            teamName: player.teamName,
+            league: player.league,
+          });
           return {
             ...player,
             position: wikiProfile?.position || player.position || "Utility",
@@ -1874,7 +1942,10 @@ export async function registerRoutes(
       const rosterPlayers = rosterResults.flat();
       const enrichedRoster = await mapWithConcurrency(rosterPlayers, 6, async (player, index) => {
         if (player.position) return player;
-        const wikiProfile = await getWikipediaPlayerProfile(player.name);
+        const wikiProfile = await getWikipediaPlayerProfile(player.name, {
+          teamName: player.teamName,
+          league: player.league,
+        });
         return {
           ...player,
           position: wikiProfile?.position || player.position || "Utility",
@@ -1897,7 +1968,10 @@ export async function registerRoutes(
 
       const localPlayer = await getLocalPlayerById(id);
       if (localPlayer) {
-        const wikiProfile = await getWikipediaPlayerProfile(localPlayer.name);
+        const wikiProfile = await getWikipediaPlayerProfile(localPlayer.name, {
+          teamName: localPlayer.teamName,
+          league: localPlayer.league,
+        });
         const normalizedPosition =
           wikiProfile?.position || formatPositions(localPlayer.position) || localPlayer.position || "Utility";
         const avatar = wikiProfile?.image || getFallbackPlayerImage(localPlayer.name);
