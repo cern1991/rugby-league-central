@@ -783,6 +783,7 @@ function GameCard({ game, teamId }: { game: Game; teamId: string }) {
   
   const isHome = String(game.teams.home.id) === teamId;
   const opponent = isHome ? game.teams.away : game.teams.home;
+  const opponentLogo = resolveTeamLogo(opponent, game.league?.name);
   const ourScore = isHome ? game.scores.home : game.scores.away;
   const theirScore = isHome ? game.scores.away : game.scores.home;
   const isFinished = game.status.short === "FT" || game.status.short === "AET";
@@ -828,8 +829,8 @@ function GameCard({ game, teamId }: { game: Game; teamId: string }) {
 
           <div className="flex-1 flex items-center gap-4">
             <div className="flex items-center gap-3 flex-1">
-              {opponent.logo ? (
-                <img src={opponent.logo} alt={opponent.name} className="w-10 h-10 object-contain" />
+              {opponentLogo ? (
+                <img src={opponentLogo} alt={opponent.name} className="w-10 h-10 object-contain" />
               ) : (
                 <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-xs font-bold">
                   {opponent.name.slice(0, 2).toUpperCase()}
@@ -886,4 +887,53 @@ function GameCard({ game, teamId }: { game: Game; teamId: string }) {
       </div>
     </Link>
   );
+}
+
+const TEAM_LOGO_BY_LEAGUE = LOCAL_TEAMS.reduce<Record<string, Record<string, string | null>>>((acc, team) => {
+  const leagueKey = team.league?.toLowerCase().includes("super") ? "super" : "nrl";
+  if (!acc[leagueKey]) acc[leagueKey] = {};
+  const bucket = acc[leagueKey];
+  const nameKey = team.name.toLowerCase();
+  const normalized = nameKey.replace(/[^a-z0-9]+/g, "");
+  bucket[nameKey] = team.logo || null;
+  bucket[normalized] = team.logo || null;
+  if (nameKey.includes("sea eagles")) {
+    bucket["manly"] = team.logo || null;
+    bucket["seaeagles"] = team.logo || null;
+  }
+  if (nameKey.includes("warriors")) bucket["warriors"] = team.logo || null;
+  if (nameKey.includes("roosters")) bucket["roosters"] = team.logo || null;
+  if (nameKey.includes("rabbitohs")) bucket["rabbitohs"] = team.logo || null;
+  if (nameKey.includes("panthers")) bucket["panthers"] = team.logo || null;
+  if (nameKey.includes("tigers")) bucket["tigers"] = team.logo || null;
+  if (nameKey.includes("newcastle knights")) bucket["knights"] = team.logo || null;
+  if (nameKey.includes("york knights")) bucket["york"] = team.logo || null;
+  if (nameKey.includes("bulldogs")) bucket["bulldogs"] = team.logo || null;
+  if (nameKey.includes("cowboys")) bucket["cowboys"] = team.logo || null;
+  if (nameKey.includes("sharks")) bucket["sharks"] = team.logo || null;
+  if (nameKey.includes("storm")) bucket["storm"] = team.logo || null;
+  if (nameKey.includes("titans")) bucket["titans"] = team.logo || null;
+  if (nameKey.includes("dolphins")) bucket["dolphins"] = team.logo || null;
+  if (nameKey.includes("dragons")) bucket["dragons"] = team.logo || null;
+  if (nameKey.includes("eels")) bucket["eels"] = team.logo || null;
+  if (nameKey.includes("raiders")) bucket["raiders"] = team.logo || null;
+  if (nameKey.includes("broncos")) bucket["broncos"] = team.logo || null;
+  if (nameKey.includes("hull fc")) {
+    bucket["hull fc"] = team.logo || null;
+    bucket["hull"] = team.logo || null;
+  }
+  if (nameKey.includes("hull kr") || nameKey.includes("hull kingston rovers")) {
+    bucket["hull kr"] = team.logo || null;
+    bucket["hkr"] = team.logo || null;
+  }
+  return acc;
+}, {});
+
+function resolveTeamLogo(team: Game["teams"]["home"], leagueName?: string) {
+  if (team.logo) return team.logo;
+  const key = team.name.toLowerCase();
+  const normalized = key.replace(/[^a-z0-9]+/g, "");
+  const leagueKey = leagueName?.toLowerCase().includes("super") ? "super" : "nrl";
+  const bucket = TEAM_LOGO_BY_LEAGUE[leagueKey] || {};
+  return bucket[key] || bucket[normalized] || null;
 }
