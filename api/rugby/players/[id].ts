@@ -1,3 +1,11 @@
+import { LOCAL_TEAMS } from "../../../shared/localTeams";
+import { LOCAL_TEAM_ROSTERS } from "../../../server/data/localRosters";
+import {
+  SUPER_LEAGUE_SQUADS,
+  type SuperLeaguePlayer,
+} from "../../../server/data/localSuperLeagueSquads";
+import { SUPER_LEAGUE_TEAM_ID_BY_CODE } from "../../../shared/localSuperLeagueFixtures";
+
 type RequestLike = {
   query: Record<string, string | string[]>;
 };
@@ -47,26 +55,21 @@ const fallbackPositionFromNumber = (raw?: number | string | null) => {
   }
 };
 
-export default async function handler(req: RequestLike, res: ResponseLike) {
+const findTeamById = (id?: string | null) =>
+  id ? LOCAL_TEAMS.find((team) => String(team.id) === String(id)) : undefined;
+
+const SUPER_LEAGUE_SQUADS_BY_TEAM_ID = Object.entries(SUPER_LEAGUE_SQUADS).reduce<
+  Record<string, { season: number; players: SuperLeaguePlayer[]; team_code: string; team_name: string }[]>
+>((acc, [code, squads]) => {
+  const teamId = SUPER_LEAGUE_TEAM_ID_BY_CODE[code];
+  if (teamId) {
+    acc[teamId] = squads as any;
+  }
+  return acc;
+}, {});
+
+export default function handler(req: RequestLike, res: ResponseLike) {
   try {
-    const { LOCAL_TEAMS } = await import("../../../shared/localTeams");
-    const { LOCAL_TEAM_ROSTERS } = await import("../../../server/data/localRosters");
-    const { SUPER_LEAGUE_SQUADS } = await import("../../../server/data/localSuperLeagueSquads");
-    const { SUPER_LEAGUE_TEAM_ID_BY_CODE } = await import("../../../shared/localSuperLeagueFixtures");
-
-    const findTeamById = (id?: string | null) =>
-      id ? LOCAL_TEAMS.find((team) => String(team.id) === String(id)) : undefined;
-
-    const SUPER_LEAGUE_SQUADS_BY_TEAM_ID = Object.entries(SUPER_LEAGUE_SQUADS).reduce<
-      Record<string, { season: number; players: any[]; team_code: string; team_name: string }[]>
-    >((acc, [code, squads]) => {
-      const teamId = SUPER_LEAGUE_TEAM_ID_BY_CODE[code];
-      if (teamId) {
-        acc[teamId] = squads as any;
-      }
-      return acc;
-    }, {});
-
     const id = getQueryValue(req.query.id);
     if (!id) {
       return res.status(400).json({ message: "Player ID is required" });

@@ -1,3 +1,5 @@
+import { LOCAL_TEAMS } from "../../shared/localTeams";
+
 type RequestLike = {
   query: Record<string, string | string[]>;
 };
@@ -22,9 +24,8 @@ const getLocalTeams = (teams: Array<{ league: string }>, league?: string) => {
   return teams.filter((team) => team.league === league);
 };
 
-export default async function handler(req: RequestLike, res: ResponseLike) {
+export default function handler(req: RequestLike, res: ResponseLike) {
   try {
-    const { LOCAL_TEAMS } = await import("../../shared/localTeams");
     const league = getQueryValue(req.query.league);
     const teams = getLocalTeams(LOCAL_TEAMS, league);
     return res.status(200).json({ response: teams });
