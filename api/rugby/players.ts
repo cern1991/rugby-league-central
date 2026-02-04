@@ -1,4 +1,4 @@
-import { LOCAL_TEAMS } from "../../shared/localTeams";
+import { LOCAL_TEAMS, type LocalTeamInfo } from "../../shared/localTeams";
 import { LOCAL_TEAM_ROSTERS } from "../../server/data/localRosters";
 import {
   SUPER_LEAGUE_SQUADS,
@@ -27,7 +27,7 @@ const getFallbackPlayerImage = (name: string) => {
   return `https://ui-avatars.com/api/?name=${encoded}&background=random&color=ffffff`;
 };
 
-const getLocalTeams = (teams: Array<{ league: string }>, league?: string) => {
+const getLocalTeams = (teams: LocalTeamInfo[], league?: string) => {
   if (!league) return teams;
   const leagueLower = league.toLowerCase();
   if (leagueLower.includes("super")) {
