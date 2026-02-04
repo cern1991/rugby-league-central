@@ -22,6 +22,7 @@ import { usePreferredLeague } from "@/hooks/usePreferredLeague";
 import { resolveNewsThumbnail } from "@/lib/branding";
 import { getNewsFallbackForLeague } from "@/data/localNewsFallback";
 import { getLocalFixturesForLeague } from "@/lib/localFixtures";
+import { LOCAL_TEAMS } from "@shared/localTeams";
 
 const DEFAULT_FIXTURE_SEASON = "2026";
 const FEATURED_NEWS_LIMIT = 3;
@@ -692,11 +693,23 @@ export default function Home() {
     </Layout>
   );
 }
+const TEAM_LOGO_BY_NAME = LOCAL_TEAMS.reduce<Record<string, string | null>>((acc, team) => {
+  acc[team.name.toLowerCase()] = team.logo || null;
+  return acc;
+}, {});
+
+function resolveTeamLogo(team: Game["teams"]["home"]) {
+  if (team.logo) return team.logo;
+  const key = team.name.toLowerCase();
+  return TEAM_LOGO_BY_NAME[key] || null;
+}
+
 function TeamBlip({ team, score }: { team: Game["teams"]["home"]; score: number | null }) {
+  const logo = resolveTeamLogo(team);
   return (
     <div className="flex flex-col items-center text-center gap-2 min-w-[140px]">
-      {team.logo ? (
-        <img src={team.logo} alt={team.name} className="h-12 object-contain" />
+      {logo ? (
+        <img src={logo} alt={team.name} className="h-12 w-12 object-contain" />
       ) : (
         <div className="w-12 h-12 bg-muted flex items-center justify-center text-sm font-bold text-muted-foreground rounded-lg">
           {team.name.slice(0, 2).toUpperCase()}
