@@ -695,13 +695,76 @@ export default function Home() {
 }
 const TEAM_LOGO_BY_NAME = LOCAL_TEAMS.reduce<Record<string, string | null>>((acc, team) => {
   acc[team.name.toLowerCase()] = team.logo || null;
+  const normalized = team.name.toLowerCase().replace(/[^a-z0-9]+/g, "");
+  acc[normalized] = team.logo || null;
+  if (team.name.toLowerCase().includes("sea eagles")) {
+    acc["manly"] = team.logo || null;
+    acc["sea eagles"] = team.logo || null;
+  }
+  if (team.name.toLowerCase().includes("warriors")) {
+    acc["warriors"] = team.logo || null;
+  }
+  if (team.name.toLowerCase().includes("roosters")) {
+    acc["roosters"] = team.logo || null;
+  }
+  if (team.name.toLowerCase().includes("rabbitohs")) {
+    acc["rabbitohs"] = team.logo || null;
+  }
+  if (team.name.toLowerCase().includes("panthers")) {
+    acc["panthers"] = team.logo || null;
+  }
+  if (team.name.toLowerCase().includes("tigers")) {
+    acc["tigers"] = team.logo || null;
+  }
+  if (team.name.toLowerCase().includes("knights")) {
+    acc["knights"] = team.logo || null;
+  }
+  if (team.name.toLowerCase().includes("bulldogs")) {
+    acc["bulldogs"] = team.logo || null;
+  }
+  if (team.name.toLowerCase().includes("cowboys")) {
+    acc["cowboys"] = team.logo || null;
+  }
+  if (team.name.toLowerCase().includes("sharks")) {
+    acc["sharks"] = team.logo || null;
+  }
+  if (team.name.toLowerCase().includes("storm")) {
+    acc["storm"] = team.logo || null;
+  }
+  if (team.name.toLowerCase().includes("titans")) {
+    acc["titans"] = team.logo || null;
+  }
+  if (team.name.toLowerCase().includes("dolphins")) {
+    acc["dolphins"] = team.logo || null;
+  }
+  if (team.name.toLowerCase().includes("dragons")) {
+    acc["dragons"] = team.logo || null;
+  }
+  if (team.name.toLowerCase().includes("eels")) {
+    acc["eels"] = team.logo || null;
+  }
+  if (team.name.toLowerCase().includes("raiders")) {
+    acc["raiders"] = team.logo || null;
+  }
+  if (team.name.toLowerCase().includes("broncos")) {
+    acc["broncos"] = team.logo || null;
+  }
+  if (team.name.toLowerCase().includes("hull fc")) {
+    acc["hull fc"] = team.logo || null;
+    acc["hull"] = team.logo || null;
+  }
+  if (team.name.toLowerCase().includes("hull kr") || team.name.toLowerCase().includes("hull kingston rovers")) {
+    acc["hull kr"] = team.logo || null;
+    acc["hkr"] = team.logo || null;
+  }
   return acc;
 }, {});
 
 function resolveTeamLogo(team: Game["teams"]["home"]) {
   if (team.logo) return team.logo;
   const key = team.name.toLowerCase();
-  return TEAM_LOGO_BY_NAME[key] || null;
+  const normalized = key.replace(/[^a-z0-9]+/g, "");
+  return TEAM_LOGO_BY_NAME[key] || TEAM_LOGO_BY_NAME[normalized] || null;
 }
 
 function TeamBlip({ team, score }: { team: Game["teams"]["home"]; score: number | null }) {
