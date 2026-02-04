@@ -112,13 +112,20 @@ export default function Players() {
 
   const players = useMemo(() => {
     const leagueKey = normalizeLeagueKey(selectedLeague);
-    return (data?.response || [])
+    const filtered = (data?.response || [])
       .filter((player) => normalizeLeagueKey(player.league || selectedLeague) === leagueKey)
       .map((player) => ({
         ...player,
         teamName: getDisplayTeamName(player.teamId, player.teamName, player.league),
         teamLogo: player.teamLogo || (player.teamId ? teamLogoById.get(String(player.teamId)) || null : null),
       }));
+    const seen = new Set<string>();
+    return filtered.filter((player) => {
+      const key = player.id || `${player.name}-${player.teamId || player.teamName || ""}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
   }, [data, teamLogoById, selectedLeague]);
 
   const teamOptions = useMemo(() => {
