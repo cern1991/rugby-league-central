@@ -3,6 +3,10 @@ import {
   findLocalGameById,
 } from "../../../server/lib/localData";
 
+export const config = {
+  runtime: "nodejs",
+};
+
 type RequestLike = {
   query: {
     id?: string | string[];

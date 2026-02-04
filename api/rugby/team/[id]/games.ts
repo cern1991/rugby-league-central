@@ -7,6 +7,10 @@ import {
   resolveTeamIdentifier,
 } from "../../../../server/lib/localData";
 
+export const config = {
+  runtime: "nodejs",
+};
+
 type RequestLike = {
   query: Record<string, string | string[]>;
 };
