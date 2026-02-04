@@ -9,6 +9,7 @@ import { format, parseISO } from "date-fns";
 import { Game, FEATURED_LEAGUES } from "@shared/schema";
 import { usePreferredLeague } from "@/hooks/usePreferredLeague";
 import { getLocalFixturesForLeague } from "@/lib/localFixtures";
+import { LOCAL_TEAMS } from "@shared/localTeams";
 
 const DEFAULT_FIXTURE_SEASON = "2026";
 
@@ -44,6 +45,8 @@ export default function LiveScores() {
   );
   const upcomingGames = games.filter(g => g.status.short === "NS" || g.status.short === "TBD");
   const completedGames = games.filter(g => g.status.short === "FT" || g.status.short === "AET");
+  const groupedUpcoming = useMemo(() => groupGamesByRound(upcomingGames), [upcomingGames]);
+  const groupedCompleted = useMemo(() => groupGamesByRound(completedGames), [completedGames]);
 
   const hasLiveGames = liveGames.length > 0;
   const displayLeagueName = FEATURED_LEAGUES.find(l => l.id === selectedLeague)?.name || selectedLeague;
@@ -135,9 +138,18 @@ export default function LiveScores() {
                   Upcoming Fixtures
                 </h2>
                 {upcomingGames.length > 0 ? (
-                  <div className="space-y-3">
-                    {upcomingGames.map(game => (
-                      <GameCard key={game.id} game={game} />
+                  <div className="space-y-6">
+                    {groupedUpcoming.map((group) => (
+                      <div key={group.label} className="space-y-3">
+                        <div className="text-xs uppercase tracking-wide text-muted-foreground">
+                          {group.label}
+                        </div>
+                        <div className="space-y-3">
+                          {group.games.map((game) => (
+                            <GameCard key={game.id} game={game} />
+                          ))}
+                        </div>
+                      </div>
                     ))}
                   </div>
                 ) : (
@@ -154,9 +166,18 @@ export default function LiveScores() {
                   Recent Results
                 </h2>
                 {completedGames.length > 0 ? (
-                  <div className="space-y-3">
-                    {completedGames.map(game => (
-                      <GameCard key={game.id} game={game} />
+                  <div className="space-y-6">
+                    {groupedCompleted.map((group) => (
+                      <div key={group.label} className="space-y-3">
+                        <div className="text-xs uppercase tracking-wide text-muted-foreground">
+                          {group.label}
+                        </div>
+                        <div className="space-y-3">
+                          {group.games.map((game) => (
+                            <GameCard key={game.id} game={game} />
+                          ))}
+                        </div>
+                      </div>
                     ))}
                   </div>
                 ) : (
@@ -178,6 +199,9 @@ function GameCard({ game, isLive }: { game: Game; isLive?: boolean }) {
   const isFinished = game.status.short === "FT" || game.status.short === "AET";
   const gameDate = game.date ? parseISO(game.date) : null;
   const matchHref = `/match/${encodeURIComponent(game.id)}`;
+  const leagueName = game.league?.name;
+  const homeLogo = resolveTeamLogo(game.teams.home, leagueName);
+  const awayLogo = resolveTeamLogo(game.teams.away, leagueName);
 
   return (
     <Link href={matchHref} data-testid={`link-game-${game.id}`}>
@@ -207,8 +231,8 @@ function GameCard({ game, isLive }: { game: Game; isLive?: boolean }) {
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-3 mb-2">
-              {game.teams.home.logo ? (
-                <img src={game.teams.home.logo} alt={game.teams.home.name} className="w-8 h-8 object-contain" />
+              {homeLogo ? (
+                <img src={homeLogo} alt={game.teams.home.name} className="w-8 h-8 object-contain" />
               ) : (
                 <div className="w-8 h-8 rounded bg-muted flex items-center justify-center text-xs font-bold">
                   {game.teams.home.name.slice(0, 2)}
@@ -224,8 +248,8 @@ function GameCard({ game, isLive }: { game: Game; isLive?: boolean }) {
               </span>
             </div>
             <div className="flex items-center gap-3">
-              {game.teams.away.logo ? (
-                <img src={game.teams.away.logo} alt={game.teams.away.name} className="w-8 h-8 object-contain" />
+              {awayLogo ? (
+                <img src={awayLogo} alt={game.teams.away.name} className="w-8 h-8 object-contain" />
               ) : (
                 <div className="w-8 h-8 rounded bg-muted flex items-center justify-center text-xs font-bold">
                   {game.teams.away.name.slice(0, 2)}
@@ -256,4 +280,66 @@ function GameCard({ game, isLive }: { game: Game; isLive?: boolean }) {
       </div>
     </Link>
   );
+}
+
+const TEAM_LOGO_BY_LEAGUE = LOCAL_TEAMS.reduce<Record<string, Record<string, string | null>>>((acc, team) => {
+  const leagueKey = team.league.toLowerCase().includes("super") ? "super" : "nrl";
+  if (!acc[leagueKey]) acc[leagueKey] = {};
+  const bucket = acc[leagueKey];
+  const nameKey = team.name.toLowerCase();
+  const normalized = nameKey.replace(/[^a-z0-9]+/g, "");
+  bucket[nameKey] = team.logo || null;
+  bucket[normalized] = team.logo || null;
+  if (nameKey.includes("sea eagles")) {
+    bucket["manly"] = team.logo || null;
+    bucket["seaeagles"] = team.logo || null;
+  }
+  if (nameKey.includes("warriors")) bucket["warriors"] = team.logo || null;
+  if (nameKey.includes("roosters")) bucket["roosters"] = team.logo || null;
+  if (nameKey.includes("rabbitohs")) bucket["rabbitohs"] = team.logo || null;
+  if (nameKey.includes("panthers")) bucket["panthers"] = team.logo || null;
+  if (nameKey.includes("tigers")) bucket["tigers"] = team.logo || null;
+  if (nameKey.includes("newcastle knights")) bucket["knights"] = team.logo || null;
+  if (nameKey.includes("york knights")) bucket["york"] = team.logo || null;
+  if (nameKey.includes("bulldogs")) bucket["bulldogs"] = team.logo || null;
+  if (nameKey.includes("cowboys")) bucket["cowboys"] = team.logo || null;
+  if (nameKey.includes("sharks")) bucket["sharks"] = team.logo || null;
+  if (nameKey.includes("storm")) bucket["storm"] = team.logo || null;
+  if (nameKey.includes("titans")) bucket["titans"] = team.logo || null;
+  if (nameKey.includes("dolphins")) bucket["dolphins"] = team.logo || null;
+  if (nameKey.includes("dragons")) bucket["dragons"] = team.logo || null;
+  if (nameKey.includes("eels")) bucket["eels"] = team.logo || null;
+  if (nameKey.includes("raiders")) bucket["raiders"] = team.logo || null;
+  if (nameKey.includes("broncos")) bucket["broncos"] = team.logo || null;
+  if (nameKey.includes("hull fc")) {
+    bucket["hull fc"] = team.logo || null;
+    bucket["hull"] = team.logo || null;
+  }
+  if (nameKey.includes("hull kr") || nameKey.includes("hull kingston rovers")) {
+    bucket["hull kr"] = team.logo || null;
+    bucket["hkr"] = team.logo || null;
+  }
+  return acc;
+}, {});
+
+function resolveTeamLogo(team: Game["teams"]["home"], leagueName?: string) {
+  if (team.logo) return team.logo;
+  const key = team.name.toLowerCase();
+  const normalized = key.replace(/[^a-z0-9]+/g, "");
+  const leagueKey = leagueName?.toLowerCase().includes("super") ? "super" : "nrl";
+  const bucket = TEAM_LOGO_BY_LEAGUE[leagueKey] || {};
+  return bucket[key] || bucket[normalized] || null;
+}
+
+function groupGamesByRound(games: Game[]) {
+  const groups = new Map<string, Game[]>();
+  games
+    .slice()
+    .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0))
+    .forEach((game) => {
+      const label = game.week || (game.date ? format(parseISO(game.date), "EEE, MMM d") : "Fixtures");
+      if (!groups.has(label)) groups.set(label, []);
+      groups.get(label)?.push(game);
+    });
+  return Array.from(groups.entries()).map(([label, groupGames]) => ({ label, games: groupGames }));
 }
