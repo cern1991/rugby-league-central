@@ -33,15 +33,20 @@ const WIKIPEDIA_HEADERS = {
 };
 
 const fetchWikipediaSummary = async (name: string) => {
-  const slug = encodeURIComponent(name.replace(/\s+/g, "_"));
-  const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${slug}`;
-  const response = await fetch(url, { headers: WIKIPEDIA_HEADERS });
-  if (!response.ok) return null;
-  const data = await response.json();
-  if (data?.type === "disambiguation") return null;
-  const extract: string | null = data?.extract || data?.description || null;
-  if (!extract) return null;
-  return extract.length > 1200 ? `${extract.slice(0, 1200)}…` : extract;
+  if (typeof fetch !== "function") return null;
+  try {
+    const slug = encodeURIComponent(name.replace(/\s+/g, "_"));
+    const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${slug}`;
+    const response = await fetch(url, { headers: WIKIPEDIA_HEADERS });
+    if (!response.ok) return null;
+    const data = await response.json();
+    if (data?.type === "disambiguation") return null;
+    const extract: string | null = data?.extract || data?.description || null;
+    if (!extract) return null;
+    return extract.length > 1200 ? `${extract.slice(0, 1200)}…` : extract;
+  } catch {
+    return null;
+  }
 };
 
 const fallbackPositionFromNumber = (raw?: number | string | null) => {
