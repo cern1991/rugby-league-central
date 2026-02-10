@@ -10,32 +10,42 @@ interface Props {
 export function LeagueFilter({ selectedLeague, setSelectedLeague, className }: Props) {
   return (
     <div className={cn("w-full", className)}>
-      <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
+      <div className="mx-auto grid w-full max-w-4xl grid-cols-2 gap-2">
         {FEATURED_LEAGUES.map((league) => (
           <button
             key={league.id}
             onClick={() => setSelectedLeague(league.id)}
             className={cn(
-              "flex items-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-lg font-medium text-sm sm:text-base transition-colors border",
+              "flex items-center gap-3 rounded-2xl border px-4 py-3 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary",
               selectedLeague === league.id
-                ? "bg-primary/10 text-primary border-primary/40 shadow-sm"
-                : "text-muted-foreground border-transparent hover:text-foreground hover:bg-muted"
+                ? "border-primary bg-primary text-primary-foreground shadow-lg"
+                : "border-border bg-card text-foreground hover:border-primary/50 hover:bg-accent"
             )}
             data-testid={`filter-league-${league.shortName.toLowerCase().replace(/\s+/g, '-')}`}
           >
             {league.logo ? (
-              <span className="inline-flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-md bg-white/10 ring-1 ring-black/5 dark:ring-white/10">
+              <span className="h-12 w-12 rounded-xl bg-background/80 flex items-center justify-center ring-1 ring-border">
                 <img
                   src={league.logo}
                   alt={`${league.name} logo`}
-                  className="h-5 w-5 sm:h-6 sm:w-6 object-contain"
+                  className="h-8 w-8 object-contain"
                   loading="lazy"
                 />
               </span>
             ) : (
               <span className="text-lg sm:text-xl">{league.icon}</span>
             )}
-            <span>{league.name}</span>
+            <div className="text-left">
+              <p
+                className={cn(
+                  "text-xs uppercase tracking-wide",
+                  selectedLeague === league.id ? "text-primary-foreground/80" : "text-muted-foreground"
+                )}
+              >
+                Follow
+              </p>
+              <p className="font-semibold text-base">{league.name}</p>
+            </div>
           </button>
         ))}
       </div>
