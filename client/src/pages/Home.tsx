@@ -168,7 +168,7 @@ export default function Home() {
     <Layout>
       <div className="space-y-8">
         
-        <section className="grid grid-cols-2 gap-3">
+        <section className="mx-auto grid w-full max-w-4xl grid-cols-2 gap-2">
           {leagueToggleOptions.map((league) => (
             <button
               key={league.id}
@@ -204,7 +204,7 @@ export default function Home() {
           ))}
         </section>
 
-        <section className="rounded-3xl border border-border/60 bg-card/80 p-4 md:p-6 shadow-xl">
+        <section className="mx-auto w-full max-w-4xl rounded-3xl border border-border/60 bg-card/80 p-4 md:p-6 shadow-xl">
           <div className="flex items-center justify-between text-xs uppercase tracking-wide text-muted-foreground">
             <span>{roundFixtures[0]?.week || `${displayLeagueName} fixtures`}</span>
             <span>{roundFixtures.length} games</span>
@@ -232,9 +232,9 @@ export default function Home() {
                       <span>{statusLabel}</span>
                       <span>{kickoffText}</span>
                     </div>
-                    <div className="mt-4 flex flex-row flex-nowrap items-center justify-between gap-3 sm:gap-6">
+                    <div className="mt-4 flex flex-row flex-nowrap items-center justify-between gap-2 sm:gap-5">
                       <TeamBlip team={game.teams.home} score={game.scores.home} leagueName={displayLeagueName} />
-                      <div className="text-xl sm:text-2xl font-bold text-muted-foreground/70">vs</div>
+                      <div className="text-lg sm:text-2xl font-bold text-muted-foreground/70">vs</div>
                       <TeamBlip team={game.teams.away} score={game.scores.away} leagueName={displayLeagueName} />
                     </div>
                   </Link>
