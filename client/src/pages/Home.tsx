@@ -239,9 +239,9 @@ export default function Home() {
                           <span>{statusLabel}</span>
                           <span>{kickoffText}</span>
                         </div>
-                        <div className="mt-4 flex flex-col md:flex-row items-center justify-center gap-6">
+                        <div className="mt-4 flex flex-row flex-nowrap items-center justify-between gap-3 sm:gap-6">
                           <TeamBlip team={game.teams.home} score={game.scores.home} leagueName={displayLeagueName} />
-                          <div className="text-2xl font-bold text-muted-foreground/70">vs</div>
+                          <div className="text-xl sm:text-2xl font-bold text-muted-foreground/70">vs</div>
                           <TeamBlip team={game.teams.away} score={game.scores.away} leagueName={displayLeagueName} />
                         </div>
                       </Link>
@@ -745,17 +745,17 @@ function resolveTeamLogo(team: Game["teams"]["home"], leagueName?: string) {
 function TeamBlip({ team, score, leagueName }: { team: Game["teams"]["home"]; score: number | null; leagueName?: string }) {
   const logo = resolveTeamLogo(team, leagueName);
   return (
-    <div className="flex flex-col items-center text-center gap-2 min-w-[140px]">
+    <div className="flex flex-col items-center text-center gap-2 min-w-[110px] sm:min-w-[140px]">
       {logo ? (
-        <img src={logo} alt={team.name} className="h-12 w-12 object-contain" />
+        <img src={logo} alt={team.name} className="h-9 w-9 sm:h-12 sm:w-12 object-contain" />
       ) : (
-        <div className="w-12 h-12 bg-muted flex items-center justify-center text-sm font-bold text-muted-foreground rounded-lg">
+        <div className="w-9 h-9 sm:w-12 sm:h-12 bg-muted flex items-center justify-center text-xs sm:text-sm font-bold text-muted-foreground rounded-lg">
           {team.name.slice(0, 2).toUpperCase()}
         </div>
       )}
       <div className="space-y-1">
-        <p className="text-sm font-semibold line-clamp-1">{team.name}</p>
-        <p className="text-3xl font-display text-foreground">{score ?? "–"}</p>
+        <p className="text-xs sm:text-sm font-semibold line-clamp-1">{team.name}</p>
+        <p className="text-2xl sm:text-3xl font-display text-foreground">{score ?? "–"}</p>
       </div>
     </div>
   );
