@@ -1,11 +1,12 @@
 import { Layout } from "@/components/Layout";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { cn, dedupeGames, formatTime } from "@/lib/utils";
 import { Link } from "wouter";
-import { 
-  Trophy, 
-  ChevronRight, 
+import {
+  Trophy,
+  ChevronRight,
+  ChevronLeft,
   Zap,
   Calendar,
   TrendingUp,
@@ -60,7 +61,8 @@ interface NewsItem {
 
 export default function Home() {
   const { selectedLeague, setSelectedLeague } = usePreferredLeague();
-  const [activeTab, setActiveTab] = useState<"teams" | "fixtures" | "news">("teams");
+  const [activeTab, setActiveTab] = useState<"teams" | "fixtures" | "news">("news");
+  const [newsIndex, setNewsIndex] = useState(0);
   const { data: teamsData, isLoading: teamsLoading } = useQuery<{ response: Team[] }>({
     queryKey: ["teams", selectedLeague],
     queryFn: async () => {
@@ -130,6 +132,15 @@ export default function Home() {
   const heroHighlight = liveGames[0] ?? upcomingGames[0] ?? null;
   const leagueToggleOptions = useMemo(() => FEATURED_LEAGUES, []);
   const heroNews = featuredNews[0];
+  const carouselNews = news.length > 0 ? news : featuredNews;
+  const safeNewsIndex = carouselNews.length > 0 ? newsIndex % carouselNews.length : 0;
+  const activeNews = carouselNews[safeNewsIndex];
+  const dotCount = Math.min(5, carouselNews.length);
+  const activeDotIndex = dotCount > 0 ? safeNewsIndex % dotCount : 0;
+
+  useEffect(() => {
+    setNewsIndex(0);
+  }, [selectedLeague]);
   const roundFixtures = useMemo(() => {
     const source =
       upcomingGames.length > 0
@@ -576,7 +587,72 @@ export default function Home() {
                     ))}
                   </div>
                 ) : news.length > 0 ? (
-                  <div className="space-y-3">
+                  <div className="space-y-4">
+                    {activeNews && (
+                      <div className="rounded-2xl border border-border bg-card p-5 md:p-6 shadow-sm">
+                        <div className="flex flex-col md:flex-row gap-5 items-start">
+                          <div className="w-full md:w-64 h-40 md:h-44 rounded-xl overflow-hidden bg-muted flex items-center justify-center">
+                            <img
+                              src={resolveNewsThumbnail(activeNews.image, activeNews.league)}
+                              alt={activeNews.title}
+                              className="w-full h-full object-cover"
+                              loading="lazy"
+                            />
+                          </div>
+                          <div className="flex-1 space-y-3">
+                            <div className="text-xs uppercase tracking-wide text-muted-foreground">Top story</div>
+                            <h3 className="text-xl md:text-2xl font-semibold leading-snug">{activeNews.title}</h3>
+                            <p className="text-sm text-muted-foreground">{activeNews.source}</p>
+                            {activeNews.link && (
+                              <a
+                                href={activeNews.link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline"
+                              >
+                                Read article
+                                <ChevronRight className="w-4 h-4" />
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                        {carouselNews.length > 1 && (
+                          <div className="mt-4 flex items-center justify-between">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setNewsIndex((prev) =>
+                                  prev === 0 ? carouselNews.length - 1 : prev - 1
+                                )
+                              }
+                              className="inline-flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground hover:text-foreground"
+                            >
+                              <ChevronLeft className="w-4 h-4" />
+                              Prev
+                            </button>
+                            <div className="flex items-center gap-1">
+                              {Array.from({ length: dotCount }).map((_, index) => (
+                                <span
+                                  key={index}
+                                  className={cn(
+                                    "h-2 w-2 rounded-full",
+                                    index === activeDotIndex ? "bg-primary" : "bg-muted"
+                                  )}
+                                />
+                              ))}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setNewsIndex((prev) => (prev + 1) % carouselNews.length)}
+                              className="inline-flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground hover:text-foreground"
+                            >
+                              Next
+                              <ChevronRight className="w-4 h-4" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
                     {news.map((item, index) => {
                       const href = item.link || "";
                       const thumbnail = resolveNewsThumbnail(item.image, item.league);
