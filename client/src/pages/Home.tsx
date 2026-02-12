@@ -87,6 +87,8 @@ export default function Home() {
       }
       return { response: getLocalFixturesForLeague(selectedLeague) };
     },
+    refetchInterval: 60000,
+    refetchOnWindowFocus: true,
   });
 
   const { data: newsData, isLoading: newsLoading } = useQuery<{ response: NewsItem[] }>({

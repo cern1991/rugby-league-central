@@ -37,17 +37,11 @@ export default async function handler(req: RequestLike, res: ResponseLike) {
   try {
     const leagueParam = normalizeLeagueName(req.query?.league);
     const season = getQueryValue(req.query?.season) || CURRENT_SEASON;
+    const isSuperLeague = leagueParam.includes("super");
+    const leagueId = isSuperLeague ? "4415" : "4416";
+    const leagueName = isSuperLeague ? "Super League" : "NRL";
 
-    if (leagueParam.includes("super")) {
-      return res.status(200).json({ response: buildSuperLeagueFixturesFromLocalData() });
-    }
-
-    if (leagueParam.includes("nrl")) {
-      return res.status(200).json({ response: buildNrlFixturesFromLocalData() });
-    }
-
-    // For non-current seasons fall back to SportsDB season endpoint
-    const leagueId = leagueParam.includes("super") ? "4415" : "4416";
+    // Attempt live season feed first, then fall back to local fixtures.
     const seasonData = await fetchFromSportsDB(`/eventsseason.php?id=${leagueId}&s=${season}`);
 
     if (Array.isArray(seasonData?.events)) {
@@ -76,19 +70,33 @@ export default async function handler(req: RequestLike, res: ResponseLike) {
           venue: event.strVenue,
           status: {
             long: event.strStatus || (event.intHomeScore !== null ? "Match Finished" : "Not Started"),
-            short: event.strStatus === "Match Finished" ? "FT" : event.strStatus || "NS",
+            short:
+              event.strStatus === "Match Finished"
+                ? "FT"
+                : event.strStatus === "After Extra Time"
+                  ? "AET"
+                  : event.strStatus === "Not Started"
+                    ? "NS"
+                    : event.strStatus || "NS",
           },
           round: event.intRound,
           league: {
             id: leagueId,
-            name: leagueParam.includes("super") ? "Super League" : "NRL",
+            name: leagueName,
           },
-        }));
+        }))
+        .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        .slice(0, 50);
 
-      return res.status(200).json({ response: events });
+      if (events.length > 0) {
+        return res.status(200).json({ response: events });
+      }
     }
 
-    return res.status(200).json({ response: [] });
+    if (isSuperLeague) {
+      return res.status(200).json({ response: buildSuperLeagueFixturesFromLocalData() });
+    }
+    return res.status(200).json({ response: buildNrlFixturesFromLocalData() });
   } catch (error: any) {
     console.error("Serverless fixtures error:", error);
     return res.status(500).json({

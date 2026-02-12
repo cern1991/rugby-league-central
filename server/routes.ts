@@ -2080,20 +2080,6 @@ export async function registerRoutes(
       const leagueId = LEAGUE_IDS[leagueName];
       const seasonYear = season || CURRENT_SEASON;
       const normalizedLeague = leagueName.toLowerCase();
-
-      if (normalizedLeague.includes("super")) {
-        const localFixtures = buildSuperLeagueFixturesFromLocalData();
-        if (localFixtures.length > 0) {
-          return res.json({ response: localFixtures });
-        }
-      }
-
-      if (normalizedLeague.includes("nrl")) {
-        const localFixtures = buildNrlFixturesFromLocalData();
-        if (localFixtures.length > 0) {
-          return res.json({ response: localFixtures });
-        }
-      }
       
       if (leagueId) {
         // Use eventsseason.php for complete season data (works during off-season)
@@ -2136,7 +2122,23 @@ export async function registerRoutes(
             })
             .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
             .slice(0, 50);
-          return res.json({ response: events });
+          if (events.length > 0) {
+            return res.json({ response: events });
+          }
+        }
+      }
+
+      if (normalizedLeague.includes("super")) {
+        const localFixtures = buildSuperLeagueFixturesFromLocalData();
+        if (localFixtures.length > 0) {
+          return res.json({ response: localFixtures });
+        }
+      }
+
+      if (normalizedLeague.includes("nrl")) {
+        const localFixtures = buildNrlFixturesFromLocalData();
+        if (localFixtures.length > 0) {
+          return res.json({ response: localFixtures });
         }
       }
       
@@ -2409,20 +2411,25 @@ export async function registerRoutes(
         const data = await fetchFromSportsDB(`/lookuptable.php?l=${leagueId}`);
         if (data?.table) {
           const standings = data.table.map((t: any) => ({
-            position: t.intRank,
+            position: Number(t.intRank) || 0,
             team: {
-              id: t.idTeam,
+              id: Number(t.idTeam) || 0,
               name: t.strTeam,
-              logo: t.strBadge,
+              logo: t.strBadge || null,
             },
-            played: t.intPlayed,
-            won: t.intWin,
-            drawn: t.intDraw,
-            lost: t.intLoss,
-            goalsFor: t.intGoalsFor,
-            goalsAgainst: t.intGoalsAgainst,
-            goalDifference: t.intGoalDifference,
-            points: t.intPoints,
+            games: {
+              played: Number(t.intPlayed) || 0,
+              win: Number(t.intWin) || 0,
+              draw: Number(t.intDraw) || 0,
+              lose: Number(t.intLoss) || 0,
+            },
+            points: {
+              for: Number(t.intGoalsFor) || 0,
+              against: Number(t.intGoalsAgainst) || 0,
+              difference: Number(t.intGoalDifference) || 0,
+            },
+            pts: Number(t.intPoints) || 0,
+            form: (t.strForm || "").replace(/\s+/g, ""),
           }));
           return res.json({ response: standings });
         }

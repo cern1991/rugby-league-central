@@ -8,19 +8,31 @@ import { StandingsTeam, FEATURED_LEAGUES } from "@shared/schema";
 import { usePreferredLeague } from "@/hooks/usePreferredLeague";
 import { LOCAL_TEAMS } from "@shared/localTeams";
 
+function normalizeStandingsResponse(payload: any): StandingsTeam[] {
+  const response = payload?.response;
+  if (!Array.isArray(response)) return [];
+  if (response.length > 0 && Array.isArray(response[0])) {
+    return response[0] as StandingsTeam[];
+  }
+  return response as StandingsTeam[];
+}
+
 export default function LeagueTables() {
   const { selectedLeague, setSelectedLeague } = usePreferredLeague();
 
-  const { data: standingsData, isLoading } = useQuery<{ response: StandingsTeam[][] }>({
+  const { data: standingsData, isLoading } = useQuery<StandingsTeam[]>({
     queryKey: ["standings", selectedLeague],
     queryFn: async () => {
       const res = await fetch(`/api/rugby/standings?league=${encodeURIComponent(selectedLeague)}`);
       if (!res.ok) throw new Error("Failed to fetch standings");
-      return res.json();
+      const data = await res.json();
+      return normalizeStandingsResponse(data);
     },
+    refetchInterval: 60000,
+    refetchOnWindowFocus: true,
   });
 
-  const standings = standingsData?.response?.[0] || [];
+  const standings = standingsData || [];
   const shouldShowPlaceholder = !isLoading && standings.length === 0;
   const placeholderStandings = shouldShowPlaceholder ? buildPlaceholderStandings(selectedLeague) : [];
   const resolvedStandings = shouldShowPlaceholder ? placeholderStandings : standings;
@@ -95,7 +107,7 @@ export default function LeagueTables() {
                         className={cn(
                           "border-t border-border hover:bg-muted/30 transition-colors",
                           index < 4 && "border-l-4 border-l-green-500",
-                          index >= standings.length - 2 && "border-l-4 border-l-red-500"
+                          index >= resolvedStandings.length - 2 && "border-l-4 border-l-red-500"
                         )}
                         data-testid={`row-team-${row.team?.id || index}`}
                       >
